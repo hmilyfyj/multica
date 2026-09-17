@@ -99,6 +99,10 @@ type IssueResponse struct {
 	// SourceContext is detail-only. List, board, search, and children responses
 	// deliberately omit the potentially large immutable snapshot.
 	SourceContext *sourceContextDetailResponse `json:"source_context,omitempty"`
+	// OriginalInput is detail-only. For quick-create issues it is derived from
+	// the immutable origin task context, never from the agent-authored issue
+	// description. List, board, search, and children responses omit it.
+	OriginalInput *string `json:"original_input,omitempty"`
 }
 
 // validIssuePriorities mirrors the CHECK constraint on the issue table. Write
@@ -2312,6 +2316,16 @@ func (h *Handler) GetIssue(w http.ResponseWriter, r *http.Request) {
 	prefix := h.getIssuePrefix(r.Context(), issue.WorkspaceID)
 	resp := issueToResponse(issue, prefix)
 	h.fillStatusCategory(r.Context(), issue.WorkspaceID, &resp)
+	if originalInput, err := h.issueOriginalInput(r.Context(), issue); err == nil {
+		resp.OriginalInput = originalInput
+	} else {
+		slog.Warn("load issue original input failed", append(logger.RequestAttrs(r), "issue_id", uuidToString(issue.ID), "error", err)...)
+		// The original input is the authoritative instruction for a quick-create
+		// issue. Returning only the generated description would silently restore
+		// the lossy behavior this field exists to prevent.
+		writeError(w, http.StatusInternalServerError, "failed to load issue original input")
+		return
+	}
 	detailLabels := h.labelsByIssue(r.Context(), issue.WorkspaceID, []pgtype.UUID{issue.ID})[uuidToString(issue.ID)]
 	if detailLabels == nil {
 		detailLabels = []LabelResponse{}
@@ -2352,6 +2366,48 @@ func (h *Handler) GetIssue(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, resp)
+}
+
+// issueOriginalInput returns the authoritative user request for a quick-create
+// issue. The quick-create origin task is already the durable provenance record:
+// IssueService validates the task, creator and workspace before committing the
+// issue. Re-check those boundaries here so a corrupted origin cannot expose a
+// different task's prompt, even within the same workspace.
+func (h *Handler) issueOriginalInput(ctx context.Context, issue db.Issue) (*string, error) {
+	if !issue.OriginType.Valid || issue.OriginType.String != service.QuickCreateContextType {
+		return nil, nil
+	}
+	if !issue.OriginID.Valid {
+		return nil, errors.New("quick-create issue has no origin task")
+	}
+
+	task, err := h.Queries.GetAgentTaskInWorkspace(ctx, db.GetAgentTaskInWorkspaceParams{
+		ID:          issue.OriginID,
+		WorkspaceID: issue.WorkspaceID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("load quick-create origin task: %w", err)
+	}
+	if issue.CreatorType != "agent" || !issue.CreatorID.Valid || issue.CreatorID != task.AgentID {
+		return nil, errors.New("quick-create origin task does not belong to the issue creator")
+	}
+
+	var quickCreate service.QuickCreateContext
+	if err := json.Unmarshal(task.Context, &quickCreate); err != nil {
+		return nil, fmt.Errorf("decode quick-create origin context: %w", err)
+	}
+	if quickCreate.Type != service.QuickCreateContextType {
+		return nil, errors.New("quick-create origin task has invalid context type")
+	}
+	contextWorkspaceID, err := util.ParseUUID(quickCreate.WorkspaceID)
+	if err != nil || contextWorkspaceID != issue.WorkspaceID {
+		return nil, errors.New("quick-create origin context has invalid workspace")
+	}
+	if quickCreate.Prompt == "" {
+		return nil, errors.New("quick-create origin context has empty prompt")
+	}
+
+	return &quickCreate.Prompt, nil
 }
 
 func (h *Handler) ListChildIssues(w http.ResponseWriter, r *http.Request) {
