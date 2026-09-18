@@ -22,7 +22,6 @@
  */
 import { useRef } from "react";
 import { Tabs } from "expo-router";
-import { Image } from "expo-image";
 import { View } from "react-native";
 import type { TriggerRef } from "@rn-primitives/dropdown-menu";
 import { useWorkspaceStore } from "@/data/workspace-store";
@@ -33,6 +32,7 @@ import {
   useChatUnreadMessageCount,
 } from "@/lib/unread-counts";
 import { MoreTabDropdownAnchor } from "@/components/nav/more-tab-dropdown";
+import { NavIcon } from "@/components/ui/nav-icon";
 
 // Only override backgroundColor — @react-navigation/elements Badge internally
 // sets borderRadius = size/2, height = size, minWidth = size, so a single
@@ -81,10 +81,11 @@ export default function TabsLayout() {
             tabBarBadge: inboxBadge,
             tabBarBadgeStyle: BADGE_STYLE,
             tabBarIcon: ({ color, size, focused }) => (
-              <Image
-                source={focused ? "sf:tray.fill" : "sf:tray"}
-                tintColor={color}
-                style={{ width: size, height: size }}
+              <NavIcon
+                sf={focused ? "tray.fill" : "tray"}
+                ion={focused ? "file-tray" : "file-tray-outline"}
+                color={color}
+                size={size}
               />
             ),
           }}
@@ -94,10 +95,11 @@ export default function TabsLayout() {
           options={{
             title: "My Issues",
             tabBarIcon: ({ color, size, focused }) => (
-              <Image
-                source={focused ? "sf:checklist" : "sf:checklist.unchecked"}
-                tintColor={color}
-                style={{ width: size, height: size }}
+              <NavIcon
+                sf={focused ? "checklist" : "checklist.unchecked"}
+                ion={focused ? "checkbox" : "checkbox-outline"}
+                color={color}
+                size={size}
               />
             ),
           }}
@@ -109,10 +111,11 @@ export default function TabsLayout() {
             tabBarBadge: chatBadge,
             tabBarBadgeStyle: BADGE_STYLE,
             tabBarIcon: ({ color, size, focused }) => (
-              <Image
-                source={focused ? "sf:bubble.left.fill" : "sf:bubble.left"}
-                tintColor={color}
-                style={{ width: size, height: size }}
+              <NavIcon
+                sf={focused ? "bubble.left.fill" : "bubble.left"}
+                ion={focused ? "chatbubble" : "chatbubble-outline"}
+                color={color}
+                size={size}
               />
             ),
           }}
@@ -122,10 +125,11 @@ export default function TabsLayout() {
           options={{
             title: "More",
             tabBarIcon: ({ color, size }) => (
-              <Image
-                source="sf:ellipsis"
-                tintColor={color}
-                style={{ width: size, height: size }}
+              <NavIcon
+                sf="ellipsis"
+                ion="ellipsis-horizontal"
+                color={color}
+                size={size}
               />
             ),
           }}

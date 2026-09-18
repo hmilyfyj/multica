@@ -36,7 +36,6 @@
  */
 import { useMemo } from "react";
 import { Image, Pressable, View } from "react-native";
-import { Image as ExpoImage } from "expo-image";
 import { router, usePathname } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -49,6 +48,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { NavIcon, type IoniconName } from "@/components/ui/nav-icon";
 import { Text } from "@/components/ui/text";
 import { WorkspaceAvatar } from "@/components/workspace/workspace-avatar";
 import { workspaceListOptions } from "@/data/queries/workspaces";
@@ -67,16 +67,28 @@ const TAB_BAR_HEIGHT = 49;
 
 interface NavItem {
   label: string;
-  /** SF Symbol name, rendered via expo-image `source: "sf:<name>"`. */
-  icon: string;
+  /** SF Symbol name for iOS — see `NavIcon`. */
+  sf: string;
+  /** Ionicons name for Android — see `NavIcon`. */
+  ion: IoniconName;
   /** Path under /:slug/ — final href is `/${slug}${path}`. */
   path: string;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: "Pinned", icon: "pin", path: "/more/pins" },
-  { label: "Issues", icon: "list.bullet", path: "/more/issues" },
-  { label: "Projects", icon: "square.stack", path: "/more/projects" },
+  { label: "Pinned", sf: "pin", ion: "pin-outline", path: "/more/pins" },
+  {
+    label: "Issues",
+    sf: "list.bullet",
+    ion: "list-outline",
+    path: "/more/issues",
+  },
+  {
+    label: "Projects",
+    sf: "square.stack",
+    ion: "albums-outline",
+    path: "/more/projects",
+  },
 ];
 
 export function MoreTabDropdownAnchor({
@@ -158,10 +170,11 @@ export function MoreTabDropdownAnchor({
                 isActive(item.path) && "bg-secondary",
               )}
             >
-              <ExpoImage
-                source={`sf:${item.icon}`}
-                tintColor={t.foreground}
-                style={{ width: 18, height: 18 }}
+              <NavIcon
+                sf={item.sf}
+                ion={item.ion}
+                color={t.foreground}
+                size={18}
               />
               <Text className="text-sm text-foreground">{item.label}</Text>
             </DropdownMenuItem>
@@ -222,10 +235,11 @@ function UserCard({
           </Text>
         ) : null}
       </View>
-      <ExpoImage
-        source="sf:chevron.right"
-        tintColor={chevronTint}
-        style={{ width: 12, height: 12 }}
+      <NavIcon
+        sf="chevron.right"
+        ion="chevron-forward"
+        color={chevronTint}
+        size={12}
       />
     </DropdownMenuItem>
   );
@@ -283,10 +297,11 @@ function WorkspaceCard({
         </Text>
       </View>
       {canSwitch ? (
-        <ExpoImage
-          source="sf:chevron.right"
-          tintColor={chevronTint}
-          style={{ width: 12, height: 12 }}
+        <NavIcon
+          sf="chevron.right"
+          ion="chevron-forward"
+          color={chevronTint}
+          size={12}
         />
       ) : null}
     </DropdownMenuItem>
