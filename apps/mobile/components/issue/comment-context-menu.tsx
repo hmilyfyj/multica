@@ -1,11 +1,11 @@
 /**
  * Long-press handler for a comment bubble. Exposes `onLongPress` (drives a
- * native iOS ActionSheetIOS) and `isPressed` (drives the caller's highlight
+ * cross-platform action sheet) and `isPressed` (drives the caller's highlight
  * ring while the sheet is on screen).
  *
- * iOS-native first per apps/mobile/CLAUDE.md §UI components → waterfall step
- * 1: `ActionSheetIOS.showActionSheetWithOptions`. Zero custom layout, zero
- * animation, zero overflow math, zero new deps.
+ * The sheet is `showActionSheet` from `components/ui/action-sheet.tsx` —
+ * the native iOS sheet on iOS, a JS panel everywhere else. Zero custom
+ * layout, zero animation, zero overflow math, zero new deps.
  *
  * Item set (conditional, mirrors web's comment context menu):
  *   Reply (stub) · React… (opens nested sheet) · Copy · Select Text ·
@@ -14,16 +14,19 @@
  *
  * The nested React… sheet (5 quick emojis + More reactions… + Cancel) is
  * fired from INSIDE the outer sheet's completion callback rather than
- * inline, because iOS will refuse to present a second ActionSheet while the
- * first is still dismissing — the callback runs after dismissal completes.
+ * inline: the callback runs once the first sheet has dismissed, which is
+ * the one moment either platform can present the next one — iOS refuses a
+ * second native sheet mid-dismissal, and the JS host swaps its content in
+ * the same commit rather than stacking a second dialog.
  */
 import { useCallback, useState } from "react";
-import { ActionSheetIOS, Alert } from "react-native";
+import { Alert } from "react-native";
 import { router } from "expo-router";
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
 import { useQuery } from "@tanstack/react-query";
 import type { Reaction, TimelineEntry } from "@multica/core/types";
+import { showActionSheet } from "@/components/ui/action-sheet";
 import { useAuthStore } from "@/data/auth-store";
 import { useWorkspaceStore } from "@/data/workspace-store";
 import { useCommentSelectStore } from "@/data/comment-select-store";
@@ -108,7 +111,7 @@ export function useCommentLongPress(
       ? actions.findIndex((a) => a.kind === "delete")
       : undefined;
 
-    ActionSheetIOS.showActionSheetWithOptions(
+    showActionSheet(
       {
         options,
         cancelButtonIndex,
@@ -233,7 +236,7 @@ function presentReactSheet(args: {
   const options = [...emojis, "More reactions…", "Cancel"];
   const cancelButtonIndex = options.length - 1;
 
-  ActionSheetIOS.showActionSheetWithOptions(
+  showActionSheet(
     { options, cancelButtonIndex },
     (i) => {
       if (i === cancelButtonIndex) return;
