@@ -244,6 +244,8 @@ E DevLauncherController: Failed to hide splash screen
 # 前置环境：JAVA_HOME 指向 JDK 21、ANDROID_HOME 指向 Android SDK
 pnpm android:mobile:staging          # 默认设备／模拟器，Debug
 pnpm android:mobile:device:staging   # 从设备列表中选择，Debug
+pnpm android:mobile:dist:prod        # 签名 Release APK → apps/mobile/dist/android/（不安装、不需要设备）
+pnpm android:mobile:dist:prod:aab    # 同上，AAB（Play 上传格式）
 ```
 
 - 完整检查（typecheck / lint / test）在编码完成后一次跑完，不在迭代中途反复跑。
@@ -273,6 +275,29 @@ pnpm android:mobile:device:staging   # 从设备列表中选择，Debug
 - **长文档**：PROB-2（24 段 × 2 代码块）滚动到底全部渲染、无空白占位。
 - **帧率不作验收结论**：同一构建同一协议实测 2.39% / 28.17% / 33.33% janky（p50 16/38/42ms，宿主 load 10–21），
   随宿主负载大幅波动；真机 Release 帧率留给后续阶段。
+
+## 构建、签名与分发（FEATURE-552 实测，基线 commit `5d5219b33`）
+
+产物落在 `apps/mobile/dist/android/multica-mobile-{dev,staging,production}-<version>-vc<versionCode>.{apk,aab}`（`dist/` 已 gitignore）。
+实测（M1 Max）：冷构建 `assembleRelease` 7 分 11 秒 / 1074 个 task，production APK 106MB（四套 ABI）；
+紧随其后的 `bundleRelease` 29 秒（66 executed / 922 up-to-date），AAB 72MB。原始证据见任务 `research/`。
+
+- **签名密钥在仓库之外**：默认 `~/.multica-android/{keystore.properties,multica-release.keystore}`，均 `chmod 600`；
+  `MULTICA_ANDROID_KEYSTORE_PROPERTIES` 指向团队已有密钥。根 `.gitignore` 有 `*.keystore` / `*.jks` /
+  `keystore.properties` 兜底，已跟踪文件里没有任何密钥材料。
+- **签名配置由 config plugin 在 prebuild 时追加**到 `android/app/build.gradle` 末尾，不做模板文本锚点替换：
+  Gradle 的 `android { }` 可以重复打开、后写覆盖，所以模板升级不会让注入静默失配（失配的表现是
+  「release 又用 debug 密钥签名」，最难发现的一类）。追加前会删掉上一次的标记块，重跑 prebuild 只有一块。
+- **plugin 宽容、分发脚本严格**：`expo prebuild` 是变体无关的，plugin 每次 prebuild 都跑（含 Debug），
+  所以缺密钥时只打警告并退回模板的 debug 签名；`scripts/android-release.sh` 是产出分发物的一侧，缺密钥直接退出。
+- **产物名取自 `expo config`**（与 prebuild 写入 Gradle 的是同一份配置），不是 package.json 的字面量，
+  所以文件名不可能与包内实际 package / versionCode 漂移。
+- **三种 APP_ENV 包名互不相同**（`…mall.dev` / `…mall.staging` / `…mall`），可同机共存；
+  production 可用 `EXPO_ANDROID_PACKAGE_PROD` 覆盖，dev / staging 不可覆盖。
+- **`versionCode` 是字面量、不派生自 `version`**：发布新的分发版本时手工 +1；同一包名不能复用已用过的
+  `versionCode`（Play 拒收、侧载拒绝降级）。
+- **Release 保留四套 ABI**（只有 Debug 收敛），所以一个 APK 能装到任何手机／模拟器。
+- 完整流程、密钥归属与备份、EAS / CI 接入结论见 `apps/mobile/docs/android-distribution.md`。
 
 ## 验收证据要求
 

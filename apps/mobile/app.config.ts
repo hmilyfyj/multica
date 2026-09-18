@@ -135,6 +135,12 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
     plugins: [
       "expo-router",
+      // Injects the release signingConfig into the generated android/app/build.gradle from a
+      // keystore.properties kept outside the repo (FEATURE-552). Appended at the end of the
+      // file, so it does not depend on the template's own text; with no keystore.properties the
+      // release build keeps the template's debug signing and prebuild logs a warning.
+      // See docs/android-distribution.md.
+      "./plugins/with-android-release-signing",
       "expo-secure-store",
       "@react-native-community/datetimepicker",
       "react-native-enriched-markdown",
