@@ -25,6 +25,7 @@
 | `headerSearchBarOptions`（原 `useNativeSearchBar`，现 `usePickerSearchBar`） | `mention-picker`、`issue/[id]/picker/{assignee,label,project}`、`new-issue-picker/{assignee,project}`、`project/[id]/picker/lead` | 7 路由 | 已由 FEATURE-546 收敛到 `lib/use-picker-search-bar.tsx` + `components/ui/search-field.tsx`：iOS 用原生 `UISearchController`，其余平台用 body 内搜索框 |
 | `presentation: "formSheet"` + detents/grabber | `app/(app)/[workspace]/_layout.tsx` 的 `SHEET_OPTIONS` | 24 路由 | 参数全部生效但语义不同（挡位→`peekHeight`/`maxHeight`、只圆上两角、抓手不绘制），24 条逐条实测见 FEATURE-547 |
 | `KeyboardAvoidingView` 的 iOS 分支 | 8 个表单/聊天页面 | 8 处 | `behavior` 取值为 `undefined`，需确认是否需要 `height` |
+| `expo-image` 的 `sf:` SF Symbol 源 | `(tabs)/_layout.tsx` 4 个 tab 图标、`components/nav/more-tab-dropdown.tsx`（3 个菜单图标 + 2 个 chevron）、`switch-workspace.tsx`（checkmark） | 7 处 | **Android 完全空白**（Glide 抛 `IllegalArgumentException: Expected URL scheme 'http' or 'https' but was 'sf'`，静默不画）。已由 FEATURE-549 收敛到 `components/ui/nav-icon.tsx`：iOS 仍走 `sf:`，其余平台走 Ionicons |
 
 ### 选择器搜索栏（FEATURE-546）
 
@@ -55,6 +56,9 @@
 - `components/ui/action-sheet.tsx`：动作菜单唯一入口（FEATURE-545）。`showActionSheet(options, onSelect)` 的字段与索引语义同 `ActionSheetIOS`，宿主 `ActionSheetHost` 挂在 `app/_layout.tsx`；调用点禁止直接 import `ActionSheetIOS`
 - `components/ui/search-field.tsx`：选择器搜索框唯一入口（FEATURE-546）。由 `TextField` + 放大镜 + 清除按钮组成；
   `usePickerSearchBar` 在 iOS 返回 `null`、其余平台返回该元素，7 个 picker 路由只负责把它渲染在列表上方
+- `components/ui/nav-icon.tsx`：跨平台导航图标唯一入口（FEATURE-549）。`NavIcon({ sf, ion, color, size })`：
+  iOS 走 `expo-image` 的 `sf:`，其余平台走 Ionicons。**新写 `sf:` 图标一律经它**，不要在任何调用点自写
+  `Platform.OS` 判断，也不要直接用 `expo-image` 的 `sf:` 源。
 - `.gitattributes`：`.trellis/workspace/*/journal-*.md` 使用 `merge=union`
 
 ### 原生依赖的 Android 支持（已核实）
@@ -64,7 +68,7 @@
 | `react-native-enriched-markdown@0.6.0` | tarball 内含 `android/src/main/jni/` C++ 桥接与 `build.gradle` |
 | `react-native-shiki-engine` | 支持 arm64-v8a / armeabi-v7a / x86 / x86_64；Android 内存回收需 AppState 驱动 |
 | `input-otp-native` | 纯 JS，无原生代码 |
-| `@react-native-segmented-control/segmented-control` | Android 为 JS 模拟实现，视觉与 iOS 有差异 |
+| `@react-native-segmented-control/segmented-control` | **已无任何调用方**（FEATURE-549 核实）：全仓只有 `apps/mobile/package.json` 的依赖声明与 `docs/android-probe.md` 的历史表格提到它；`My Issues` 的 Assigned/Created/Agents 分段现由 `ScopeToolbar` 的 RNR 风格 pill 组渲染（`my-issues.tsx` 注释写明 "Replaces the previous full-width segmented tabs"）。滚动到该 UI 时会发现"Android 是 JS 模拟实现"的担忧已不适用 |
 
 ## Android 应用配置（FEATURE-543 实测，基线 commit `733b0a3fb`）
 
@@ -98,6 +102,117 @@ npx expo prebuild -p android --clean
 - 构建/合并 manifest 前必须 `JAVA_HOME=`（JDK 21）且 `ANDROID_HOME=~/Library/Android/sdk`：默认 JDK 25 会让
   Gradle 失败，未设 `ANDROID_HOME` 时 Gradle 不会自动探测 SDK（归因见 FEATURE-542 探针报告 §1.3，
   报告随 PR #1 落地到 `apps/mobile/docs/android-probe.md`）。
+
+## Android 视觉校准（FEATURE-549 实测，基线 commit `8e94b5dad`）
+
+设备：Android 模拟器 `Medium_Phone_API_35`（Android 15，1080×2400 @420dpi），**Debug** 构建。
+截图与复现脚本：`.trellis/tasks/09-18-android-visual-calibration/research/`
+（`capture-visual.sh`、`cap-one.sh`、`screens-final/`）。
+
+### `sf:` 图标在 Android 上完全空白（已收敛）
+
+SF Symbol 是 iOS 专有能力。`expo-image` 的 Android 实现不认 `sf:` 前缀，把它当 URL 交给 Glide：
+
+```text
+E ExpoImage: java.lang.IllegalArgumentException(Expected URL scheme 'http' or 'https' but was 'sf')
+E GlideExecutor: java.lang.IllegalArgumentException: Expected URL scheme 'http' or 'https' but was 'sf'
+    at okhttp3.HttpUrl$Builder.parse$okhttp(HttpUrl.kt:1254)
+```
+
+失败**不崩、不报红屏**，只是那块区域什么都没有 —— 所以探针期没被发现：底部 tab bar 只剩文字，
+图标位置留空（对照 `screens-baseline/` 与 `screens-final/`）。
+
+收敛点 `components/ui/nav-icon.tsx` 的 `NavIcon({ sf, ion, color, size })`：
+
+- iOS 分支是改动前 `expo-image source="sf:…"` 的逐字复制，行为不变。
+- 其余平台渲染 `@expo/vector-icons` 的 Ionicons —— 项目两端本来就在用这套图标
+  （`icon-button.tsx`、`search-field.tsx`、`more/settings.tsx` 的 `chevron-forward` 等）。
+- **新增 `sf:` 用法前先想清楚 Android 用哪个 Ionicons 名字**，两个 prop 都必填：两套图标没有
+  通用命名规则，SF 的 `.fill` 变体在 Ionicons 里往往不是同名（`tray.fill` → `file-tray`）。
+
+### 启动屏由 `expo-splash-screen` 插件接管
+
+`app.config.ts` 的 `plugins` 里配置：
+
+| 取值 | 理由 |
+|---|---|
+| `image: ./assets/adaptive-icon.png` | 与 adaptive icon 前景同一资产（白 mark + 透明底，alpha bbox 占 1024 画布 52.5%），避免启动屏与桌面图标各用一份图 |
+| `imageWidth: 200` | 插件按 `size = imageWidth × 密度倍数` 画进 **288dp 画布**（`@expo/prebuild-config` 的 `withAndroidSplashImages.js`：`canvasSize = 288 × multiplier`），mark 实占约 105dp，落在 Android 12 保留的 192dp 安全区内 |
+| `backgroundColor: #111827` | 与 `adaptiveIcon.backgroundColor` 和 `icon.png` 底色同值，于是"点图标 → 启动屏 → 应用"三段底色连续 |
+| 不写 `dark` | 唯一可用的 mark 是白色，浅底会把 mark 吃掉；两套主题同底才叫"同一个产品" |
+
+**没有这个包时的兜底行为（改动前实测）**：`res/values/colors.xml` 的 `splashscreen_background` 是
+`#FFFFFF`，`res/values-night/` 是空目录 → 深色模式启动闪白；`res/drawable-*/splashscreen_logo.png`
+是 Expo 自带占位图形，品牌 mark 完全不出现；`Theme.App.SplashScreen` 只设 `android:windowBackground`，
+**没有** Android 12+ 的 `windowSplashScreenBackground` / `windowSplashScreenAnimatedIcon`
+（设备是 Android 15，实际走 Android 12+ SplashScreen API）。
+
+配置生效后的生成物核对点：
+
+- `res/values/styles.xml`：`Theme.App.SplashScreen` 父主题变成 `Theme.SplashScreen`，带
+  `windowSplashScreenBackground` / `windowSplashScreenAnimatedIcon` / `postSplashScreenTheme`
+- `res/values/colors.xml`：`splashscreen_background` = `#111827`
+- `MainActivity.kt`：出现 `SplashScreenManager.registerOnActivity(this)`，
+  `setTheme(R.style.AppTheme)` 被插件注释掉
+- 模块默认自动隐藏（`SplashScreenManager.kt` 的 `preventAutoHideCalled = false`），
+  JS 侧**不需要** `SplashScreen.preventAutoHideAsync()`
+
+### `SplashScreenManager` 的 `ClassNotFoundException` 根因
+
+Debug 冷启动 logcat 里的这条**不是崩溃**：
+
+```text
+E DevLauncherController: Failed to hide splash screen
+    java.lang.ClassNotFoundException: expo.modules.splashscreen.SplashScreenManager
+```
+
+来源是 `expo-dev-launcher` 的 `DevLauncherController.kt` —— `Class.forName("expo.modules.splashscreen.SplashScreenManager")`
+包在 `try/catch (e: Throwable)` 里，失败只 `Log.e`。它只在 Debug 出现（dev-launcher 只在 debug 里）。
+根因就是没装 `expo-splash-screen`；装上后类存在，本条消失（FEATURE-549 实测已消失）。
+
+### 字体：这里**不需要**平台分支
+
+| 事项 | 结论 | 依据 |
+|---|---|---|
+| React Navigation 的 header / tab 字体 | **不用改** | `@react-navigation/elements` 的 `Header/HeaderTitle.tsx` 是 `Platform.select({ ios: fonts.bold, default: fonts.medium })`，而 `@react-navigation/native` 的 `theming/fonts.js` 已给 Android `sans-serif` / `sans-serif-medium`。`NAV_THEME` 用 `...DefaultTheme` 展开、只覆盖 `colors`，本来就拿到正确的 Android 栈；覆盖它反而破坏上游分派 |
+| Android「带 `fontFamily` 时 500/600 塌成 400」 | 记录为约束，本轮**无需改** | `ReactTypefaceUtils.kt` 无 `fontFamily` 时走 `Typeface.create(family, weight, italic)`；**有** `fontFamily` 时走 `ReactFontManager` 的 `nearestStyle`，而 `TypefaceStyle` 只有 `NORMAL(400)` / `BOLD(700)`。现有 `fontFamily` 只有两处：`components/ui/text.tsx` 的 `variant="code"`（**无调用方**）与 `lib/markdown/tokens.ts` 的代码块类（**无字重类**，两端都是 400）。**新增 `font-mono` + `font-semibold` 组合时注意这条** |
+| 未显式 `lineHeight` 时中文行高两端不同 | **接受**，不补全站行高 | Android 的 `includeFontPadding` 默认 `true`（`TextAttributeProps.kt` / `TextLayoutManager.kt`），行高由 `StaticLayout` 按字体度量算，且 `setUseLineSpacingFromFallbacks(true)`（API ≥28）让 CJK 回退字体（Noto Sans CJK）参与；iOS 按 PingFang SC 的 ascender+descender。差异来自**两端系统字体本身**，补平台行高会动到全仓量级且本机无 iOS 对照，属该任务明令禁止的无效覆盖 |
+| markdown 渲染路径 | **已经两端一致** | `lib/markdown/markdown-style.ts` 对 paragraph 与 h1~h6 全部显式给 `lineHeight`（`MD_LINE`），inline code 显式给 `fontSize`；`fontFamily` 故意不设，用平台系统 monospace |
+
+**iOS 侧无法本地取证**：本机 Xcode 26.4 已装但没有任何 iOS simulator runtime
+（`xcrun simctl list runtimes` 为空）。iOS 侧结论一律是结构性论证（改动全部落在
+`Platform.OS === "ios"` 之外的路径），不是像素对照。
+
+### 深浅色：令牌本身没有平台语义
+
+- `global.css` 的变量是纯 HSL 颜色，NativeWind 在两端编译成同一组 RN 颜色值；`lib/theme.ts` 是它的 TS 镜像。
+  浅深两套截图逐页核对后没有需要分平台的项 → **不改**。
+- 状态栏前景色由 `app/_layout.tsx` 的 `<StatusBar style={isDarkColorScheme ? "light" : "dark"} />` 负责；
+  系统栏（手势条）图标色由系统按背景自动翻转。实测深浅两套都正确。
+- 应用内主题切换（`lib/use-color-scheme.ts`）在 Android 上正常：`Appearance.setColorScheme` →
+  `AppCompatDelegate.setDefaultNightMode`。
+- **自动化截图的坑**：`adb shell cmd uimode night yes|no` 只在 preference 为 `system` 时被跟随，
+  且改完代码后第一次进应用要重新打包 JS、主题事件会丢。脚本请走应用内 Settings → APPEARANCE 的
+  Light/Dark 行（直接 `Appearance.setColorScheme`）并用像素亮度复验，见 `research/capture-visual.sh`。
+
+### 圆角 / 阴影 / 分割线 / 水波纹
+
+| 项 | 两端是否真有差异 | 结论 |
+|---|---|---|
+| 圆角 | `lib/radius.ts` 的 `continuousCorners`（`borderCurve: "continuous"`）是 **iOS 专有**，8 文件 16 处使用，Android 静默忽略 | **接受**：iOS 是连续曲线、Android 是普通圆角；Android 没有 squircle 原生能力，加平台分支只是噪音 |
+| 阴影 | RN 在 Android 只认 `elevation`（`shadowColor` 仅在 API ≥28 作为染色），`shadowOffset/Opacity/Radius` 静默丢弃；但 NativeWind 在 Android 构建期把 `shadow-sm/md/lg` 编译成 `-rn-elevation`（1/6/8） | **接受现状**；需要精确控制时照 `components/issue/timeline-list.tsx` 的 `shadow*` + `elevation` 双写范本 |
+| 分割线 | 全仓一律 `h-px` / `h-[1px]`，两端都是 1dp；`tailwind.config.js` 的 `borderWidth.hairline` 是**死配置（0 处使用）** | **接受**：改 Android 成 hairline 反而制造差异 |
+| 水波纹 | 全仓 **0 处** `android_ripple`、0 处 `Touchable*`，点击反馈只有 NativeWind 的 `active:` 一条路径；**RNR 上游与 iOS 同样不带** | **不引入平台分支**：这是跨平台一致的设计缺口，不是 Android 移植差异。16 处「既无 `active:` 也无 ripple」的元素清单见任务 research 目录，留待后续统一处理 |
+
+### 复现脚本的三个坑
+
+1. **深链不会顶掉 modal**：上一次跑到 sheet 路由后，下一次深链会把目标压在 sheet 底下
+   （看着成功、其实还在旧页面）。切路由前先用 tab bar 文案判断是否处在 tab 根，不在就 BACK 弹栈。
+2. **不能用 `force-stop` 做重启取证**：dev 冷启动会落回 expo-dev-client 的服务器列表页。
+3. **本机自托管后端的镜像是滞后的**：`ghcr.io/multica-ai/multica-backend:latest` 拉到的构建日期
+   与仓库 HEAD 不一致，实测缺 `POST /api/auth/refresh`（客户端 `data/api.ts` 会调，404 →
+   `[auth] session renewal deferred`，会话不再续期，最后退回登录页）。跑视觉验收前先
+   `docker pull` 该镜像并 `up -d --force-recreate backend`，否则会看到陈旧数据形态与偶发掉登录。
 
 ## 构建与验证
 

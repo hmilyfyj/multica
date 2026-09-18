@@ -125,6 +125,32 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       "expo-secure-store",
       "@react-native-community/datetimepicker",
       "react-native-enriched-markdown",
+      // Android previously had no splash config at all, so prebuild wrote its
+      // stock fallback: Expo's placeholder graphic on white, with an EMPTY
+      // res/values-night — a dark-mode launch flashed a white screen. Naming
+      // the mark and a background explicitly fixes that and makes Android 12+
+      // (which has its own SplashScreen API and ignores the old
+      // windowBackground drawable) agree with older releases; the plugin is
+      // also what installs expo.modules.splashscreen, whose absence made
+      // expo-dev-launcher log `ClassNotFoundException: SplashScreenManager`
+      // on every debug start.
+      //
+      // Image is the same ./assets/adaptive-icon.png the adaptive icon uses —
+      // the white mark on transparency, mark = 52.5% of the 1024px canvas — so
+      // imageWidth 200 draws a ~105dp mark, inside the 192dp Android 12 keeps
+      // visible. Background is the launcher icon's own #111827 for light AND
+      // dark (`dark` deliberately omitted): the splash then matches the icon
+      // the user just tapped, and a light background would render the white
+      // mark invisible.
+      [
+        "expo-splash-screen",
+        {
+          image: "./assets/adaptive-icon.png",
+          imageWidth: 200,
+          resizeMode: "contain",
+          backgroundColor: "#111827",
+        },
+      ],
       [
         "expo-image-picker",
         {
