@@ -22,9 +22,30 @@
 | 能力 | 位置 | 数量 | Android 状态 |
 |---|---|---|---|
 | `ActionSheetIOS` | `inbox.tsx:80`、`issue/[id].tsx:126`、`more/settings/profile.tsx:67`、`project/[id].tsx:98`、`components/chat/message-long-press.tsx:56`、`components/issue/comment-context-menu.tsx:111,236` | 6 处 | 已收敛到 `components/ui/action-sheet.tsx`（FEATURE-545）：iOS 转发原生 sheet，其余平台渲 JS 面板 |
-| `headerSearchBarOptions`（`useNativeSearchBar`） | `mention-picker`、`issue/[id]/picker/{assignee,label,project}`、`new-issue-picker/{assignee,project}`、`project/[id]/picker/lead` | 7 路由 | iOS 原生 `UISearchController`，Android 无效 |
-| `presentation: "formSheet"` + detents/grabber | `app/(app)/[workspace]/_layout.tsx` 的 `SHEET_OPTIONS` | 18 路由 | 底层实现不同，参数语义需实测校准 |
+| `headerSearchBarOptions`（原 `useNativeSearchBar`，现 `usePickerSearchBar`） | `mention-picker`、`issue/[id]/picker/{assignee,label,project}`、`new-issue-picker/{assignee,project}`、`project/[id]/picker/lead` | 7 路由 | 已由 FEATURE-546 收敛到 `lib/use-picker-search-bar.tsx` + `components/ui/search-field.tsx`：iOS 用原生 `UISearchController`，其余平台用 body 内搜索框 |
+| `presentation: "formSheet"` + detents/grabber | `app/(app)/[workspace]/_layout.tsx` 的 `SHEET_OPTIONS` | 24 路由 | 参数全部生效但语义不同（挡位→`peekHeight`/`maxHeight`、只圆上两角、抓手不绘制），24 条逐条实测见 FEATURE-547 |
 | `KeyboardAvoidingView` 的 iOS 分支 | 8 个表单/聊天页面 | 8 处 | `behavior` 取值为 `undefined`，需确认是否需要 `height` |
+
+### 选择器搜索栏（FEATURE-546）
+
+搜索框的唯一入口：`lib/use-picker-search-bar.tsx` 的
+`usePickerSearchBar(placeholder, { autoFocus }) → { query, searchBar }`。
+
+- iOS：`searchBar` 为 `null`，hook 只做 `navigation.setOptions({ headerSearchBarOptions })`；该路由必须在
+  `_layout.tsx` 注册 `headerShown: true` + `title`，否则导航栏被隐藏、原生搜索栏无处显示。
+- Android / web：`headerSearchBarOptions` 无实现（`react-native-screens` 4.23 的 Android 侧没有读取方），
+  hook 返回 `components/ui/search-field.tsx` 元素，由路由渲染在列表**上方**。
+- 7 个 picker 路由的调用形状固定为 `<> {searchBar} <XxxPickerBody … /> </>`：iOS 上 fragment 里只剩 body，
+  FlatList 仍是路由的直接子节点（`react-native-screens#3634` 要求，不能包一层 `<View>`）。
+- 搜索框禁止放进 `ListHeaderComponent`（列表刷新会带走 `TextInput` 焦点）。
+- 清空语义：iOS 由原生取消按钮走 `onCancelButtonPress` 重置 query（原生清空不触发 `onChangeText`）；
+  Android 由 `SearchField` 的清除按钮走 `onChangeText("")`。两端最终都回到空 query，
+  `useScrollToTopOnChange(query)` 契约不变。
+- `_layout.tsx` 里的 `headerShown: true` 在 Android 实测**完全不渲染**（无标题、无搜索框、不占高度），
+  所以该配置只对 iOS 有意义，不需要平台分支；Android 的语义提示由 chip 与行内容承担。
+- 既有缺口（本轮未修，属 iOS 可见行为）：`issue/[id]/picker/{label,project}`、`new-issue-picker/project`、
+  `project/[id]/picker/lead` 注册的是裸 `SHEET_OPTIONS`（`headerShown: false`），导航栏隐藏 →
+  原生搜索栏不显示，这 4 个路由在 iOS 上今天也没有搜索框。
 
 ### 已有的 Android 预留（不要重复造）
 
@@ -32,6 +53,8 @@
 - `components/ui/otp-input.tsx`：一次性验证码自动填充已由底层库承担
 - `components/ui/dropdown-menu.tsx`：popover 行为按 iOS/Android 通用语义实现
 - `components/ui/action-sheet.tsx`：动作菜单唯一入口（FEATURE-545）。`showActionSheet(options, onSelect)` 的字段与索引语义同 `ActionSheetIOS`，宿主 `ActionSheetHost` 挂在 `app/_layout.tsx`；调用点禁止直接 import `ActionSheetIOS`
+- `components/ui/search-field.tsx`：选择器搜索框唯一入口（FEATURE-546）。由 `TextField` + 放大镜 + 清除按钮组成；
+  `usePickerSearchBar` 在 iOS 返回 `null`、其余平台返回该元素，7 个 picker 路由只负责把它渲染在列表上方
 - `.gitattributes`：`.trellis/workspace/*/journal-*.md` 使用 `merge=union`
 
 ### 原生依赖的 Android 支持（已核实）

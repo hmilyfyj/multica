@@ -6,11 +6,11 @@
  * Mirrors web `packages/views/issues/components/pickers/assignee-picker.tsx`
  * (mobile skips frequency-sort; alphabetical instead).
  *
- * Header + search bar are owned by the iOS native nav header registered in
- * `app/(app)/[workspace]/_layout.tsx` (assignee Stack.Screen sets
- * `headerShown: true` + `title`); the route file wires
- * `headerSearchBarOptions.onChangeText` to a local `query` state and passes
- * it in as the `query` prop. This body is just a FlatList — no chrome.
+ * Search chrome is owned by the route via `usePickerSearchBar` (iOS: the
+ * native nav header registered in `app/(app)/[workspace]/_layout.tsx`;
+ * other platforms: the shared `SearchField` it renders above this list).
+ * Either way the route holds the `query` state and passes it in as the
+ * `query` prop. This body is just a FlatList — no chrome.
  */
 import { useMemo } from "react";
 import { FlatList, Pressable, View } from "react-native";
