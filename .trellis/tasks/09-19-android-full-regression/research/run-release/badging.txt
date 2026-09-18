@@ -1,0 +1,2 @@
+package: name='com.ehaier.zgq.shop.mall' versionCode='1' versionName='0.1.0' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'
+application-label:'海尔商城'

@@ -1,0 +1,33 @@
+PROB-1
+
+很长的一行，用来验证横向溢出与换行策略：aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+HTML 硬换行（预处理会转成 CommonMark 硬换行）：第一行
+第二行
+&#128077;
+1
+ACTIVITY
+P
+probe550 created the issue
+10h ago
+P
+probe550
+· 3h ago · (edited)
+这条评论用来检查 Android 上的评论卡片渲染：加粗、行内代码、列表。
+&#127881;
+1
+P
+probe550
+· 3h ago · (edited)
+带一段代码块的评论：
+ts
+export function probe(input: string): number {
+  return input.trim().length;
+}
+P
+probe550
+· 3h ago · (edited)
+@probe551 这是一条提及评论，用于检查收件箱的 mention 通知。
+probe551 changed priority: High → Urgent
+19m ago
+
+Add a comment, @ to mention…
