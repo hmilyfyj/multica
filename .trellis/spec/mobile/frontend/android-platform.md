@@ -229,6 +229,28 @@ pnpm android:mobile:device:staging   # 从设备列表中选择，Debug
   模板默认的四套 ABI 在 arm64-v8a 模拟器上实测 245MB APK / `adb install` 38.7s /
   worklets+reanimated 冷编译 187s，收敛后为 87MB / 2.9s / 79s；`MULTICA_ANDROID_ABIS=all` 可恢复默认，release 构建不收敛。
 
+## Markdown 渲染与代码高亮（FEATURE-550 实测，基线 commit `7520b1bc6`）
+
+设备：模拟器 `Medium_Phone_API_35`（Android 15 / API 35，arm64-v8a）；构建：Debug（dev 变体，JS 走 Metro）。
+截图与原始数据：`.trellis/tasks/09-18-android-markdown-highlight/research/verify-final/`。
+
+- **原生渲染在 Android 侧成立**：`react-native-enriched-markdown@0.6.0` 带完整 Android 实现（Kotlin Spannable
+  渲染器 + `android/src/main/jni` 的 md4c C 解析），与 iOS 共用同一 ADR 约束 —— 不需要为 Android 写 renderer。
+- **语法矩阵逐项通过**（浅深两套）：h1–h6、加粗/斜体/删除线、行内代码、普通链接、无序/有序/嵌套列表、
+  任务列表（含已勾选删除线）、引用（含嵌套）、表格（含中/右对齐）、分隔线、ts/python 代码块高亮、
+  未知语言回退纯文本、表情、硬换行、超长行、列表内代码块。
+- **高亮**：12 语言预注册的 Oniguruma scanner 正常；未知语言（`foobar`）与「引擎不可用」走同一条
+  `highlight() → null` → `PlainCode` 分支，前者已在设备上实测不抛错、渲染等宽纯文本。
+- **内存回收**：两个平台都没有 `memoryWarning` / `onTrimMemory` 挂钩（issue 里「iOS 已有」与代码不符）；
+  引擎按 50MB 上限淘汰 pattern cache，但**高亮器实例存活时 scanner 不释放**。Android 现由 AppState 驱动：
+  `background` → `releaseHighlighter()`（dispose → `destroyScanner`），`active` → 重新预热。
+  实测（同一会话，KB）：12 语言渲染后 Native Heap Alloc 342,442 / Free 32,839 → 按 HOME 进后台
+  Alloc 255,976 / Free 118,881（Alloc −86MB、TOTAL PSS −85MB）→ 回前台仍保持释放态，再次打开按需重建。
+  深链会触发一次瞬时 `background → active`（实测 ~165ms），即每次深链释放并立即重建一次，属设计取舍（iOS 不注册）。
+- **长文档**：PROB-2（24 段 × 2 代码块）滚动到底全部渲染、无空白占位。
+- **帧率不作验收结论**：同一构建同一协议实测 2.39% / 28.17% / 33.33% janky（p50 16/38/42ms，宿主 load 10–21），
+  随宿主负载大幅波动；真机 Release 帧率留给后续阶段。
+
 ## 验收证据要求
 
 平台交互类改动必须同时给出：
