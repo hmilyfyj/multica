@@ -78,9 +78,10 @@ npx expo prebuild -p android --clean
 ## 构建与验证
 
 ```bash
-# 首次或在 app.config.ts 变更后（配置插件需要重新应用）
-pnpm --filter @multica/mobile exec expo prebuild -p android
-pnpm --filter @multica/mobile exec expo run:android
+# 仓库根执行；包装脚本先 prebuild 再 run，保证 config plugin 的改动生效
+# 前置环境：JAVA_HOME 指向 JDK 21、ANDROID_HOME 指向 Android SDK
+pnpm android:mobile:staging          # 默认设备／模拟器，Debug
+pnpm android:mobile:device:staging   # 从设备列表中选择，Debug
 ```
 
 - 完整检查（typecheck / lint / test）在编码完成后一次跑完，不在迭代中途反复跑。
