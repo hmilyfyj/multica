@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/mobile/frontend/android-platform.md", "reason": "Android 平台差异权威清单：差异集中封装、不改 iOS 行为、验收证据要求"}
+{"file": "apps/mobile/AGENTS.md", "reason": "mobile 包规范：Theming model（global.css ↔ lib/theme.ts 同步规则）、UI 组件复用优先级"}
