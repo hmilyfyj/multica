@@ -105,7 +105,7 @@ A free Apple ID signs builds for **7 days only**, Debug and Release both. After 
 
 ## Android
 
-Android 与 iOS 共用同一套 `APP_ENV` 变体（包名 `ai.multica.mobile[.dev/.staging]`，见 `app.config.ts`），
+Android 与 iOS 共用同一套 `APP_ENV` 变体，但包名不同：Android 是品牌包名 `com.ehaier.zgq.shop.mall[.dev/.staging]`、应用名「海尔商城」（Staging / Dev 变体各带后缀），iOS 仍是 `ai.multica.mobile[.dev/.staging]`（均见 `app.config.ts`），
 脚本族与 `ios:*` 一一对应，底层是 `expo run:android`。端到端实测记录（含 20 张截图）见 [`docs/android-probe.md`](./docs/android-probe.md)。
 
 ### 首次构建前置

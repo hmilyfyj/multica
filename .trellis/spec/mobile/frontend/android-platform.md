@@ -77,7 +77,8 @@
 
 | 配置 | 写法 | 依据 |
 |---|---|---|
-| `android.package` | 三段式 `ai.multica.mobile[.dev/.staging]`；生产可用 `EXPO_ANDROID_PACKAGE_PROD` 覆盖 | 缺失时 `expo prebuild -p android` 退出码 1（动态配置无法回写）；Play 首次上传后 applicationId 不可改，故生产值留覆盖口 |
+| `name` | 三段式：`海尔商城` / `海尔商城 (Staging)` / `海尔商城 (Dev)` | 两端共享：prebuild 把它写进 Android `res/values/strings.xml` 的 `app_name`（应用列表名），同时是 iOS 显示名。FEATURE-557 起用用户指定的品牌名 |
+| `android.package` | 三段式品牌包名 `com.ehaier.zgq.shop.mall[.dev/.staging]`；生产可用 `EXPO_ANDROID_PACKAGE_PROD` 覆盖 | 缺失时 `expo prebuild -p android` 退出码 1（动态配置无法回写）；Play 首次上传后 applicationId 不可改，故生产值留覆盖口。Android 与 iOS 的 id 自 FEATURE-557 起不再同源：iOS 保留 `ai.multica.mobile`（Apple 签名归属） |
 | `android.versionCode` | 字面量，随商店上传递增 | 同一 package 内复用 versionCode 会被 Play 拒绝；不从 `version` 推导，避免版本号一改就静默变动 |
 | `android.adaptiveIcon` | 前景 `assets/adaptive-icon.png`（白标 + 透明）+ 背景 `#111827` | 前景由 `assets/icon.png`（白标压在 #111827 上）反解而来，回合成与源图最大通道差 1 个 8bit 级；白标半径 28.4dp，落在任何 launcher 遮罩都保留的 33dp 圆内，不会裁切 |
 | `android.edgeToEdgeEnabled` | **不写** | SDK 55 已移除该键（Android 16 强制 edge-to-edge），写了 prebuild 会告警要求删除；实际行为由模板 `gradle.properties` 的 `edgeToEdgeEnabled=true` 与 targetSdk ≥ 35 保证 |
