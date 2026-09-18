@@ -163,6 +163,9 @@ RN 0.83.6 不兼容」。第 7 条命令推翻了它：**同一份 wrapper 9.0.0
 - 实测：Assignee 面板（`10-formsheet-assignee.png`）只有列表，没有任何输入框——`autoFocus: true` 的
   「键盘自动弹出」同样失效。本机只有 1 个成员，所以只能证明「没有搜索入口」，不能证明长列表下的可用性差异。
 - 影响：成员/标签/项目变多以后无法筛选，只能滚动找。
+- **已修（FEATURE-546）**：hook 改名为 `lib/use-picker-search-bar.tsx` 的 `usePickerSearchBar`，非 iOS 平台
+  由它返回共享的 `components/ui/search-field.tsx` 渲染在列表上方；7 条路由在 Android 上都有搜索框与清除按钮。
+  实测记录见 `.trellis/tasks/09-18-android-picker-search/research/android-search.md`。（本报告其余内容保持探针时的原文）
 
 **B3. dev 构建下 Expo 的悬浮 Tools 按钮遮挡右上角 ⋯**（仅 dev-client）
 
