@@ -187,6 +187,8 @@ RN 0.83.6 不兼容」。第 7 条命令推翻了它：**同一份 wrapper 9.0.0
   这不是缺陷，但说明**新自托管实例的收件箱天然为空**。
 - **C4. 键盘避让**：评论 composer 输入时输入框被顶到键盘上方，未被遮挡，暂未见 `KeyboardAvoidingView`
   Android 分支缺失导致的可见问题；深色模式、横屏、平板未测。
+  **（FEATURE-548 补记）** 该结论只对评论 composer 成立 —— 它走 `KeyboardStickyView`；聊天页与 6 个表单页
+  那 8 处 `KeyboardAvoidingView` 在 Android 是空操作，API 35 模拟器实测聊天 composer 被键盘盖住，已改。
 
 ---
 
@@ -217,7 +219,7 @@ RN 0.83.6 不兼容」。第 7 条命令推翻了它：**同一份 wrapper 9.0.0
 | 「`ActionSheetIOS` 有 6 处，需替换」 | 确认且**加重**：不是「写错了 API」，而是**点一下就红屏**，5 处已实测复现，Android 上这些菜单完全不可用 | **加重**：应从「需替换」升级为高优先修复项 |
 | 「`headerSearchBarOptions` 在 Android 无效」 | 确认，并补充：**代码里没有回退输入框**，7 个 picker 在 Android 上没有任何筛选入口 | **加重** |
 | 「formSheet 参数语义需实测校准」 | 实测可用：Android 上是底部面板 + 遮罩，选中态正确；但无障碍树拿不到面板内容 | **修正**：功能可用，取证方式要改 |
-| 「`KeyboardAvoidingView` 的 iOS 分支 8 处，需确认是否要 `height`」 | 本轮未发现被键盘遮挡的表单/聊天输入框（composer 输入正常） | **暂缓**：无证据表明需要改 |
+| 「`KeyboardAvoidingView` 的 iOS 分支 8 处，需确认是否要 `height`」 | 本轮只测到评论 composer（它走 `KeyboardStickyView`，所以正常），未测聊天页与表单页 | **由「暂缓」改为必改（FEATURE-548）**：这 8 处在 Android 渲染成普通 `View`，实测聊天 composer 被键盘盖住；已收敛到 `components/ui/keyboard-avoiding-view.tsx` |
 | 「已有安卓预留（`text-field`、`dropdown-menu`、OTP）」 | 未发现问题；输入框、picker、OTP 都正常 | 成立 |
 | 「原生库均带安卓实现」 | 确认（markdown / shiki / OTP / segmented / image-picker 均在 Android 生效） | 成立 |
 | 原评估未列 | **新增阻塞**：prebuild 因缺 `android.package` 直接失败；`ANDROID_HOME` 未设置时 Gradle 不自动探测；dev 构建悬浮按钮遮挡右上角菜单 | **新增** |
