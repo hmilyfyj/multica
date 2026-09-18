@@ -24,11 +24,22 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     slug: "multica-mobile",
     version: "0.1.0",
     orientation: "portrait",
+    // Applies to both platforms. On Android this only takes effect because
+    // expo-system-ui is installed: prebuild writes the value into strings.xml
+    // (`expo_system_ui_user_interface_style`), and the module calls
+    // AppCompatDelegate.setDefaultNightMode(FOLLOW_SYSTEM) as the activity is
+    // created — without it the key would be ignored and the native theme would
+    // stay on the template default. The in-app theme switch
+    // (lib/use-color-scheme.ts) layers on top: NativeWind's setColorScheme
+    // calls React Native's Appearance.setColorScheme, which on Android calls
+    // setDefaultNightMode again, so system dialogs, the keyboard and the window
+    // background follow the user's choice rather than the OS setting.
     userInterfaceStyle: "automatic",
     scheme: "multica",
     // 1024x1024 source shared with the desktop client
     // (apps/desktop/build/icon.png). Expo prebuild generates every required
-    // iOS icon size from this single PNG.
+    // iOS icon size from this single PNG, and Android's pre-adaptive launcher
+    // icon (API < 26) from the same file.
     icon: "./assets/icon.png",
     ios: {
       // Expo keeps the top-level portrait policy for iPhone while adding all
@@ -60,6 +71,55 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           ? "ai.multica.mobile.staging"
           : (process.env.EXPO_BUNDLE_IDENTIFIER_DEV ?? "ai.multica.mobile.dev"),
     },
+    // Android mirrors the iOS ladder above. `package` is required and not
+    // optional: app.config.ts is a dynamic config, so Expo cannot write the
+    // missing applicationId back into it — `expo prebuild -p android` exits 1
+    // until this is present. Each variant needs its own id so all three builds
+    // can sit on one device, and Play freezes the id at first upload, so the
+    // production value stays overridable through its own `_PROD` variable.
+    // One variable per variant for the same reason as the iOS overrides: a
+    // generic name would leak across variants.
+    //
+    // Permissions: none are declared here, deliberately. Reading the photo
+    // library needs no Android permission from us — expo-image-picker hands
+    // off to the system photo picker on Android 13+ (no permission at all),
+    // and on older releases to READ_EXTERNAL_STORAGE, which the generated
+    // manifest already declares with `maxSdkVersion="32"`. Adding
+    // READ_MEDIA_IMAGES would ask Play for broad photo and video access the
+    // app never requests at runtime. Camera and microphone stay off on both
+    // platforms — see the expo-image-picker plugin below.
+    //
+    // `edgeToEdgeEnabled` is deliberately absent: Expo SDK 55 removed the key
+    // because Android 16 makes edge-to-edge mandatory, and prebuild now warns
+    // when it is present. The behaviour is still what this project targets —
+    // the generated gradle.properties keeps the template's
+    // `edgeToEdgeEnabled=true`, and the targetSdk pinned in the
+    // expo-build-properties plugin below is past the API 35 enforcement
+    // cut-off, so the app draws behind the system bars rather than being
+    // letterboxed.
+    android: {
+      package: isProd
+        ? (process.env.EXPO_ANDROID_PACKAGE_PROD ?? "ai.multica.mobile")
+        : isStaging
+          ? "ai.multica.mobile.staging"
+          : "ai.multica.mobile.dev",
+      // Play rejects an upload that reuses a versionCode inside the same
+      // package, so this counts store uploads and has to grow monotonically.
+      // Left as a literal instead of being derived from `version` so a release
+      // bump cannot silently move it.
+      versionCode: 1,
+      // The launcher composes the foreground over backgroundColor and then
+      // masks the result, so the foreground is the white mark on transparency
+      // rather than a flat icon: ./assets/adaptive-icon.png is recovered from
+      // ./assets/icon.png (white over #111827), and compositing the two back
+      // together reproduces that icon to within one 8-bit step. The mark spans
+      // 28.4dp of the 108dp layer, inside the 33dp circle every launcher mask
+      // keeps visible, so no mask can clip it.
+      adaptiveIcon: {
+        foregroundImage: "./assets/adaptive-icon.png",
+        backgroundColor: "#111827",
+      },
+    },
     plugins: [
       "expo-router",
       "expo-secure-store",
@@ -71,7 +131,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           // iOS NSPhotoLibraryUsageDescription. Without this string in
           // Info.plist, calling launchImageLibraryAsync hard-crashes on
           // iOS 14+. Camera + microphone are disabled — we only ever read
-          // from the existing photo library.
+          // from the existing photo library. On Android the two `false` values
+          // are not iOS-only: the plugin turns them into blocked permissions,
+          // so android.permission.CAMERA and RECORD_AUDIO are stripped from
+          // the merged manifest and the photo-library-only policy holds on
+          // both platforms.
           photosPermission:
             "Allow Multica to access your photos to attach images to issues and comments.",
           cameraPermission: false,
@@ -83,6 +147,20 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         {
           ios: {
             buildReactNativeFromSource: true,
+          },
+          // Android's SDK levels are pinned instead of inherited from
+          // expo-modules-core (which currently defaults to the same values):
+          // the Android build is verified against API 36, and targetSdk is what
+          // decides both the edge-to-edge enforcement and Play's upload
+          // requirement, so an SDK upgrade must not move it without re-running
+          // the emulator pass. minSdk stays on the Expo default — no dependency
+          // here raises the floor — and Kotlin is left alone too: every native
+          // module in this app reads kotlinVersion from the root project ext,
+          // which Expo already pins in step with the Kotlin plugin and KSP it
+          // ships.
+          android: {
+            compileSdkVersion: 36,
+            targetSdkVersion: 36,
           },
         },
       ],
