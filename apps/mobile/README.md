@@ -112,7 +112,7 @@ Android 与 iOS 共用同一套 `APP_ENV` 变体（包名 `ai.multica.mobile[.de
 
 | 项 | 要求 | 为什么 |
 |---|---|---|
-| JDK | **21**，并设 `JAVA_HOME` 指向它 | 本机默认的 JDK 25 会让 Gradle 直接失败（`JvmVendorSpec … IBM_SEMERU`）；同一份 wrapper 在 JDK 21 下正常 |
+| JDK | **21**，并设 `JAVA_HOME` 指向它 | 本机默认的 JDK 25 会让 Gradle 直接失败（`JvmVendorSpec … IBM_SEMERU`）；同一份 wrapper 在 JDK 21 下正常。**`java_home -v 21` 在只注册了 25 的机器上会静默返回 25**，包装脚本发现版本不是 21 时会提示 |
 | Android SDK | 显式设 `ANDROID_HOME`（macOS 常见路径 `~/Library/Android/sdk`） | Gradle 不会自行探测 SDK，未设时报 `SDK location not found` |
 | SDK 组件 | 无需手动安装 | 首次构建由 Gradle 自动补 `platforms/android-36`、`build-tools 36.0.0`、`NDK 27.1` |
 | 设备 | 模拟器（AVD）或 USB 真机，至少有一个 | `run:android` 需要一个安装目标；列表里未启动的 AVD 会被自动启动 |
@@ -123,6 +123,22 @@ export ANDROID_HOME="$HOME/Library/Android/sdk"
 ```
 
 首次构建（含上述组件下载）约 **7–8 分钟**，日志会长时间停在下载步骤，属正常，不是卡死。
+
+### 原生 ABI 收敛（Debug）
+
+prebuild 模板给 `reactNativeArchitectures` 列了四套 ABI（`armeabi-v7a,arm64-v8a,x86,x86_64`），
+但一次安装只会用到目标设备实际运行的那一套。`scripts/android-run.sh` 因此在 **Debug** 构建里收敛到
+已连接设备的 `ro.product.cpu.abi`（多个设备取并集；没有已连接设备时按宿主架构映射
+`arm64→arm64-v8a`、`x86_64→x86_64`），写进 prebuild 刚生成的 `android/gradle.properties`
+（改的是本次运行重新生成的构建产物，不是源码）。不用 `ORG_GRADLE_PROJECT_reactNativeArchitectures`：
+`run:android` 会给 Gradle 传一套自己的环境变量，实测该前缀到不了 Gradle。
+
+arm64-v8a 模拟器上实测：debug APK **245MB → 87MB**，`adb install -r` **38.7s → 2.9s**，
+`react-native-worklets` + `react-native-reanimated` 的冷编译 **187s → 79s**。
+
+- 关闭收敛：`MULTICA_ANDROID_ABIS=all pnpm android:mobile:device:staging`
+- 指定集合：`MULTICA_ANDROID_ABIS=arm64-v8a,armeabi-v7a pnpm android:mobile:device`
+- Release 构建（`--variant release`，用于分发）不收敛，仍是四套 ABI。
 
 ### 常用命令
 
@@ -160,6 +176,7 @@ Release 构建要把命令重跑一遍（值在构建时写进内嵌 bundle）�
 | `SDK location not found. Define a valid SDK location with an ANDROID_HOME environment variable …` | 未设 `ANDROID_HOME` |
 | 首次构建长时间停在下载／`Downloading …` | Gradle 在补 SDK 组件，等待即可 |
 | prebuild 报 `Cannot automatically write to dynamic config at: app.config.ts` | 动态配置里缺 `android` 段必填字段（如 `android.package`）；本仓库已补齐 |
+| 原生编译阶段 `configureCMakeDebug[…]` 报 `A restricted method in java.lang.System has been called` | `JAVA_HOME` 实际指向 JDK 25（只注册了 25 的机器上 `java_home -v 21` 会返回 25）；指向 `/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home` 再跑 |
 
 ## Pointing at a different backend
 
