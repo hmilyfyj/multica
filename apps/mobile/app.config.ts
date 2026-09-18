@@ -17,10 +17,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   return {
     ...config,
     name: isProd
-      ? "Multica"
+      ? "海尔商城"
       : isStaging
-        ? "Multica (Staging)"
-        : "Multica (Dev)",
+        ? "海尔商城 (Staging)"
+        : "海尔商城 (Dev)",
     slug: "multica-mobile",
     version: "0.1.0",
     orientation: "portrait",
@@ -71,7 +71,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           ? "ai.multica.mobile.staging"
           : (process.env.EXPO_BUNDLE_IDENTIFIER_DEV ?? "ai.multica.mobile.dev"),
     },
-    // Android mirrors the iOS ladder above. `package` is required and not
+    // The Android ids are deliberately NOT the iOS bundle ids: iOS keeps the
+    // `ai.multica.mobile` prefix its Apple team owns, while Android carries the
+    // product brand, `com.ehaier.zgq.shop.mall` (FEATURE-557). `package` is
+    // required and not
     // optional: app.config.ts is a dynamic config, so Expo cannot write the
     // missing applicationId back into it — `expo prebuild -p android` exits 1
     // until this is present. Each variant needs its own id so all three builds
@@ -99,10 +102,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     // letterboxed.
     android: {
       package: isProd
-        ? (process.env.EXPO_ANDROID_PACKAGE_PROD ?? "ai.multica.mobile")
+        ? (process.env.EXPO_ANDROID_PACKAGE_PROD ?? "com.ehaier.zgq.shop.mall")
         : isStaging
-          ? "ai.multica.mobile.staging"
-          : "ai.multica.mobile.dev",
+          ? "com.ehaier.zgq.shop.mall.staging"
+          : "com.ehaier.zgq.shop.mall.dev",
       // Play rejects an upload that reuses a versionCode inside the same
       // package, so this counts store uploads and has to grow monotonically.
       // Left as a literal instead of being derived from `version` so a release
@@ -163,7 +166,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           // the merged manifest and the photo-library-only policy holds on
           // both platforms.
           photosPermission:
-            "Allow Multica to access your photos to attach images to issues and comments.",
+            "Allow 海尔商城 to access your photos to attach images to issues and comments.",
           cameraPermission: false,
           microphonePermission: false,
         },

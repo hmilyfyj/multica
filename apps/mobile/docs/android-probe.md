@@ -109,6 +109,9 @@ RN 0.83.6 不兼容」。第 7 条命令推翻了它：**同一份 wrapper 9.0.0
 
 **A1. `app.config.ts` 缺 `android.package`，prebuild 直接退出**
 
+> **包名已于 FEATURE-557 变更**：正式的 `android.package` 现为品牌包名 `com.ehaier.zgq.shop.mall[.dev/.staging]`。
+> 以下内容保留 FEATURE-542 当时的临时值 `ai.multica.mobile.dev`，未回改。
+
 - 现象：`npx expo prebuild -p android` → 退出码 1，输出
   `Cannot automatically write to dynamic config at: app.config.ts`，并要求补
   `{"android":{"package":"ai.multica.mobile.dev"}}`。
