@@ -21,7 +21,7 @@
 
 | 能力 | 位置 | 数量 | Android 状态 |
 |---|---|---|---|
-| `ActionSheetIOS` | `inbox.tsx:80`、`issue/[id].tsx:126`、`more/settings/profile.tsx:67`、`project/[id].tsx:98`、`components/chat/message-long-press.tsx:56`、`components/issue/comment-context-menu.tsx:111,236` | 6 处 | 该 API 在 Android 不存在，需替换 |
+| `ActionSheetIOS` | `inbox.tsx:80`、`issue/[id].tsx:126`、`more/settings/profile.tsx:67`、`project/[id].tsx:98`、`components/chat/message-long-press.tsx:56`、`components/issue/comment-context-menu.tsx:111,236` | 6 处 | 已收敛到 `components/ui/action-sheet.tsx`（FEATURE-545）：iOS 转发原生 sheet，其余平台渲 JS 面板 |
 | `headerSearchBarOptions`（`useNativeSearchBar`） | `mention-picker`、`issue/[id]/picker/{assignee,label,project}`、`new-issue-picker/{assignee,project}`、`project/[id]/picker/lead` | 7 路由 | iOS 原生 `UISearchController`，Android 无效 |
 | `presentation: "formSheet"` + detents/grabber | `app/(app)/[workspace]/_layout.tsx` 的 `SHEET_OPTIONS` | 18 路由 | 底层实现不同，参数语义需实测校准 |
 | `KeyboardAvoidingView` 的 iOS 分支 | 8 个表单/聊天页面 | 8 处 | `behavior` 取值为 `undefined`，需确认是否需要 `height` |
@@ -31,6 +31,7 @@
 - `components/ui/text-field.tsx`：`includeFontPadding` / `textAlignVertical` 已按 Android 语义写好
 - `components/ui/otp-input.tsx`：一次性验证码自动填充已由底层库承担
 - `components/ui/dropdown-menu.tsx`：popover 行为按 iOS/Android 通用语义实现
+- `components/ui/action-sheet.tsx`：动作菜单唯一入口（FEATURE-545）。`showActionSheet(options, onSelect)` 的字段与索引语义同 `ActionSheetIOS`，宿主 `ActionSheetHost` 挂在 `app/_layout.tsx`；调用点禁止直接 import `ActionSheetIOS`
 - `.gitattributes`：`.trellis/workspace/*/journal-*.md` 使用 `merge=union`
 
 ### 原生依赖的 Android 支持（已核实）

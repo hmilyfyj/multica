@@ -1,10 +1,10 @@
 /**
  * Long-press handler for a chat message bubble. Exposes `onLongPress`
- * (drives a native iOS ActionSheetIOS) and `isPressed` (drives the
+ * (drives a cross-platform action sheet) and `isPressed` (drives the
  * caller's highlight ring while the sheet is on screen).
  *
- * iOS-native first per apps/mobile/CLAUDE.md §UI components → waterfall
- * step 1: `ActionSheetIOS.showActionSheetWithOptions`. Zero custom
+ * The sheet is `showActionSheet` from `components/ui/action-sheet.tsx` —
+ * the native iOS sheet on iOS, a JS panel everywhere else. Zero custom
  * layout, zero animation, zero overflow math, zero new deps.
  *
  * Item set (v1, conditional):
@@ -12,14 +12,14 @@
  *
  * Mirrors `useCommentLongPress` in `components/issue/comment-context-
  * menu.tsx` — kept as a sibling rather than a shared primitive because
- * we have only 2 callers (chat + comments). Below the "3 callers + no
- * native alternative" threshold in apps/mobile/CLAUDE.md.
+ * their item sets are built from different data; the sheet itself is the
+ * shared piece.
  */
 import { useCallback, useState } from "react";
-import { ActionSheetIOS } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
 import type { ChatMessage } from "@multica/core/types";
+import { showActionSheet } from "@/components/ui/action-sheet";
 import { useChatSelectStore } from "@/data/chat-select-store";
 
 export function useChatMessageLongPress(
@@ -53,7 +53,7 @@ export function useChatMessageLongPress(
 
     const cancelButtonIndex = options.length - 1;
 
-    ActionSheetIOS.showActionSheetWithOptions(
+    showActionSheet(
       { options, cancelButtonIndex },
       (i) => {
         setIsPressed(false);
