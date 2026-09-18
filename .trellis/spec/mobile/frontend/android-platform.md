@@ -225,6 +225,9 @@ pnpm android:mobile:device:staging   # 从设备列表中选择，Debug
 
 - 完整检查（typecheck / lint / test）在编码完成后一次跑完，不在迭代中途反复跑。
 - 自动化测试只覆盖纯函数（`apps/mobile/lib/*.test.ts`，Node 环境），**不覆盖 RN 组件渲染与原生交互**。
+- Debug 构建只编译目标设备实际运行的 ABI（见 `apps/mobile/README.md` 的「原生 ABI 收敛（Debug）」）：
+  模板默认的四套 ABI 在 arm64-v8a 模拟器上实测 245MB APK / `adb install` 38.7s /
+  worklets+reanimated 冷编译 187s，收敛后为 87MB / 2.9s / 79s；`MULTICA_ANDROID_ABIS=all` 可恢复默认，release 构建不收敛。
 
 ## 验收证据要求
 
