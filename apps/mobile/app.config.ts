@@ -111,6 +111,16 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       // Left as a literal instead of being derived from `version` so a release
       // bump cannot silently move it.
       versionCode: 1,
+
+      // Keep the window's soft-input mode on `adjustResize` — this is Expo's
+      // default (its plugin writes `adjustResize` when the key is absent), so
+      // the value is documentation, not a behaviour change. It is deliberately
+      // NOT `pan`: the app runs edge-to-edge (`EDGE_TO_EDGE_ENFORCED`,
+      // targetSdk 36), so the window is not resized for the IME and avoidance
+      // is done in JS by `components/ui/keyboard-avoiding-view.tsx`. `pan`
+      // would shift the whole window on top of that JS padding.
+      softwareKeyboardLayoutMode: "resize",
+
       // The launcher composes the foreground over backgroundColor and then
       // masks the result, so the foreground is the white mark on transparency
       // rather than a flat icon: ./assets/adaptive-icon.png is recovered from

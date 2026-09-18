@@ -24,8 +24,30 @@
 | `ActionSheetIOS` | `inbox.tsx:80`、`issue/[id].tsx:126`、`more/settings/profile.tsx:67`、`project/[id].tsx:98`、`components/chat/message-long-press.tsx:56`、`components/issue/comment-context-menu.tsx:111,236` | 6 处 | 已收敛到 `components/ui/action-sheet.tsx`（FEATURE-545）：iOS 转发原生 sheet，其余平台渲 JS 面板 |
 | `headerSearchBarOptions`（原 `useNativeSearchBar`，现 `usePickerSearchBar`） | `mention-picker`、`issue/[id]/picker/{assignee,label,project}`、`new-issue-picker/{assignee,project}`、`project/[id]/picker/lead` | 7 路由 | 已由 FEATURE-546 收敛到 `lib/use-picker-search-bar.tsx` + `components/ui/search-field.tsx`：iOS 用原生 `UISearchController`，其余平台用 body 内搜索框 |
 | `presentation: "formSheet"` + detents/grabber | `app/(app)/[workspace]/_layout.tsx` 的 `SHEET_OPTIONS` | 24 路由 | 参数全部生效但语义不同（挡位→`peekHeight`/`maxHeight`、只圆上两角、抓手不绘制），24 条逐条实测见 FEATURE-547 |
-| `KeyboardAvoidingView` 的 iOS 分支 | 8 个表单/聊天页面 | 8 处 | `behavior` 取值为 `undefined`，需确认是否需要 `height` |
+| `KeyboardAvoidingView` | 8 个表单/聊天页面（`login`、`verify`、`search`、`chat`、`new-issue`、`issue/[id]/edit`、`project/new`、`project/[id]/edit`） | 8 处 | 已由 FEATURE-548 收敛到 `components/ui/keyboard-avoiding-view.tsx`：iOS 仍是 RN 组件 + `padding`（逐字不变），Android 换 `react-native-keyboard-controller` 的 IME inset 实现 |
 | `expo-image` 的 `sf:` SF Symbol 源 | `(tabs)/_layout.tsx` 4 个 tab 图标、`components/nav/more-tab-dropdown.tsx`（3 个菜单图标 + 2 个 chevron）、`switch-workspace.tsx`（checkmark） | 7 处 | **Android 完全空白**（Glide 抛 `IllegalArgumentException: Expected URL scheme 'http' or 'https' but was 'sf'`，静默不画）。已由 FEATURE-549 收敛到 `components/ui/nav-icon.tsx`：iOS 仍走 `sf:`，其余平台走 Ionicons |
+
+### 键盘避让与系统返回键（FEATURE-548）
+
+**键盘避让只有一个入口**：`components/ui/keyboard-avoiding-view.tsx`。不要在页面里直接用 RN 的
+`KeyboardAvoidingView`，也不要再写 `behavior={Platform.OS === "ios" ? "padding" : undefined}` ——
+RN 的实现按 `behavior` 走 `switch`，`undefined` 落到 default 分支，渲染出来的就是普通 `View`，
+等于完全不做避让；而本应用强制 edge-to-edge（`EDGE_TO_EDGE_ENFORCED`，targetSdk 36），系统不再为
+输入法压缩窗口，只把 IME inset 报给应用，必须有人消费它。iOS 分支仍是 RN 组件 + `padding`
+（与改造前逐字一致）；Android 分支用 `react-native-keyboard-controller`（已是本包依赖，
+`KeyboardProvider` 已包住根布局，评论 composer 的 `KeyboardStickyView` 一直走它）。
+
+**Android 返回键按浮层类型分工，每类只有一个负责方**：
+
+| 浮层 | 负责方 | 说明 |
+|---|---|---|
+| formSheet / modal 路由（picker、due-date、new-issue…） | react-native-screens 弹栈 | 路由就是栈成员，BACK 关一层 |
+| 原生 `Modal`（`action-sheet`、`agent-picker-sheet`、图片查看器） | RN 的 `onRequestClose` | **新增 `Modal` 必须带 `onRequestClose`** |
+| `@rn-primitives` 弹层（DropdownMenu 等） | `lib/use-android-back-dismiss.ts` | 画在 `PortalHost` 里，既不注册 BACK 也不进导航栈；不接就会出现「菜单开着按 BACK 直接把应用退到后台」 |
+
+底部安全区不用各页面自己补：底部 tab bar 由 react-navigation 按 `insets.bottom` 抬高
+（`BottomTabBar` 的 `paddingBottom` 与 `getTabBarHeight`），tab 内的页面因此天然位于系统导航条之上；
+不在 tab 里的全屏容器（评论 composer 等）才需要用 `useSafeAreaInsets().bottom` 自己补。
 
 ### 选择器搜索栏（FEATURE-546）
 
