@@ -217,6 +217,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           android: {
             compileSdkVersion: 36,
             targetSdkVersion: 36,
+            // 本地/内网验收后端是明文 http（模拟器经 10.0.2.2:8090 访问宿主机），而 Android 9+
+            // 默认禁止明文：Debug 构建靠 `src/debug/AndroidManifest.xml` 放行，Release 构建没有
+            // 这层 —— 2026-09-19 的 staging Release 验收就卡在登录，`/auth/send-code` 根本没到后端。
+            // 非生产构建显式放行，生产包保持平台默认（HTTPS-only）。
+            usesCleartextTraffic: !isProd,
           },
         },
       ],
