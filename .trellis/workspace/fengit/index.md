@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 1
-- **Last Active**: 2026-09-18
+- **Total Sessions**: 15
+- **Last Active**: 2026-09-19
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~29 | Active |
+| `journal-1.md` | ~117 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,10 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 15 | 2026-09-19 | FEATURE-562d 后台诊断：构建号与实时数据到达时间 | `d831aaa5f` | `feature/562-android-local-notifications` |
+| 14 | 2026-09-19 | FEATURE-562c 后台收不到通知：WS 后台暂停修复 | `ae75f899c` | `feature/562-android-local-notifications` |
+| 13 | 2026-09-19 | FEATURE-562b 本机通知澎湃 OS 收不到：自诊断与一次性授权 | `9e737b10a` | `feature/562-android-local-notifications` |
+| 12 | 2026-09-19 | FEATURE-562 Android 本机通知（方案 A）完成与归档 | `0698402c8` | `feature/562-android-local-notifications` |
 | 1 | 2026-09-18 | FEATURE-549 Android 视觉校准归档 | `fd622eca6` | `feature/549-android-visual-calibration` |
 <!-- @@@/auto:session-history -->
 

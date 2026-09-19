@@ -23,18 +23,27 @@
  *
  * Reconnect: invalidate the list (we may have missed events while down;
  * no replay buffer in v1).
+ *
+ * 3. `inbox:new` additionally raises an **Android** system banner (plan "A",
+ *    FEATURE-562; see inbox-notification.ts for the mute/permission gates and
+ *    for why a killed app stops notifying). iOS is untouched — the branch
+ *    below never runs there.
  */
+import { Platform } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { useWSSubscriptions } from "@/lib/use-ws-subscriptions";
+import { useWorkspaceStore } from "@/data/workspace-store";
 import {
   dropInboxItemsByIssue,
   patchInboxIssueStatus,
   refreshInboxList,
   refreshInboxUnreadSummary,
 } from "./inbox-ws-updaters";
+import { notifyNewInboxItem } from "./inbox-notification";
 
 export function useInboxRealtime() {
   const qc = useQueryClient();
+  const slug = useWorkspaceStore((s) => s.currentWorkspaceSlug);
 
   useWSSubscriptions(
     (ws, wsId) => {
@@ -48,7 +57,16 @@ export function useInboxRealtime() {
 
       return [
         // Inbox-domain events: refetch the inbox list and the badge count.
-        ws.on("inbox:new", invalidate),
+        // A new item also raises an Android system banner — the phone's
+        // counterpart of the desktop client's Electron `new Notification` and
+        // of `showWebNotification` in the shared handler. Both run: the banner
+        // must not depend on, or delay, the cache refresh beside it.
+        ws.on("inbox:new", (payload) => {
+          invalidate();
+          if (Platform.OS === "android") {
+            void notifyNewInboxItem(qc, payload.item, wsId, slug ?? "");
+          }
+        }),
         ws.on("inbox:read", invalidate),
         // Mobile has no mark-unread affordance yet (web/desktop right-click
         // only), but a mark-unread there must un-read the row here too —
@@ -81,6 +99,6 @@ export function useInboxRealtime() {
         ws.onReconnect(invalidate),
       ];
     },
-    [qc],
+    [qc, slug],
   );
 }
