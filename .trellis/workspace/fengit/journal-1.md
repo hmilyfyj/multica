@@ -524,3 +524,25 @@ Trellis 归档清尾：09-19-android-final-acceptance 任务归档到 archive/20
 ### Status
 
 [OK] **Completed**
+
+
+## Session 37: 归档 09-19-567-autopilots-readonly（FEATURE-567 Autopilots 只读视图）
+<!-- trellis-session: v=2 fp=cc565166bcfc8490 -->
+
+**Date**: 2026-09-19
+**Task**: 归档 09-19-567-autopilots-readonly（FEATURE-567 Autopilots 只读视图）
+**Branch**: `feature/567-autopilots-readonly`
+
+### Summary
+
+trellis-check ran(clean)：AC 1-7 逐条核验（More 菜单 Autopilots 入口、列表页/详情页路由与域组件齐备、Run now 白名单分类、autopilot 纯函数单测 22 例通过、mobile typecheck/lint/vitest 476 例通过；AC7 第 4 波 FEATURE-569 已于本轮合并）。finish-work 四步完成，task 目录移入 .trellis/tasks/archive/2026-09/。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `de4e19c2f` | feat(mobile): Autopilots 只读视图（列表 + 详情 / 立即运行） |
+
+### Status
+
+[OK] **Completed**
