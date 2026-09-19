@@ -358,6 +358,13 @@ export default function WorkspaceLayout() {
           name="more/agents"
           options={{ title: "Agents", headerBackTitle: "Back" }}
         />
+        {/* Agent detail. The title is overridden in-screen with the agent's
+            own name once the roster resolves; this is the cold-start /
+            deep-link fallback. */}
+        <Stack.Screen
+          name="more/agents/[id]"
+          options={{ title: "Agent", headerBackTitle: "Agents" }}
+        />
         <Stack.Screen
           name="more/pins"
           options={{ title: "Pinned", headerBackTitle: "Back" }}
