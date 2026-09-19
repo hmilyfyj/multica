@@ -15,14 +15,19 @@ import type {
   AgentInvocationTarget,
   AgentTask,
   Attachment,
+  Autopilot,
+  AutopilotTrigger,
   ChatMessage,
   ChatPendingTask,
   ChatSession,
   Comment,
+  GetAutopilotResponse,
   InboxItem,
   InboxWorkspaceUnread,
   IssueLabelsResponse,
   Label,
+  ListAutopilotRunsResponse,
+  ListAutopilotsResponse,
   ListLabelsResponse,
   ListProjectResourcesResponse,
   ListProjectsResponse,
@@ -39,7 +44,10 @@ import type {
   User,
   Workspace,
 } from "@multica/core/types";
-import { IssueSchema } from "@multica/core/api/schemas";
+import {
+  AutopilotRunSchema,
+  IssueSchema,
+} from "@multica/core/api/schemas";
 
 /** Upload response. Only fields mobile actually consumes — `url` to put
  *  into the markdown link, `filename` for the `[📎 name](url)` form, `id`
@@ -778,3 +786,143 @@ export const EMPTY_ISSUE_FALLBACK: import("@multica/core/types").Issue = {
 
 // Helpers re-exported for ergonomic single-import at the call site.
 export type { Label, Project, ProjectResource };
+
+// --- Autopilots: detail payload + run history ---
+//
+// The list response and the single-run response already have core schemas
+// (`ListAutopilotsResponseSchema` / `AutopilotRunSchema`), and this file's
+// detail/run-list envelopes parse their rows with the core run schema. What
+// core does not schematise yet is the detail payload (`{ autopilot, triggers }`)
+// and the run-list envelope, so those live here like the rest of this file.
+//
+// Every closed vocabulary (`status`, `execution_mode`, `assignee_type`, trigger
+// `kind`) stays a lenient `z.string()` behind a `ZodType<...>` cast: the server
+// owns these enums, so a value this build predates must degrade to the generic
+// UI fallback instead of failing the parse and blanking the screen.
+
+export const AutopilotSchema: z.ZodType<Autopilot> = z
+  .object({
+    id: z.string(),
+    workspace_id: z.string().default(""),
+    title: z.string().default(""),
+    description: z.string().nullable().default(null),
+    project_id: z.string().nullable().optional(),
+    assignee_type: z
+      .string()
+      .catch("agent") as unknown as z.ZodType<Autopilot["assignee_type"]>,
+    assignee_id: z.string().default(""),
+    // Unreadable status degrades to "paused": the safe direction is the one
+    // that does NOT offer Run now for a state we could not confirm.
+    status: z.string().catch("paused") as unknown as z.ZodType<
+      Autopilot["status"]
+    >,
+    pause_reason: z.string().nullable().optional(),
+    execution_mode: z
+      .string()
+      .catch("create_issue") as unknown as z.ZodType<
+      Autopilot["execution_mode"]
+    >,
+    issue_title_template: z.string().nullable().default(null),
+    created_by_type: z.string().default(""),
+    created_by_id: z.string().default(""),
+    last_run_at: z.string().nullable().default(null),
+    created_at: z.string().default(""),
+    updated_at: z.string().default(""),
+    // List-endpoint-only derived fields; absent on detail/create/update.
+    trigger_kinds: z.array(z.string()).optional(),
+    next_run_at: z.string().nullable().optional(),
+    last_run_status: z.string().nullable().optional(),
+    // Per-caller capability flags; absent on older servers (treated as unknown).
+    can_write: z.boolean().optional(),
+    can_manage_access: z.boolean().optional(),
+  })
+  .loose();
+
+export const AutopilotTriggerSchema: z.ZodType<AutopilotTrigger> = z
+  .object({
+    id: z.string(),
+    autopilot_id: z.string().default(""),
+    kind: z.string().catch("schedule") as unknown as z.ZodType<
+      AutopilotTrigger["kind"]
+    >,
+    enabled: z.boolean().default(false),
+    cron_expression: z.string().nullable().default(null),
+    timezone: z.string().nullable().default(null),
+    next_run_at: z.string().nullable().default(null),
+    webhook_token: z.string().nullable().default(null),
+    webhook_path: z.string().nullable().optional(),
+    webhook_url: z.string().nullable().optional(),
+    label: z.string().nullable().default(null),
+    event_filters: z
+      .array(
+        z
+          .object({
+            event: z.string(),
+            actions: z.array(z.string()).optional(),
+          })
+          .loose(),
+      )
+      .nullable()
+      .optional(),
+    last_fired_at: z.string().nullable().default(null),
+    created_at: z.string().default(""),
+    updated_at: z.string().default(""),
+  })
+  .loose();
+
+// `GET /api/autopilots/{id}` — the autopilot plus its triggers. Collaborators
+// ride along on newer servers; nothing on mobile reads them, and `.loose()`
+// keeps them out of the way.
+export const AutopilotDetailSchema = z
+  .object({
+    autopilot: AutopilotSchema,
+    triggers: z.array(AutopilotTriggerSchema).default([]),
+  })
+  .loose();
+
+// Drift sentinel: `id: ""` makes the detail screen render its not-found state
+// instead of an empty shell when the payload could not be read.
+export const EMPTY_AUTOPILOT: Autopilot = {
+  id: "",
+  workspace_id: "",
+  title: "",
+  description: null,
+  assignee_type: "agent",
+  assignee_id: "",
+  status: "paused",
+  execution_mode: "create_issue",
+  issue_title_template: null,
+  created_by_type: "member",
+  created_by_id: "",
+  last_run_at: null,
+  created_at: "",
+  updated_at: "",
+};
+
+export const EMPTY_AUTOPILOT_DETAIL: GetAutopilotResponse = {
+  autopilot: EMPTY_AUTOPILOT,
+  triggers: [],
+};
+
+// `GET /api/autopilots/{id}/runs` envelope. Rows validate against the core run
+// schema — the same one web's run-now flow parses — so a new run status or
+// reason_code reaches mobile without a second definition.
+export const AutopilotRunListSchema = z
+  .object({
+    runs: z.array(AutopilotRunSchema).default([]),
+    total: z.number().default(0),
+  })
+  .loose();
+
+// The two list envelopes this feature parses. Typed by their wire contract
+// rather than inferred from an empty literal, so the unwrapped arrays the api
+// layer hands back are checked against the real shape.
+export const EMPTY_AUTOPILOT_LIST: ListAutopilotsResponse = {
+  autopilots: [],
+  total: 0,
+};
+
+export const EMPTY_AUTOPILOT_RUN_LIST: ListAutopilotRunsResponse = {
+  runs: [],
+  total: 0,
+};

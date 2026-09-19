@@ -366,6 +366,17 @@ export default function WorkspaceLayout() {
           options={{ title: "Agent", headerBackTitle: "Agents" }}
         />
         <Stack.Screen
+          name="more/autopilots"
+          options={{ title: "Autopilots", headerBackTitle: "Back" }}
+        />
+        {/* Autopilot detail. The title is overridden in-screen with the
+            autopilot's own title once it resolves; this is the cold-start /
+            deep-link fallback. */}
+        <Stack.Screen
+          name="more/autopilots/[id]"
+          options={{ title: "Autopilot", headerBackTitle: "Autopilots" }}
+        />
+        <Stack.Screen
           name="more/pins"
           options={{ title: "Pinned", headerBackTitle: "Back" }}
         />
