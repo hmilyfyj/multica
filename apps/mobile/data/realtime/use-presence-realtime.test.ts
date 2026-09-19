@@ -74,4 +74,28 @@ describe("usePresenceRealtime", () => {
       ]),
     );
   });
+
+  it("refreshes the snapshot when a parked task resumes", () => {
+    usePresenceRealtime();
+    expect(subscriptionSetups).toHaveLength(1);
+
+    const handlers = new Map<string, (p: unknown) => void>();
+    const ws: MockWS = {
+      on: vi.fn((event: string, handler: (p: unknown) => void) => {
+        handlers.set(event, handler);
+        return () => {};
+      }),
+      onReconnect: vi.fn(() => () => {}),
+    };
+
+    subscriptionSetups[0](ws, "workspace-1");
+
+    for (const event of ["task:running", "task:waiting_local_directory"]) {
+      invalidateQueries.mockClear();
+      handlers.get(event)?.({});
+      expect(
+        invalidateQueries.mock.calls.map(([query]) => query.queryKey),
+      ).toEqual([["agent-task-snapshot", "workspace-1"]]);
+    }
+  });
 });
