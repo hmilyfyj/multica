@@ -318,6 +318,16 @@ Android 收件箱本机通知落地并合入 main@0698402c8：expo-notifications
 [OK] **Completed**
 
 
+## Session 29: FEATURE-571 收件箱深链落点
+<!-- trellis-session: v=2 fp=6f75bf61779a62b6 -->
+
+**Date**: 2026-09-19
+**Task**: FEATURE-571 收件箱深链落点
+**Branch**: `feature/571-inbox-scroll-landing`
+
+### Summary
+
+把收件箱深链从「落到底部」改成「落到目标评论/回复起始位置」：新增 lib/comment-landing.ts（resolveCommentLanding 行内锚点解析 + startLanding 视口坐标测量-修正回路），timeline-list 删除 startRenderingFromBottom 与重挂列表，comment-card 暴露 landingViewRef；9 例单测；versionCode 5→6 并出 vc6 Release APK；平台约束写回 spec。
 ## Session 24: 归档 FEATURE-548 Android 输入、键盘与系统导航行为校准
 <!-- trellis-session: v=2 fp=b5276fcb125121cb -->
 
@@ -334,6 +344,8 @@ Trellis 归档清尾：FEATURE-548 任务归档到 archive/2026-09，业务改�
 
 | Hash | Message |
 |------|---------|
+| `f9751a58d` | fix(mobile): 收件箱深链定位到目标回复的起始位置 (#571) |
+| `9d98ef013` | chore(task): 标记 FEATURE-571 验收项完成情况 |
 | `805a69427` | feat(mobile): Android 输入/键盘/返回键校准 |
 
 ### Status
@@ -576,6 +588,28 @@ trellis-check ran(clean)：AC 1-5 逐条核验（More 菜单 Runtimes/Squads/Ski
 | Hash | Message |
 |------|---------|
 | `1651f9c4c` | feat(mobile): Runtimes / Squads / Skills 只读视图（列表 + 详情） |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 39: 归档 09-19-inbox-comment-landing（FEATURE-571 收件箱深链落点，重新落地）
+<!-- trellis-session: v=2 fp=b998a223c142a7a1 -->
+
+**Date**: 2026-09-19
+**Task**: 归档 09-19-inbox-comment-landing（FEATURE-571 收件箱深链落点，重新落地）
+**Branch**: `feature/571-inbox-scroll-landing`
+
+### Summary
+
+上一轮归档分支 PR #46 因分支停在旧基线被 main 推进冲成 CONFLICTING 而关闭；本轮把 origin/main 合并进 feature/571-inbox-scroll-landing，业务文件与 spec 取 main 侧、保留本任务已完成的归档移动，消除 tasks/ 与 archive/ 的重名重复后重新推送提 PR。trellis-check ran(clean)：AC 5 项均已勾选（含 APK Release 交付证据），lib/comment-landing.test.ts 9 例通过。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f9751a58d` | fix(mobile): 收件箱深链定位到目标回复的起始位置 (#571) |
 
 ### Status
 
