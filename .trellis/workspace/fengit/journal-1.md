@@ -501,3 +501,26 @@ Trellis 归档清尾：09-19-android-final-acceptance 任务归档到 archive/20
 ### Status
 
 [OK] **Completed**
+
+
+## Session 35: FEATURE-568 Usage / Billing 只读查看（含归档）
+<!-- trellis-session: v=2 fp=5259c07f2701c077 -->
+
+**Date**: 2026-09-19
+**Task**: FEATURE-568 Usage / Billing 只读查看（含归档）
+**Branch**: `chore/568-task-journal`
+
+### Summary
+
+给 apps/mobile 补上 Usage（用量趋势 + 失败概览）与 Billing（订阅/席位/配额/账单入口）两块只读页面；新增 6 个 dashboard rollup + 2 个配额端点的移动端方法与 query options、lib/usage-stats.ts 与 lib/billing-display.ts 两组纯函数（带单测）；More 菜单新增两个入口。已与 main 合并（冲突仅在 api.ts import 区与 More 菜单项），PR #54 squash 合并，随后归档本任务的 Trellis 记录。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `037f13251` | feat(mobile): Usage / Billing 只读查看 |
+| `85993fc86` | feat(mobile): Usage / Billing 只读查看 (#54) |
+
+### Status
+
+[OK] **Completed**
