@@ -20,6 +20,7 @@ import type {
   Autopilot,
   AutopilotQuotaUsage,
   AutopilotRun,
+  CancelTaskResponse,
   ChatMessage,
   ChatPendingTask,
   ChatSession,
@@ -85,6 +86,7 @@ import {
   AppConfigSchema,
   AutopilotQuotaUsageSchema,
   AutopilotRunSchema,
+  CancelTaskResponseSchema,
   DashboardAgentRunTimeListSchema,
   DashboardFailureByAgentListSchema,
   DashboardFailureDailyListSchema,
@@ -95,6 +97,7 @@ import {
   IssueLimitUsageSchema,
   ListAutopilotsResponseSchema,
   EMPTY_APP_CONFIG,
+  EMPTY_CANCEL_TASK_RESPONSE,
   EMPTY_REFRESH_SESSION_RESPONSE,
   EMPTY_SKILL_SUMMARY_LIST,
   EMPTY_SQUAD,
@@ -1599,6 +1602,21 @@ class ApiClient {
     await this.fetch<void>(`/api/chat/sessions/${id}`, { method: "DELETE" });
   }
 
+  /** Renames a chat session. The response body is unused: the rename
+   *  mutation patches the sessions list optimistically and invalidates on
+   *  settle, so nothing here reads the row back. Mirrors core's
+   *  `updateChatSession` (packages/core/api/client.ts) — same endpoint and
+   *  body, PATCH /api/chat/sessions/:id with `{title}`. */
+  async updateChatSession(
+    id: string,
+    data: { title: string },
+  ): Promise<void> {
+    await this.fetch<void>(`/api/chat/sessions/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  }
+
   async listChatMessages(
     sessionId: string,
     opts?: { signal?: AbortSignal },
@@ -1673,6 +1691,35 @@ class ApiClient {
 
   async cancelTaskById(taskId: string): Promise<void> {
     await this.fetch<void>(`/api/tasks/${taskId}/cancel`, { method: "POST" });
+  }
+
+  /** Cancels a chat task and reads the server's verdict back.
+   *
+   *  `cancelTaskById` above throws the response away, which is fine for the
+   *  issue-detail stop button but loses chat's Stop semantics: when the
+   *  cancelled turn had produced no transcript yet, the server deletes the
+   *  user's chat message and hands it back in
+   *  `cancelled_chat_message{content, restore_to_input}` so the composer can
+   *  put the prompt back (server/internal/service/task.go, "delete empty
+   *  cancelled chat user message"). We mirror core's `cancelTaskById`
+   *  (packages/core/api/client.ts) parsing, and deliberately do NOT send its
+   *  `X-Client-Capabilities: chat-draft-restore-v1` header: that capability
+   *  makes the server defer the empty/non-empty judgment and return the
+   *  prompt through the durable `chat_draft_restore` row served by
+   *  GET /api/chat/sessions/:id/draft-restores, which mobile has no client
+   *  for — advertising it would delete the prompt from the transcript and
+   *  hand it to a place we never read. Without the header the server keeps
+   *  the legacy synchronous restore, which is what this method reads. */
+  async cancelChatTask(taskId: string): Promise<CancelTaskResponse> {
+    const raw = await this.fetch<unknown>(`/api/tasks/${taskId}/cancel`, {
+      method: "POST",
+    });
+    return parseWithFallback(
+      raw,
+      CancelTaskResponseSchema,
+      EMPTY_CANCEL_TASK_RESPONSE,
+      { endpoint: "POST /api/tasks/:id/cancel" },
+    );
   }
 
   /** Live execution timeline for a task — used by the chat screen to
