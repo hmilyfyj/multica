@@ -204,3 +204,25 @@ Android 收件箱本机通知落地并合入 main@0698402c8：expo-notifications
 ### Status
 
 [OK] **Completed**
+
+
+## Session 20: FEATURE-544 归档：Android 构建脚本与开发文档
+<!-- trellis-session: v=2 fp=310a00dc90e9b8fd -->
+
+**Date**: 2026-09-19
+**Task**: FEATURE-544 归档：Android 构建脚本与开发文档
+**Branch**: `feature/544-android-scripts`
+
+### Summary
+
+归档 09-18-android-build-scripts。issue FEATURE-544 done；业务 PR #3 已 squash 合并进 main（fee8f990d）；trellis-check ran(clean)，本任务仅 .trellis/ 产物。本批归档在最新 main 上重跑。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `fee8f990d` | feat(mobile): 新增 Android 构建脚本与开发文档 (#3) |
+
+### Status
+
+[OK] **Completed**
