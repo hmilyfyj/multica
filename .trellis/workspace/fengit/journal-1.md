@@ -27,3 +27,25 @@ Android 视觉校准交付：新增 components/ui/nav-icon.tsx 收敛 sf: SF Sym
 ### Status
 
 [OK] **Completed**
+
+
+## Session 4: FEATURE-550 归档：Android 构建按目标设备收敛 ABI
+<!-- trellis-session: v=2 fp=98040f68876d109a -->
+
+**Date**: 2026-09-19
+**Task**: FEATURE-550 归档：Android 构建按目标设备收敛 ABI
+**Branch**: `feature/550-android-build-abi`
+
+### Summary
+
+每日归档：build-abi 任务归档。issue FEATURE-550 done；PR #9 已 squash 合并进 main；5 项 AC 全部勾选；trellis-check ran(clean)。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3c1a101af` | perf(mobile): Android 调试构建按目标设备收敛 ABI |
+
+### Status
+
+[OK] **Completed**
