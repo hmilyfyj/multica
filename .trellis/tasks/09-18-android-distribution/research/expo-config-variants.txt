@@ -1,0 +1,7 @@
+# 三种 APP_ENV 的 expo config 断言（包名 / 应用名 / versionCode / version）
+
+APP_ENV=dev(unset) -> {"package":"com.ehaier.zgq.shop.mall.dev","name":"海尔商城 (Dev)","versionCode":1,"version":"0.1.0","slug":"multica-mobile"}
+APP_ENV=staging -> {"package":"com.ehaier.zgq.shop.mall.staging","name":"海尔商城 (Staging)","versionCode":1,"version":"0.1.0","slug":"multica-mobile"}
+APP_ENV=production -> {"package":"com.ehaier.zgq.shop.mall","name":"海尔商城","versionCode":1,"version":"0.1.0","slug":"multica-mobile"}
+
+## 结论：三个包名互不相同，可同机共存

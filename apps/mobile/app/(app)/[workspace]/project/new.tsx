@@ -19,8 +19,6 @@ import { useCallback, useState } from "react";
 import {
   Alert,
   InteractionManager,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   TextInput,
@@ -35,6 +33,7 @@ import {
 } from "@/components/ui/input-tokens";
 import { ProjectStatusIcon } from "@/components/ui/project-status-icon";
 import { ProjectPriorityIcon } from "@/components/ui/project-priority-icon";
+import { KeyboardAvoidingView } from "@/components/ui/keyboard-avoiding-view";
 import {
   projectPriorityLabel,
   projectStatusLabel,
@@ -178,7 +177,6 @@ export default function NewProject() {
       <Stack.Screen options={{ headerLeft, headerRight }} />
       <KeyboardAvoidingView
         className="flex-1 bg-background"
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView
           className="flex-1"

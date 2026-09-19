@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import type { ComponentProps } from "react";
+import { Platform } from "react-native";
 import { Redirect, Stack, useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { workspaceListOptions } from "@/data/queries/workspaces";
@@ -12,6 +13,8 @@ import { useChatSessionsRealtime } from "@/data/realtime/use-chat-sessions-realt
 import { useProjectsRealtime } from "@/data/realtime/use-projects-realtime";
 import { usePinsRealtime } from "@/data/realtime/use-pins-realtime";
 import { usePresenceRealtime } from "@/data/realtime/use-presence-realtime";
+import { useWorkspaceRealtime } from "@/data/realtime/use-workspace-realtime";
+import { useCatalogsRealtime } from "@/data/realtime/use-catalogs-realtime";
 import { useWorkspacePresencePrefetch } from "@/lib/use-workspace-presence-prefetch";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
 import { useNewIssueDraftResetOnWorkspaceChange } from "@/data/stores/new-issue-draft-store";
@@ -19,7 +22,9 @@ import { useNewProjectDraftResetOnWorkspaceChange } from "@/data/stores/new-proj
 import { useChatSessionPickerResetOnWorkspaceChange } from "@/data/stores/chat-session-picker-store";
 
 /**
- * Shared Stack.Screen options for every iOS formSheet-presented sheet route.
+ * Shared Stack.Screen options for every formSheet-presented sheet route. The
+ * values below are chosen for iOS; the Android block at the end of this
+ * comment records what each one does there.
  *
  * Why these specific values:
  *   - `presentation: "formSheet"` instantiates iOS
@@ -32,9 +37,9 @@ import { useChatSessionPickerResetOnWorkspaceChange } from "@/data/stores/chat-s
  *     shrink-wrap; this is the right default for sheets that sit next to
  *     other sheets in the same chip row (issue / project AttributeRow) so
  *     the user gets the same gesture regardless of which chip they tap.
- *     Isolated sheets that have no neighbour to be consistent with (e.g.
- *     the workspace `menu` sheet) override this with `"fitToContents"`
- *     to avoid the large blank area below their content.
+ *     Isolated sheets with no chip-row neighbour to be consistent with may
+ *     override this with `"fitToContents"` to avoid the large blank area
+ *     below their content.
  *   - `sheetGrabberVisible: true` — surfaces the iOS native drag handle
  *     so users discover the gesture.
  *   - `contentStyle.height: "100%"` — safety net against the same
@@ -42,6 +47,29 @@ import { useChatSessionPickerResetOnWorkspaceChange } from "@/data/stores/chat-s
  *     allotted detent.
  *   - `headerShown: false` — every sheet body draws its own header (title
  *     + optional right action). The native Stack header would double up.
+ *
+ * Android (measured on the API 35 emulator with react-native-screens 4.23 —
+ * see .trellis/tasks/09-18-android-formsheet/research/android-sheets.md):
+ *   - the same four values are honoured, by different machinery. `formSheet`
+ *     becomes a Material BottomSheet where the detent array maps to
+ *     `peekHeight = detents[0]` and `maxHeight = detents[detents.length - 1]`,
+ *     with `fitToContents` forced on — a short sheet therefore sits at its
+ *     content height instead of a fixed 60%, and drag-up/drag-down move
+ *     between the same two snap points.
+ *   - `sheetCornerRadius` rounds the sheet's top corners (Material
+ *     ShapeAppearanceModel) rather than every corner of a card.
+ *   - `sheetGrabberVisible` is accepted and then dropped: RNS never draws a
+ *     grabber on Android, so the drag gesture has no affordance there.
+ *   - BACK closes the sheet (RNS routes it to `dismissSelf`), and so does a
+ *     tap on the dimmed backdrop — both Android conventions, neither true on
+ *     iOS. Keep `sheetAllowedDetents` numeric for both platforms: Android
+ *     never sees the iOS 26 `"fitToContents"` bugs above.
+ *   - `headerShown: true` (set by the search pickers below) draws nothing
+ *     here: no title bar, no search field, and it takes no height — the
+ *     sheet starts at its first content row. The pickers' filter input is
+ *     therefore rendered by the route inside the sheet body
+ *     (`usePickerSearchBar` → `components/ui/search-field.tsx`), while iOS
+ *     keeps its native `UISearchController`.
  */
 const SHEET_OPTIONS: ComponentProps<typeof Stack.Screen>["options"] = {
   presentation: "formSheet",
@@ -50,6 +78,23 @@ const SHEET_OPTIONS: ComponentProps<typeof Stack.Screen>["options"] = {
   sheetCornerRadius: 20,
   contentStyle: { flex: 1 },
   headerShown: false,
+};
+
+/**
+ * Due-date sheets. Identical to SHEET_OPTIONS on iOS; on Android the route
+ * degrades to a full-screen `modal`.
+ *
+ * Reason (measured, not assumed): Android has no inline date picker — every
+ * `display` mode renders a DialogFragment, and one opened from inside a
+ * formSheet never receives input. Taps land on the sheet underneath, CANCEL
+ * and OK are inert, and BACK pops the sheet while the dialog stays on screen
+ * over the whole app until the process dies. Presenting the route as a
+ * full-screen modal puts it back in the activity's own window, where the
+ * dialog works normally.
+ */
+const DUE_DATE_OPTIONS: ComponentProps<typeof Stack.Screen>["options"] = {
+  ...SHEET_OPTIONS,
+  ...(Platform.OS === "android" ? { presentation: "modal" as const } : null),
 };
 
 /**
@@ -85,6 +130,11 @@ function RealtimeSubscriptions() {
   // the deliberately-skipped high-frequency events.
   useWorkspacePresencePrefetch();
   usePresenceRealtime();
+  // Workspace identity/membership and the picker catalogs (squads, labels,
+  // the issue status catalog) — the families web answers in its refreshMap
+  // prefixes. See use-workspace-realtime.ts / use-catalogs-realtime.ts.
+  useWorkspaceRealtime();
+  useCatalogsRealtime();
   return null;
 }
 
@@ -184,13 +234,19 @@ export default function WorkspaceLayout() {
           name="issue/[id]/picker/priority"
           options={SHEET_OPTIONS}
         />
-        {/* Experiment: assignee uses iOS-native nav header + UISearchController
-            instead of the body-rendered header pattern in SHEET_OPTIONS.
-            Eliminates the #3634 overlap class of bugs and the focus-loss
-            footgun of a custom TextInput inside ListHeaderComponent. The
-            route file wires `headerSearchBarOptions` via setOptions. If this
-            proves out, propagate to label / project / other search pickers
-            and update CLAUDE.md Lesson 6 with a carve-out. */}
+        {/* Search-enabled pickers wire their filter input through
+            `usePickerSearchBar`. On iOS that is the native nav header +
+            UISearchController registered below (`headerShown: true` +
+            title), which eliminates the #3634 overlap class of bugs and the
+            focus-loss footgun of a custom TextInput inside
+            ListHeaderComponent. Android accepts `headerSearchBarOptions` and
+            renders none of it, so the hook hands those routes a
+            body-rendered `SearchField` instead. Both platforms keep this
+            config as-is, so nothing on the iOS side changes.
+            label / project / lead are intentionally NOT in this group: they
+            still register bare SHEET_OPTIONS (no header), so iOS shows no
+            search field for them either — a pre-existing gap left untouched
+            by FEATURE-546, which is scoped to Android. */}
         <Stack.Screen
           name="issue/[id]/picker/assignee"
           options={{
@@ -217,7 +273,7 @@ export default function WorkspaceLayout() {
         />
         <Stack.Screen
           name="issue/[id]/picker/due-date"
-          options={SHEET_OPTIONS}
+          options={DUE_DATE_OPTIONS}
         />
         <Stack.Screen name="issue/[id]/runs" options={SHEET_OPTIONS} />
         {/* Full emoji picker for a comment reaction. Pushed from the "+"
@@ -270,7 +326,7 @@ export default function WorkspaceLayout() {
         />
         <Stack.Screen
           name="new-issue-picker/due-date"
-          options={SHEET_OPTIONS}
+          options={DUE_DATE_OPTIONS}
         />
         {/* New-project draft formSheet pickers — same pattern as
             new-issue-picker/*. Stacked on top of `project/new` (a modal). */}

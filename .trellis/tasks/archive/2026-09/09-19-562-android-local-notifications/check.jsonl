@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/mobile/frontend/android-platform.md", "reason": "核对是否守住平台差异原则与验收证据要求"}
+{"file": ".trellis/spec/mobile/frontend/quality-guidelines.md", "reason": "核对质量门禁（单测/静态检查）"}

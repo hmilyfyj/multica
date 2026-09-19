@@ -1,0 +1,5 @@
+attached=emulator-5554
+real_device_count=0
+image_fixture_issue=55800000-0000-4000-8000-000000000001
+fake_runtime_id=a9fed2cd-1c9e-458c-a258-d6465bc2c684
+fake_mode_file=/Users/fengit/workspace/multica.worktrees/FEATURE-558/.trellis/tasks/09-19-android-final-acceptance/research/run-smoke2/.fake-mode

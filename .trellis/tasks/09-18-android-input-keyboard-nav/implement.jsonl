@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/mobile/frontend/android-platform.md", "reason": "Android 平台差异权威清单：差异集中封装、不改 iOS 行为、验收证据要求"}
+{"file": "apps/mobile/AGENTS.md", "reason": "mobile 包架构与开发规则：组件复用优先级、状态层约定"}
+{"file": "apps/mobile/docs/android-probe.md", "reason": "FEATURE-542 端到端探针：输入/键盘/composer 的既有实测结论（C4）"}
+{"file": ".trellis/tasks/09-18-android-formsheet/research/android-sheets.md", "reason": "FEATURE-547 已实测的 sheet 行为基线（BACK 关 sheet、Material BottomSheet 映射）"}

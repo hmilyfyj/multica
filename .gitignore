@@ -75,6 +75,15 @@ data/
 .idea
 .gstack/
 
+# Android release signing material put in the tree by hand. The key this
+# repository actually builds with lives OUTSIDE the checkout
+# (~/.multica-android — see apps/mobile/docs/android-distribution.md); these
+# rules are the backstop, because a committed keystore plus its password can
+# never be un-published. android/ itself is ignored by apps/mobile/.gitignore.
+*.jks
+*.keystore
+keystore.properties
+
 # Python (agent tooling)
 __pycache__/
 *.pyc

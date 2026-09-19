@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/mobile/frontend/android-platform.md", "reason": "Android 平台差异的权威清单：生成目录不手改、构建与验证命令、验收证据要求"}
+{"file": ".trellis/tasks/09-18-android-formsheet/research/android-sheets.md", "reason": "本轮 24 条 formSheet 路由的逐条实测记录与 due-date 缺陷证据"}

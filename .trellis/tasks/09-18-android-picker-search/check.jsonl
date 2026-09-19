@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/mobile/frontend/android-platform.md", "reason": "验收证据要求：模拟器实测 + iOS 结论 + 平台约束回写"}
+{"file": "apps/mobile/AGENTS.md", "reason": "Verification 段：类型/lint/test 命令与「不得用单测结论冒充渲染验证」"}

@@ -17,10 +17,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   return {
     ...config,
     name: isProd
-      ? "Multica"
+      ? "海尔商城"
       : isStaging
-        ? "Multica (Staging)"
-        : "Multica (Dev)",
+        ? "海尔商城 (Staging)"
+        : "海尔商城 (Dev)",
     slug: "multica-mobile",
     version: "0.1.0",
     orientation: "portrait",
@@ -71,7 +71,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           ? "ai.multica.mobile.staging"
           : (process.env.EXPO_BUNDLE_IDENTIFIER_DEV ?? "ai.multica.mobile.dev"),
     },
-    // Android mirrors the iOS ladder above. `package` is required and not
+    // The Android ids are deliberately NOT the iOS bundle ids: iOS keeps the
+    // `ai.multica.mobile` prefix its Apple team owns, while Android carries the
+    // product brand, `com.ehaier.zgq.shop.mall` (FEATURE-557). `package` is
+    // required and not
     // optional: app.config.ts is a dynamic config, so Expo cannot write the
     // missing applicationId back into it — `expo prebuild -p android` exits 1
     // until this is present. Each variant needs its own id so all three builds
@@ -99,15 +102,29 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     // letterboxed.
     android: {
       package: isProd
-        ? (process.env.EXPO_ANDROID_PACKAGE_PROD ?? "ai.multica.mobile")
+        ? (process.env.EXPO_ANDROID_PACKAGE_PROD ?? "com.ehaier.zgq.shop.mall")
         : isStaging
-          ? "ai.multica.mobile.staging"
-          : "ai.multica.mobile.dev",
+          ? "com.ehaier.zgq.shop.mall.staging"
+          : "com.ehaier.zgq.shop.mall.dev",
       // Play rejects an upload that reuses a versionCode inside the same
       // package, so this counts store uploads and has to grow monotonically.
       // Left as a literal instead of being derived from `version` so a release
       // bump cannot silently move it.
-      versionCode: 1,
+      // vc5: background-session forensics (FEATURE-562 — is the process frozen,
+      // or is the socket silent?). Counts store uploads and has to grow
+      // monotonically; it is also the only way to tell on a device which build
+      // is actually installed.
+      versionCode: 5,
+
+      // Keep the window's soft-input mode on `adjustResize` — this is Expo's
+      // default (its plugin writes `adjustResize` when the key is absent), so
+      // the value is documentation, not a behaviour change. It is deliberately
+      // NOT `pan`: the app runs edge-to-edge (`EDGE_TO_EDGE_ENFORCED`,
+      // targetSdk 36), so the window is not resized for the IME and avoidance
+      // is done in JS by `components/ui/keyboard-avoiding-view.tsx`. `pan`
+      // would shift the whole window on top of that JS padding.
+      softwareKeyboardLayoutMode: "resize",
+
       // The launcher composes the foreground over backgroundColor and then
       // masks the result, so the foreground is the white mark on transparency
       // rather than a flat icon: ./assets/adaptive-icon.png is recovered from
@@ -122,9 +139,48 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
     plugins: [
       "expo-router",
+      // Injects the release signingConfig into the generated android/app/build.gradle from a
+      // keystore.properties kept outside the repo (FEATURE-552). Appended at the end of the
+      // file, so it does not depend on the template's own text; with no keystore.properties the
+      // release build keeps the template's debug signing and prebuild logs a warning.
+      // See docs/android-distribution.md.
+      "./plugins/with-android-release-signing",
       "expo-secure-store",
       "@react-native-community/datetimepicker",
       "react-native-enriched-markdown",
+      // Local (not push) notifications on Android — FEATURE-562. With no props
+      // the plugin only clears the notification icon/colour metadata, keeping
+      // the app icon as the banner icon and the channel's own settings as the
+      // presentation. It is declared anyway so prebuild stays the single place
+      // the notification dependency is configured; it pulls in no Firebase
+      // config and no google-services plugin.
+      "expo-notifications",
+      // Android previously had no splash config at all, so prebuild wrote its
+      // stock fallback: Expo's placeholder graphic on white, with an EMPTY
+      // res/values-night — a dark-mode launch flashed a white screen. Naming
+      // the mark and a background explicitly fixes that and makes Android 12+
+      // (which has its own SplashScreen API and ignores the old
+      // windowBackground drawable) agree with older releases; the plugin is
+      // also what installs expo.modules.splashscreen, whose absence made
+      // expo-dev-launcher log `ClassNotFoundException: SplashScreenManager`
+      // on every debug start.
+      //
+      // Image is the same ./assets/adaptive-icon.png the adaptive icon uses —
+      // the white mark on transparency, mark = 52.5% of the 1024px canvas — so
+      // imageWidth 200 draws a ~105dp mark, inside the 192dp Android 12 keeps
+      // visible. Background is the launcher icon's own #111827 for light AND
+      // dark (`dark` deliberately omitted): the splash then matches the icon
+      // the user just tapped, and a light background would render the white
+      // mark invisible.
+      [
+        "expo-splash-screen",
+        {
+          image: "./assets/adaptive-icon.png",
+          imageWidth: 200,
+          resizeMode: "contain",
+          backgroundColor: "#111827",
+        },
+      ],
       [
         "expo-image-picker",
         {
@@ -137,7 +193,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           // the merged manifest and the photo-library-only policy holds on
           // both platforms.
           photosPermission:
-            "Allow Multica to access your photos to attach images to issues and comments.",
+            "Allow 海尔商城 to access your photos to attach images to issues and comments.",
           cameraPermission: false,
           microphonePermission: false,
         },
@@ -161,6 +217,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           android: {
             compileSdkVersion: 36,
             targetSdkVersion: 36,
+            // 本地/内网验收后端是明文 http（模拟器经 10.0.2.2:8090 访问宿主机），而 Android 9+
+            // 默认禁止明文：Debug 构建靠 `src/debug/AndroidManifest.xml` 放行，Release 构建没有
+            // 这层 —— 2026-09-19 的 staging Release 验收就卡在登录，`/auth/send-code` 根本没到后端。
+            // 非生产构建显式放行，生产包保持平台默认（HTTPS-only）。
+            usesCleartextTraffic: !isProd,
           },
         },
       ],

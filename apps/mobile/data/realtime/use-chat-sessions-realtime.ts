@@ -33,6 +33,13 @@ export function useChatSessionsRealtime() {
         // Cancellation may delete a queued prompt or append "Stopped.", both
         // of which change the session preview.
         ws.on("task:cancelled", invalidateSessions),
+        // chat:cancel_finalized is the deferred verdict of a cancellation
+        // (the server settles it after the daemon's transcript flush). Only
+        // `stopped` persists a "Stopped." row, so only that outcome changes
+        // the preview; `restored` leaves the transcript alone.
+        ws.on("chat:cancel_finalized", (payload) => {
+          if (payload.outcome === "stopped") invalidateSessions();
+        }),
         // chat:session_read clears the unread flag (could be triggered from
         // web/desktop on the same account).
         ws.on("chat:session_read", invalidateSessions),

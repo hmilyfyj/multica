@@ -19,9 +19,11 @@
  *     server back-fills `chat_message_id` on each row when the message
  *     persists (server-side). `MessageComposer` calls `api.uploadFile`
  *     without `{ issueId, commentId }`.
- *   - **Parent owns keyboard**: chat.tsx wraps in KeyboardAvoidingView +
- *     SafeAreaView, so `manageKeyboard={false}` prevents the composer
- *     from double-stacking its own keyboard handling.
+ *   - **Parent owns keyboard**: chat.tsx wraps the message list + composer in
+ *     the shared `KeyboardAvoidingView`, so `manageKeyboard={false}` prevents
+ *     the composer from double-stacking its own keyboard handling. The
+ *     composer's bottom edge is the tab bar (react-navigation pads its own
+ *     height with the bottom safe-area inset), so it adds no inset either.
  *
  * Previously a hand-written 400-LOC twin of inline-comment-composer.tsx;
  * now ~50 LOC plus the StopButton subcomponent.

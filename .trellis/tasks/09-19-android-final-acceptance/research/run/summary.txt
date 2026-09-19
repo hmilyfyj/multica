@@ -1,0 +1,14 @@
+device=sdk_gphone64_arm64
+android=15 (API 35)
+package=com.ehaier.zgq.shop.mall.staging
+build_variant=Release (assembleRelease，内嵌 JS，不连 Metro)
+real_device_count=0
+--- results.tsv ---
+--- 判定计数 ---
+
+--- 最慢 10 条（timings.tsv：相邻两次判定之间的秒数）---
+（无 timings 记录）
+--- dump 开销（无障碍树取数）---
+（本组没有 dump 记录）
+--- 被抢前台的插曲 ---
+无
