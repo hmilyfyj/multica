@@ -299,6 +299,36 @@ pnpm android:mobile:dist:prod:aab    # 同上，AAB（Play 上传格式）
 - **Release 保留四套 ABI**（只有 Debug 收敛），所以一个 APK 能装到任何手机／模拟器。
 - 完整流程、密钥归属与备份、EAS / CI 接入结论见 `apps/mobile/docs/android-distribution.md`。
 
+## 客户端身份上报与断网恢复预算（FEATURE-559 实测，基线 commit `e35fb0a5a`）
+
+WS 升级 URL 上的 `client_platform` / `client_os` / `client_version` 是后端排障、统计与灰度的维度，
+**必须来自运行平台，不能写死**：
+
+- `client_os` 的取值集在服务端：`server/internal/handler/client_usage.go` 只认
+  `macos | windows | linux | ios | android | chromeos`，其余归一成 `unknown`。
+  `apps/mobile/data/realtime/ws-client.ts` 曾写死字面量 `"ios"`，于是 Android 设备在后端日志里
+  （`websocket connected … client_platform=mobile client_version=0.1.0 client_os=ios`）全部记成 iOS，
+  平台维度的统计、排障与灰度在 Android 上失真（FEATURE-551 §8.1 实测）。现由 `realtime-provider.tsx`
+  传 `Platform.OS`（原生侧就是 `ios` / `android`）。**新增身份维度一律从平台取，不要写字面量。**
+- 传输层 `data/realtime/ws-client.ts` **不 import `react-native`**：`apps/mobile/vitest.config.ts` 只跑
+  Node 环境，RN 原生模块在该 lane 加载不了。平台相关的值由调用方注入（如 `clientOS`），
+  这样这个文件在单测里可构造。
+
+### 断网 / 切网恢复的实时同步预算（30s）
+
+Android 上断开再恢复网络（飞行模式、Wi-Fi 切换、息屏回前台）后，**当前页面的数据必须在 30s 内自愈**，
+不能靠退出重进。三条恢复路径及各自的时延：
+
+1. NetInfo `offline → online` 边沿 → `ws.forceReconnect()`（最快，取决于系统是否上报连通性变化）；
+2. 应用层心跳发现僵尸连接：最坏时延 = `HEARTBEAT_INTERVAL_MS` + `HEARTBEAT_TIMEOUT_MS`（现为 10s + 8s），
+   之后按 full jitter 重拨（首次上限 2s）；
+3. `onopen` 之后收不到 `auth_ack` 的握手看门狗（`AUTH_TIMEOUT_MS`，10s）。**没有它时「OPEN 但未认证」的连接
+   既无定时器也不会 `onclose`**，客户端永不重连，页面数据只能靠重挂载更新。
+
+重连通知（`ws.onReconnect`）是各 feature 刷新自有缓存的唯一入口（`apps/mobile/AGENTS.md` 禁止全局 refetch sweep），
+所以**任何让连接恢复变慢或不恢复的改动都要重跑断网用例**：复现步骤与判据见
+`apps/mobile/docs/android-regression-checklist.md` §7.1。
+
 ## 验收证据要求
 
 平台交互类改动必须同时给出：
