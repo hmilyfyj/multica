@@ -270,3 +270,25 @@ Android 收件箱本机通知落地并合入 main@0698402c8：expo-notifications
 ### Status
 
 [OK] **Completed**
+
+
+## Session 23: FEATURE-547 归档：formSheet 路由 Android 校准
+<!-- trellis-session: v=2 fp=e329a7f7b622ec61 -->
+
+**Date**: 2026-09-19
+**Task**: FEATURE-547 归档：formSheet 路由 Android 校准
+**Branch**: `feature/547-formsheet-android`
+
+### Summary
+
+归档 09-18-android-formsheet。issue FEATURE-547 done；业务 PR #5 已 squash 合并进 main（803576e9d）；6 项 AC 中 5 项核验、iOS 一项按交付评论的代码级证据核销（与首轮归档一致）；trellis-check ran(clean)，本任务仅 .trellis/ 产物。本批归档在最新 main 上重跑。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `44413160a` | fix(mobile): 校准 formSheet 路由在 Android 的呈现 |
+
+### Status
+
+[OK] **Completed**
