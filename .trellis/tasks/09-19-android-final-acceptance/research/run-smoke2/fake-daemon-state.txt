@@ -1,0 +1,2 @@
+fake_daemon_pid=16784
+fake_runtime_status=online
