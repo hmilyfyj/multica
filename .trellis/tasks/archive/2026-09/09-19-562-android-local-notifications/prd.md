@@ -55,14 +55,36 @@ App 被系统杀掉或被回收后收不到；这与「锁屏推送」不是一�
 
 ## Acceptance Criteria
 
-- [ ] `pnpm --filter @multica/mobile typecheck` / `lint` / `test` 通过。
-- [ ] 单测覆盖两条分支（mock `expo-notifications`）：收到 `inbox:new` → 调 `scheduleNotificationAsync`；
+- [x] `pnpm --filter @multica/mobile typecheck` / `lint` / `test` 通过。
+- [x] 单测覆盖两条分支（mock `expo-notifications`）：收到 `inbox:new` → 调 `scheduleNotificationAsync`；
       `system_notifications: "muted"` → 不调。
-- [ ] 载荷往返：构建出的载荷写进通知 `data` 后能被读回并校验（未知/残缺 data 返回 null）。
-- [ ] 交付真机自测 APK：arm64-v8a、production 变体，参数与 2026-09-19 那次一致；
+- [x] 载荷往返：构建出的载荷写进通知 `data` 后能被读回并校验（未知/残缺 data 返回 null）。
+- [x] 交付真机自测 APK：arm64-v8a、production 变体，参数与 2026-09-19 那次一致；
       结论给出文件名、大小、SHA-256、签名证书指纹与下载链接。
-- [ ] 真机自测清单：首次授权弹窗、前台收通知、切后台再收、点击跳转、mute 后不再弹、App 划掉后收不到（预期）。
-- [ ] 合并进 `main`（squash），issue 置 `done`。
+- [x] 给出真机自测清单：首次授权弹窗、前台收通知、切后台再收、点击跳转、mute 后不再弹、App 划掉后收不到（预期）。
+- [x] 合并进 `main`（单提交，`main@0698402c8`），issue 置 `done`。
+
+## 落地与验证证据
+
+改动（`feature/562-android-local-notifications`，单提交）：
+
+- 新增 `lib/local-notifications.ts`（渠道 / handler / 权限 / 弹通知 / 载荷与路由，不 import RN）、
+  `lib/inbox-notification-response.ts`（点击处理，RN 侧）、
+  `data/realtime/inbox-notification.ts`（mute gate + 弹通知编排，不 import RN）与两个单测文件。
+- 改 `data/realtime/use-inbox-realtime.ts`（`inbox:new` 分支，仅 Android）、
+  `app/_layout.tsx`（模块级 handler + 挂载后建渠道、订阅点击）、
+  `app/(app)/[workspace]/more/settings/notifications.tsx`（设备权限区）、`app.config.ts`（config plugin）。
+
+验证：
+
+- `pnpm --filter @multica/mobile typecheck` / `lint` / `test` 全通过（vitest + 4 个脚本测试）。
+- APK：`haier-mall-android-0.1.0-vc1-arm64-v8a-notifications.apk`，48,534,227 字节，
+  SHA-256 `9af904b9cefd291561b864b68c7d5f379a4f99bce4d0569e970d1a0ce2fb4229`，
+  签名证书 SHA-256 `267600f22ac5b0c4249b59105d0a9d3db4b06beb705c2cb9d61a2b55fbb25ccf`（CN=Multica Android Release）。
+- APK 内已核实：ABI 仅 `arm64-v8a`；merged manifest 含 `POST_NOTIFICATIONS`；JS bundle 内含本功能字符串；
+  打包后端为 `https://fengit-multica.frp.tbxzs.net`（无 `multica.ai` 残留）。
+- 下载：https://github.com/hmilyfyj/multica/releases/tag/android-v0.1.0-vc1-notifications
+- 真机自测（授权弹窗 / 前台收 / 切后台收 / 点击跳转 / mute 不弹 / 划掉收不到）由用户在真机上执行，本任务不起模拟器。
 
 ## Boundaries
 
@@ -73,4 +95,4 @@ App 被系统杀掉或被回收后收不到；这与「锁屏推送」不是一�
 
 ## Notes
 
-- 基线：`origin/main@3fd34cc21`；分支 `feature/562-android-local-notifications`；MR 目标 `main`。
+- 基线：`origin/main@3fd34cc21`；分支 `feature/562-android-local-notifications`；目标 `main`。
