@@ -515,3 +515,42 @@ FEATURE-562 让这件事变成缺陷：本机通知的**唯一**事件源就是�
 - 锚点始终不可测时（例如折叠的已解决线程）由帧预算兜底停手，不空转；用户一开始拖动立即 cancel。
 - 已知边界：回复位于根评论气泡底部约 7 屏以外时，探测上限内找不到就停在行顶（仍优于旧的「落到底部」）。
   真机上遇到长线程深度回复需要复核这一条。
+
+## 评论线程快速跳转（FEATURE-572，基线 commit `0a757babd`）
+
+线程一多就找不到，这在移动端也要解决，但 web 的解法照抄不了：web 的 `ThreadMinimap`
+（`packages/views/issues/components/thread-minimap.tsx`）是右侧 hover 轨迹条，触屏没有 hover，
+且行内容的横向 gutter 只有 `px-4` = 16px，塞不下 24px 命中区。web 自己也在移动端隐藏该 rail
+（`issue-detail.tsx`：`{!isMobile && <ThreadMinimap …/>}`，注释写明 no hover / gutter too tight）。
+
+替代形态（本任务落地）：
+
+- **线程清单 sheet**：formSheet 路由 `app/(app)/[workspace]/issue/[id]/threads.tsx`，长列表按
+  `apps/mobile/AGENTS.md` 的容器表走「Long list → formSheet」，并在
+  `app/(app)/[workspace]/_layout.tsx` 用 `SHEET_OPTIONS` 注册。body 自己取数（复用详情页的
+  `issueTimelineOptions` 缓存，不额外请求），且与时间线**同一条管线**（coalesce → `buildTimelineRows`
+  → `buildThreadNav`），保证清单顺序 = 页面顺序。
+- **上/下一线程**：悬浮控件 `components/issue/thread-nav-fab.tsx`（两半胶囊 + 打开清单的圆按钮）。
+  线程数 < `MIN_THREADS`（2，对齐 web）时整块不渲染；到边界时按钮禁用而不是空跳。
+- **跨路由回传**：formSheet 回不到已挂载的时间线，用一次性 request store
+  （`data/stores/thread-nav-store.ts`，形态照 `chat-session-picker-store.ts`）：sheet 写 rootId 后
+  `router.back()`，时间线读到后落点并 `consume()`。
+
+三条容易踩的约束：
+
+- **跳转必须走「落点锚点」通道，但不要复用 highlight 通道**：锚点由 `CommentCard` 用
+  `landingViewRef` 注册，而它只在「本行是当前落点」时注册——所以任何跳转都要让目标行知道自己是目标。
+  但复用 `highlightedCommentId` 会附带两个不需要的副作用：闪一次高亮环、**把已解决的线程自动展开**
+  （web 的清单跳转是跳到折叠 bar 本身，不展开）。因此 `CommentCard` 增加独立的 `anchorCommentId`
+  与闪烁目标解耦；时间线在**每次落点开始时**设定它，而不是从导航状态读，避免「上一次跳转的目标」
+  把新的深链落点带偏。
+- **当前线程由 viewability 的最小可见行下标算出**（`lib/thread-nav.ts` 的 `threadIndexAtRow`），
+  且**只写 store / ref，不进 React state**：`onViewableItemsChanged` 在滚动中高频触发，setState 会重建
+  `renderItem`、带动可见 cell 重渲染。只有悬浮控件（以及打开中的 sheet）订阅该值。
+- **「已解决」的定义与 web 对齐**（根 `resolved_at` **或任一回复**），即便移动端目前只折叠「根已解决」
+  的线程：服务端 `ListTimeline` 不做折叠、原样下发 `resolved_at`，其注释明确要求 timeline 客户端自己
+  推导 resolution bar / 作者列表 / 折叠数（`server/internal/handler/activity.go:199`）。
+  已知缺口：回复级 resolution 在移动端时间线里不折叠（本任务未改，仅清单与徽标按 web 口径报告）。
+
+验收证据（本轮）：`lib/thread-nav.test.ts` 18 例（activity 行与 unread 分隔行不计入、嵌套回复计入根、
+已删除回复不计入回复数、根与回复两种已解决判定、行下标 → 当前线程）；APK 走 GitHub Release 交真机自测。

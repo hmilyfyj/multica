@@ -276,6 +276,9 @@ export default function WorkspaceLayout() {
           options={DUE_DATE_OPTIONS}
         />
         <Stack.Screen name="issue/[id]/runs" options={SHEET_OPTIONS} />
+        {/* Thread outline — quick jump between an issue's comment threads,
+            pushed from the timeline's floating thread stepper. */}
+        <Stack.Screen name="issue/[id]/threads" options={SHEET_OPTIONS} />
         {/* Full emoji picker for a comment reaction. Pushed from the "+"
             button inside the comment long-press tapback row — see
             components/issue/comment-context-menu.tsx. */}
