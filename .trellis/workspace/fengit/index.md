@@ -34,6 +34,7 @@
 | 30 | 2026-09-19 | 归档 FEATURE-557 品牌化：应用名「海尔商城」与包名 | `564e6db87` | `feature/557-android-branding` |
 | 28 | 2026-09-19 | 归档 FEATURE-552 Android 构建、签名与分发链路 | `28f025e22` | `feature/552-android-distribution` |
 | 27 | 2026-09-19 | 归档 FEATURE-551 核心流程 Android 全量回归验收 | `e35fb0a5a` | `feature/551-android-full-regression` |
+| 26 | 2026-09-19 | FEATURE-565 Agents 只读视图（列表 + 详情） | `a87736874`, `ee04cedc5` | `feature/565-agents-readonly` |
 | 25 | 2026-09-19 | 归档 FEATURE-550 Android 构建按目标设备收敛 ABI | `3c1a101af` | `feature/550-android-build-abi` |
 | 24 | 2026-09-19 | 归档 FEATURE-548 Android 输入、键盘与系统导航行为校准 | `805a69427` | `feature/548-android-input-keyboard-nav` |
 | 23 | 2026-09-19 | FEATURE-547 归档：formSheet 路由 Android 校准 | `44413160a` | `feature/547-formsheet-android` |
