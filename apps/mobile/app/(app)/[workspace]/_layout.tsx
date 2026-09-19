@@ -368,6 +368,24 @@ export default function WorkspaceLayout() {
           options={{ title: "Notifications", headerBackTitle: "Settings" }}
         />
         <Stack.Screen
+          name="more/settings/workspace"
+          options={{ title: "Workspace", headerBackTitle: "Settings" }}
+        />
+        <Stack.Screen
+          name="more/settings/labels"
+          options={{ title: "Labels", headerBackTitle: "Settings" }}
+        />
+        <Stack.Screen
+          name="more/settings/issue-statuses"
+          options={{ title: "Statuses", headerBackTitle: "Settings" }}
+        />
+        {/* Label and status editors. Both are forms with a keyboard, so they
+            follow the sheet rule in apps/mobile/AGENTS.md ("long list, search,
+            form, or keyboard interaction") rather than pushing a full screen.
+            Same SHEET_OPTIONS as every other body that owns its own data. */}
+        <Stack.Screen name="more/settings/label-form" options={SHEET_OPTIONS} />
+        <Stack.Screen name="more/settings/status-form" options={SHEET_OPTIONS} />
+        <Stack.Screen
           name="new-issue"
           options={{
             title: "New Issue",
