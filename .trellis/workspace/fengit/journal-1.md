@@ -182,3 +182,25 @@ Android 收件箱本机通知落地并合入 main@0698402c8：expo-notifications
 ### Status
 
 [OK] **Completed**
+
+
+## Session 19: FEATURE-543 归档：app.config.ts 的 Android 配置与图标资源
+<!-- trellis-session: v=2 fp=4c79258bbdd09e00 -->
+
+**Date**: 2026-09-19
+**Task**: FEATURE-543 归档：app.config.ts 的 Android 配置与图标资源
+**Branch**: `feature/543-android-config`
+
+### Summary
+
+归档 09-18-android-app-config。issue FEATURE-543 done；业务 PR #2 已 squash 合并进 main（86843f607）；trellis-check ran(clean)，本任务仅 .trellis/ 产物。本批归档在最新 main 上重跑。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `86843f607` | feat(mobile): 补齐 Android 平台配置与 adaptive icon (#2) |
+
+### Status
+
+[OK] **Completed**
