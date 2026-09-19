@@ -137,3 +137,25 @@ Android 收件箱本机通知落地并合入 main@0698402c8：expo-notifications
 ### Status
 
 [OK] **Completed**
+
+
+## Session 17: FEATURE-563 收件箱展示智能体正在工作状态
+<!-- trellis-session: v=2 fp=a93e1e897e15beea -->
+
+**Date**: 2026-09-19
+**Task**: FEATURE-563 收件箱展示智能体正在工作状态
+**Branch**: `feature/563-inbox-agent-working`
+
+### Summary
+
+按 web 收件箱口径在 mobile 收件箱行展示智能体工作/排队状态：新增 lib/issue-activity.ts（镜像 web surface/activity.ts 分桶 + 文案）与 components/inbox/inbox-activity-badge.tsx，inbox-row 底部行按 web 顺序插入徽标；use-inbox-realtime 补订 task 生命周期（含缺失的 task:running）失效 agent-task-snapshot。静态验证 typecheck/lint/test 全绿，设备验收交用户真机自测。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `520c68206` | feat(mobile): 收件箱展示「智能体正在工作」状态（对齐 web 口径） (#563) |
+
+### Status
+
+[OK] **Completed**
