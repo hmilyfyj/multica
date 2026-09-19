@@ -1,0 +1,24 @@
+# 产物的包名 / 版本 / 签名者（apksigner + aapt2）
+
+## $ aapt2 dump badging <apk> | head -3
+package: name='com.ehaier.zgq.shop.mall' versionCode='1' versionName='0.1.0' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'
+minSdkVersion:'24'
+targetSdkVersion:'36'
+
+## $ apksigner verify --print-certs <apk>
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::loadLibrary has been called by org.conscrypt.NativeLibraryUtil in an unnamed module (file:/Users/fengit/Library/Android/sdk/build-tools/36.0.0/lib/apksigner.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+Signer #1 certificate DN: CN=Multica Android Release, OU=Multica, O=Multica, L=Hangzhou, ST=Zhejiang, C=CN
+Signer #1 certificate SHA-256 digest: 267600f22ac5b0c4249b59105d0a9d3db4b06beb705c2cb9d61a2b55fbb25ccf
+Signer #1 certificate SHA-1 digest: c6d468d2fff8ac66ed33b7b679131643f860d374
+Signer #1 certificate MD5 digest: ab352465415f29c9e74c0d5bb23ebd68
+
+## 期望：证书主题 CN=Multica Android Release, O=Multica（仓库之外的自用密钥）
+## 对照密钥库指纹：
+
+## 对照：密钥库中该别名的证书指纹
+$ /opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home/bin/keytool -list -v -keystore ~/.multica-android/multica-release.keystore -alias multica-release
+	 SHA256: 26:76:00:F2:2A:C5:B0:C4:24:9B:59:10:5D:0A:9D:3D:B4:B0:6B:EB:70:5C:2C:B9:D6:1A:2B:55:FB:B2:5C:CF

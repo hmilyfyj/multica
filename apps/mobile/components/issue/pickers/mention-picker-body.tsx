@@ -14,10 +14,10 @@
  *   5. Issues (server-side `api.searchIssues`, debounced 200ms; empty
  *      query → no issues section, matching web's mention-suggestion.tsx)
  *
- * Mobile is the iOS-native equivalent of shadcn's `CommandDialog` — search
- * input from the native UISearchController (registered by the parent
- * route via `useNativeSearchBar`), groups via uppercase section labels,
- * empty state inline.
+ * Mobile is the shadcn `CommandDialog` equivalent — the search input comes
+ * from the route's `usePickerSearchBar` (the native UISearchController on
+ * iOS, the shared `SearchField` elsewhere), groups via uppercase section
+ * labels, empty state inline.
  */
 import { useEffect, useMemo, useState } from "react";
 import { FlatList, Pressable, View } from "react-native";

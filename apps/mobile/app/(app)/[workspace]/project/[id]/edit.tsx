@@ -9,8 +9,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   TextInput,
@@ -24,6 +22,7 @@ import {
   MIN_BODY_INPUT_HEIGHT_PX,
   MOBILE_PLACEHOLDER_COLOR,
 } from "@/components/ui/input-tokens";
+import { KeyboardAvoidingView } from "@/components/ui/keyboard-avoiding-view";
 import { projectDetailOptions } from "@/data/queries/projects";
 import { useUpdateProject } from "@/data/mutations/projects";
 import { useWorkspaceStore } from "@/data/workspace-store";
@@ -126,7 +125,6 @@ export default function EditProject() {
       <Stack.Screen options={{ headerLeft, headerRight }} />
       <KeyboardAvoidingView
         className="flex-1 bg-background"
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView
           className="flex-1"

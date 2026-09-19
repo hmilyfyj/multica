@@ -1,0 +1,38 @@
+Inbox
+Inbox actions
+
+Search
+
+New issue
+
+
+Inbox zero
+Mentions, assignments, and agent updates appear here.
+Inbox
+Inbox
+My Issues
+My Issues
+Chat
+Chat
+More
+More
+
+probe
+Clear search
+
+PEOPLE
+P, probe542
+P
+probe542
+AGENTS
+PA, Probe Agent, Agent
+PA
+Probe Agent
+Agent
+ISSUES
+PRO-1, Markdown 渲染检查
+PRO-1
+Markdown 渲染检查
+PRO-2, 收件箱与指派检查
+PRO-2
+收件箱与指派检查
