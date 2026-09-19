@@ -492,3 +492,26 @@ FEATURE-562 让这件事变成缺陷：本机通知的**唯一**事件源就是�
   （15s JS 心跳、60s 后台 HTTP 探针），`realtime-provider` 负责帧计数。
 - 已知结论：**普通应用在 Android 上做不到「后台持续收事件」**。要么前台服务（常驻通知换取不被冻结），
   要么厂商/聚合推送（杀进程也能收，需外部账号），要么接受方案 A 的边界。
+
+## 时间线 deep-link 落点（FEATURE-571，基线 commit `26c8192e3`）
+
+收件箱通知带的是 comment id，点进来必须落到该评论/回复的起始位置。这里有三条容易踩的约束：
+
+- **一行 ≠ 一条评论**：移动端时间线一行是一个线程根，整条回复链内嵌在同一个气泡里
+  （`lib/timeline-thread.ts` 的 `buildTimelineRows`）。所以「回复在屏幕上的位置」**不是行下标能表达的**，
+  也不能照抄 web 的 `#comment-<id>` —— web 是递归树 + 每条评论一个节点。
+- **落点必须两段式**（`lib/comment-landing.ts` 的 `resolveCommentLanding` + `startLanding`）：
+  `scrollToIndex(row, viewPosition: 0)` 只能把「行」放到视口顶（回复可能在这行下方一两屏），
+  再用 `measureInWindow` 量锚点的窗口 y，把残差转成 scroll offset 迭代修正；跳转后 Shiki/图片/
+  markdown 仍在改行高，同一回路负责收敛。iOS/Android 同构，**不做平台分支**。
+- **FlashList v2 的 offset 有两个坐标系**：`scrollToOffset({ skipFirstItemOffset: true })` 的参数
+  == `getAbsoluteLastScrollOffset()` == 原生 contentOffset；**不传 `skipFirstItemOffset` 会再加一次
+  `firstItemOffset`（即 ListHeader 高度）**，两者混用会整天偏一个表头高。落点回路全程用原生偏移。
+
+纪律与边界：
+
+- 落点逻辑**不得 import `react-native`**：`apps/mobile/vitest.config.ts` 的 Node lane 只收 `lib/**`、`data/**`，
+  所以列表与视图以结构化接口（`LandingList` / `Measurable`）注入，`FlashListRef` 与 `View` 天然满足。
+- 锚点始终不可测时（例如折叠的已解决线程）由帧预算兜底停手，不空转；用户一开始拖动立即 cancel。
+- 已知边界：回复位于根评论气泡底部约 7 屏以外时，探测上限内找不到就停在行顶（仍优于旧的「落到底部」）。
+  真机上遇到长线程深度回复需要复核这一条。
