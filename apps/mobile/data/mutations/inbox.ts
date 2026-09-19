@@ -13,11 +13,19 @@
  *     the animation. Synchronous setQueryData ensures the next paint already
  *     has the flipped state. (Previously the caller did this hack at tap
  *     site; moved into the mutation so every caller benefits.)
+ *   - mark-unread: the reverse flip on the same row, plus every archived page
+ *     that holds it. `read` and `archived` are orthogonal fields (an archived
+ *     row keeps its real read state so a restore brings it back), so the
+ *     archived list has to be patched too even though the row on screen is the
+ *     main one.
  *   - archive single: flip `archived` to true on the item AND on every other
  *     inbox row that shares the same `issue_id` (web does the same — see
  *     packages/core/inbox/mutations.ts:37-46). Visually the row disappears
  *     because `deduplicateInboxItems` (apps/mobile/lib/inbox-display.ts)
  *     filters archived items out before render.
+ *   - unarchive: flip `archived` to false on the item AND on every sibling row
+ *     sharing its `issue_id` (the endpoint unarchives by issue —
+ *     `UnarchiveInboxByIssue`). Same group rule as archive, mirrored.
  *   - mark-all-read: flip `read` to true on every non-archived row (matches
  *     web; the server-side query does the same predicate).
  *   - archive batch (all / all-read / completed): no optimistic patch — the
@@ -29,7 +37,12 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import type { InboxItem } from "@multica/core/types";
 import { api } from "@/data/api";
-import { inboxKeys } from "@/data/queries/inbox";
+import {
+  inboxKeys,
+  isArchivedPagesCache,
+  patchArchivedInboxCaches,
+  restoreArchivedInboxCaches,
+} from "@/data/queries/inbox";
 import {
   refreshInboxList,
   refreshInboxUnreadSummary,
@@ -84,6 +97,41 @@ export function useMarkInboxRead() {
   });
 }
 
+/**
+ * The other half of the read/unread pair web's row menu offers.
+ *
+ * No synchronous-patch-first trick here (unlike useMarkInboxRead): that exists
+ * for the iOS push snapshot, and this action never runs on the way into a
+ * transition. Both lists are cancelled and patched — web cancels the whole
+ * `inboxKeys.all` prefix for the same reason: the badge is about to rise again,
+ * and an archived row that gets restored must come back unread.
+ */
+export function useMarkInboxUnread() {
+  const qc = useQueryClient();
+  const wsId = useWorkspaceStore((s) => s.currentWorkspaceId);
+
+  return useMutation({
+    mutationFn: (id: string) => api.markInboxUnread(id),
+    onMutate: async (id) => {
+      const key = inboxKeys.list(wsId);
+      await qc.cancelQueries({ queryKey: inboxKeys.all(wsId) });
+      const prev = qc.getQueryData<InboxItem[]>(key);
+      const markUnread = (items: InboxItem[]) =>
+        items.map((item) => (item.id === id ? { ...item, read: false } : item));
+      qc.setQueryData<InboxItem[]>(key, (old) => old && markUnread(old));
+      const prevArchived = patchArchivedInboxCaches(qc, wsId, markUnread);
+      return { prev, key, prevArchived };
+    },
+    onError: (_err, _id, ctx) => {
+      if (ctx?.prev) qc.setQueryData(ctx.key, ctx.prev);
+      if (ctx?.prevArchived) restoreArchivedInboxCaches(qc, ctx.prevArchived);
+    },
+    onSettled: () => {
+      refreshInboxAfterWrite(qc, wsId);
+    },
+  });
+}
+
 export function useArchiveInbox() {
   const qc = useQueryClient();
   const wsId = useWorkspaceStore((s) => s.currentWorkspaceId);
@@ -112,6 +160,56 @@ export function useArchiveInbox() {
     },
     onError: (_err, _id, ctx) => {
       if (ctx?.prev) qc.setQueryData(ctx.key, ctx.prev);
+    },
+    onSettled: () => {
+      refreshInboxAfterWrite(qc, wsId);
+    },
+  });
+}
+
+/**
+ * The archived view's row action: restore a row — and its issue's siblings —
+ * to whichever list the issue belongs in.
+ *
+ * The optimistic patch removes them from the archived pages, which is what
+ * makes the row leave the archived list on the next render
+ * (`deduplicateArchivedInboxItems` keeps only `archived` rows).
+ *
+ * The main list is deliberately NOT patched: the server decides which list an
+ * issue belongs to (an issue with an active row is not in the archive), so
+ * adding a row back locally could contradict the next fetch. It appears when
+ * `refreshInboxAfterWrite` settles.
+ */
+export function useUnarchiveInbox() {
+  const qc = useQueryClient();
+  const wsId = useWorkspaceStore((s) => s.currentWorkspaceId);
+
+  return useMutation({
+    mutationFn: (id: string) => api.unarchiveInbox(id),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: inboxKeys.all(wsId) });
+      // Resolve the group once, across every loaded page: sibling rows of the
+      // same issue move with the tapped one.
+      let issueId: string | null | undefined;
+      for (const [, data] of qc.getQueriesData<unknown>({
+        queryKey: inboxKeys.archived(wsId),
+      })) {
+        if (!isArchivedPagesCache(data)) continue;
+        for (const page of data.pages) {
+          issueId ??= page.items.find((item) => item.id === id)?.issue_id;
+        }
+      }
+      const prevArchived = patchArchivedInboxCaches(qc, wsId, (items) =>
+        items.map((item) =>
+          item.id === id || (issueId && item.issue_id === issueId)
+            ? { ...item, archived: false }
+            : item,
+        ),
+      );
+      return { prevArchived };
+    },
+    onError: (_err, _id, ctx) => {
+      if (ctx?.prevArchived) restoreArchivedInboxCaches(qc, ctx.prevArchived);
     },
     onSettled: () => {
       refreshInboxAfterWrite(qc, wsId);

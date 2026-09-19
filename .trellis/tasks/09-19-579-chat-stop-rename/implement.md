@@ -25,7 +25,7 @@
    submit+blur 提交、一次提交 ref 守卫）；Delete 保留原 Alert 确认。
 7. 写回 spec：`.trellis/spec/mobile/frontend/android-platform.md` 追加「聊天停止任务与会话重命名」
    小节（`Alert.prompt` iOS 专有、能力头 + durable 回填的绑定关系、行内编辑的实现取值）。
-8. `apps/mobile/app.config.ts`：`android.versionCode` 9 → 10（上一版 vc9；侧载覆盖安装要求更高）。
+8. `apps/mobile/app.config.ts`：`android.versionCode` 10 → 11（FEATURE-577 已占 vc10；侧载覆盖安装要求更高）。
 
 ## 验证
 
@@ -39,7 +39,7 @@
 - APK（arm64-v8a，production，后端 `https://fengit-multica.frp.tbxzs.net`）：
   `EXPO_PUBLIC_API_URL=... APP_ENV=production pnpm exec expo prebuild -p android --no-install`
   → `(cd android && ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a)`
-  → 产物发 GitHub Release（tag `android-v0.1.1-vc10-chat-stop-rename`）。
+  → 产物发 GitHub Release（tag `android-v0.1.1-vc11-chat-stop-rename`）。
 
 ## 回滚
 

@@ -96,7 +96,7 @@
   - 改名：乐观改标题；失败回滚为旧标题；settle invalidate。
   - 纯函数：空 / 全空格 / 与旧值相同 → `null`；超长截断到 200；正常 trim。
 - 收尾一次跑 `pnpm --filter @multica/mobile typecheck | lint | test`。
-- 真机验收由用户执行；本任务构建 arm64-v8a Release APK 并发 GitHub Release（versionCode 10）。
+- 真机验收由用户执行；本任务构建 arm64-v8a Release APK 并发 GitHub Release（versionCode 11）。
 
 ## 5. 回滚
 

@@ -143,15 +143,65 @@ describe("refreshInboxList", () => {
     expect(calls).toEqual(["cancel", "invalidate"]);
   });
 
-  it("targets this workspace's list, never the account-level summary", async () => {
+  it("targets this workspace's inbox subtree, never the account-level summary", async () => {
     const qc = new QueryClient();
     const cancel = vi.spyOn(qc, "cancelQueries");
 
     await refreshInboxList(qc, wsId);
 
-    expect(cancel).toHaveBeenCalledWith({ queryKey: inboxKeys.list(wsId) });
+    // The whole workspace subtree, not just the main list: the archived
+    // sub-view hangs off the same prefix and the server decides which list an
+    // issue belongs to, so an inbox event has to re-read both.
+    expect(cancel).toHaveBeenCalledWith({ queryKey: inboxKeys.all(wsId) });
     expect(cancel).not.toHaveBeenCalledWith({
       queryKey: inboxKeys.unreadSummary(),
     });
+  });
+});
+
+// The archived sub-view renders the same rows, so both patches have to reach
+// its paginated cache as well — a status the row shows and an issue that was
+// deleted are not main-list-only facts.
+describe("archived pages", () => {
+  const pagesKey = [...inboxKeys.pages(wsId), "filters"];
+
+  function seedArchived(qc: QueryClient, items: InboxItem[]): void {
+    qc.setQueryData(pagesKey, {
+      pages: [{ items, nextCursor: null, hasMore: false }],
+      pageParams: [null],
+    });
+  }
+
+  function archivedItems(qc: QueryClient): InboxItem[] {
+    return (
+      qc.getQueryData<{ pages: { items: InboxItem[] }[] }>(pagesKey)?.pages ??
+      []
+    ).flatMap((p) => p.items);
+  }
+
+  it("patchInboxIssueStatus updates archived rows for the same issue", () => {
+    const qc = new QueryClient();
+    seedArchived(qc, [
+      item("n1", "issue-a"),
+      item("n2", "issue-b"),
+    ]);
+
+    patchInboxIssueStatus(qc, wsId, "issue-a", "done");
+
+    expect(
+      archivedItems(qc).map((i) => `${i.id}/${i.issue_status}`),
+    ).toEqual(["n1/done", "n2/null"]);
+  });
+
+  it("dropInboxItemsByIssue drops archived rows for the deleted issue", async () => {
+    const qc = new QueryClient();
+    seedArchived(qc, [
+      item("n1", "issue-a"),
+      item("n2", "issue-b"),
+    ]);
+
+    await dropInboxItemsByIssue(qc, wsId, "issue-a");
+
+    expect(archivedItems(qc).map((i) => i.id)).toEqual(["n2"]);
   });
 });

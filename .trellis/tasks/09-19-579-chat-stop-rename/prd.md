@@ -70,7 +70,7 @@
 - [ ] 会话列表 sheet 行内改名：空输入 / 只输空格 → 不写请求、保持旧标题；
       超过 200 字被截断；正常改名 → 行标题就地更新；服务端拒绝 → 回滚为旧标题。
 - [ ] `pnpm --filter @multica/mobile typecheck` / `lint` / `test` 全绿。
-- [ ] 新 APK 发布到 GitHub Release（versionCode 10），真机自测步骤写进发布说明。
+- [ ] 新 APK 发布到 GitHub Release（versionCode 11），真机自测步骤写进发布说明。
 
 ## 边界（只碰这些文件）
 

@@ -12,11 +12,17 @@
  *     server-side (FK ON DELETE CASCADE in the DB); the cache should drop
  *     them too, otherwise tapping an inbox row navigates to a 404 issue.
  *
+ *   - both patches reach the ARCHIVED list too: an archived row renders the
+ *     same issue status and must disappear with its issue, so patching only the
+ *     main list would leave the archived sub-view stale until a full refetch.
  * Listing-level only; use-inbox-realtime wires these into the WS layer.
  */
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import type { InboxItem, IssueStatus } from "@multica/core/types";
-import { inboxKeys } from "@/data/queries/inbox";
+import {
+  inboxKeys,
+  patchArchivedInboxCaches,
+} from "@/data/queries/inbox";
 
 export function patchInboxIssueStatus(
   qc: QueryClient,
@@ -26,6 +32,11 @@ export function patchInboxIssueStatus(
 ) {
   qc.setQueryData<InboxItem[]>(inboxKeys.list(wsId), (old) =>
     old?.map((i) =>
+      i.issue_id === issueId ? { ...i, issue_status: status } : i,
+    ),
+  );
+  patchArchivedInboxCaches(qc, wsId, (items) =>
+    items.map((i) =>
       i.issue_id === issueId ? { ...i, issue_status: status } : i,
     ),
   );
@@ -58,9 +69,16 @@ async function refreshInboxQuery(qc: QueryClient, queryKey: QueryKey) {
  * mutations and reconnect all go through here. The list's first load is not
  * a one-off: the inbox tab is mounted lazily, so the first visit loads it
  * while notifications keep arriving.
+ *
+ * Invalidates the whole `inboxKeys.all(wsId)` prefix, not just the main list:
+ * the archived sub-view hangs off the same prefix, and the two lists are
+ * mutually exclusive per issue (an archived issue that gets a new notification
+ * returns to the main list AND has to leave the archive — the server decides
+ * that split, so both have to be re-read). One prefix invalidation covers the
+ * main list, every archived page and the archived facets together.
  */
 export async function refreshInboxList(qc: QueryClient, wsId: string) {
-  await refreshInboxQuery(qc, inboxKeys.list(wsId));
+  await refreshInboxQuery(qc, inboxKeys.all(wsId));
 }
 
 /**
@@ -85,6 +103,9 @@ export async function dropInboxItemsByIssue(
 ) {
   qc.setQueryData<InboxItem[]>(inboxKeys.list(wsId), (old) =>
     old?.filter((i) => i.issue_id !== issueId),
+  );
+  patchArchivedInboxCaches(qc, wsId, (items) =>
+    items.filter((i) => i.issue_id !== issueId),
   );
   await refreshInboxUnreadSummary(qc);
 }
