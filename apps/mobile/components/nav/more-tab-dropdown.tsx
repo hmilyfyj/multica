@@ -34,7 +34,7 @@
  *     Earlier shape (every workspace inlined here) made the popover long
  *     and offered no friction against accidental taps.
  */
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Image, Pressable, View } from "react-native";
 import { router, usePathname } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
@@ -56,6 +56,7 @@ import { useAuthStore } from "@/data/auth-store";
 import { useWorkspaceStore } from "@/data/workspace-store";
 import { useColorScheme } from "@/lib/use-color-scheme";
 import { THEME } from "@/lib/theme";
+import { useAndroidBackDismiss } from "@/lib/use-android-back-dismiss";
 import { cn } from "@/lib/utils";
 
 // iOS bottom tab bar default height (above safe-area). React Navigation
@@ -97,6 +98,13 @@ export function MoreTabDropdownAnchor({
   triggerRef: React.RefObject<TriggerRef | null>;
 }) {
   const insets = useSafeAreaInsets();
+
+  // Android 的返回键不会自己关掉这张菜单（原因见 useAndroidBackDismiss），所以把
+  // 打开状态接出来：菜单开着时 BACK 先被消费掉，不再落到导航器上 —— 在 tab 根节点
+  // 那等于「连着菜单一起把应用退到后台」。
+  const [menuOpen, setMenuOpen] = useState(false);
+  const closeMenu = useCallback(() => triggerRef.current?.close(), [triggerRef]);
+  useAndroidBackDismiss(menuOpen, closeMenu);
   const slug = useWorkspaceStore((s) => s.currentWorkspaceSlug);
   const user = useAuthStore((s) => s.user);
   const pathname = usePathname();
@@ -121,7 +129,7 @@ export function MoreTabDropdownAnchor({
         height: TAB_BAR_HEIGHT,
       }}
     >
-      <DropdownMenu>
+      <DropdownMenu onOpenChange={setMenuOpen}>
         <DropdownMenuTrigger ref={triggerRef} asChild>
           {/* Invisible, non-tappable: the real tab button below catches
               all touches; we open this trigger imperatively via ref.

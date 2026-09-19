@@ -1,0 +1,67 @@
+K5	pass	登录页邮箱+Send code：关键控件整块在键盘顶边之上（k5-login-ime）
+C1	pass	邮箱 → Send code 发出验证码，进入验证码页
+K6	blocked	验证码页 OTP（以 Verify 按钮位置为判据）：键盘未占位，本次无法判定（k6-verify-ime）
+C2	pass	输入开发码 888888，满 6 位自动提交并通过（verify.tsx:97 onComplete=submit）
+C3	pass	工作区选择页列出多个工作区（probe550 / probe542），选中 Probe 550 后进入收件箱
+C4	pass	收件箱渲染出夹具条目（服务端按 issue 去重后 2 行：Mentioned + PRB-2 新评论），见 c4-01-inbox.png
+C4c	pass	左滑未读条目露出 Archive 操作
+C4d	pass	点 Archive 后条目从收件箱移除
+C4b	fail	点开条目后未进入详情（见 c4-02-item-opened.png）
+C4e	pass	顶部 Inbox actions 面板打开并列出批量操作
+C5	pass	深链打开 issue 详情（标题 + 时间线分节）
+C5b	pass	属性 chip 渲染： In Progress High Android 回归项目 android 回归（未命中：）
+C5c	fail	滚动后夹具评论仍未进无障碍树（见 c5-02-detail-bottom.png）
+C5d	pass	⋯ 菜单（JS action sheet）打开并列出操作项
+C5e	fail	长按后未出现动作面板（见 c5-04-comment-menu.png）
+C5f	blocked	上一步失败
+K2	pass	评论 composer：关键控件整块在键盘顶边之上（k2-comment-ime）
+C6	pass	编辑 issue 页打开（Edit Issue：Title + Description 两个字段）
+K4	pass	编辑 issue 标题：关键控件整块在键盘顶边之上（k4-editissue-ime）
+C6b	fail	从详情点 chip 进选择器只成功 0 次
+C6c	fail	issue 属性选择器只打开 4/6 个（见 c6-picker-*.png）
+C7	pass	新建 issue 页打开
+K3	pass	新建 issue 标题：关键控件整块在键盘顶边之上（k3-newissue-ime）
+C7b	fail	新建 issue 属性 chip 只打开 2/5 个（见 c7-picker-chip-*.png）
+C7c	pass	new-issue-picker 路由可打开（4/5）
+C7d	fail	提交后未看到新 issue 详情（见 c7-03-after-create.png）
+C8	pass	聊天页渲染出夹具会话的历史气泡（user + assistant 各一条）
+K1	pass	聊天 composer：关键控件整块在键盘顶边之上（k1-chat-ime）
+C8b	pass	聊天发送动作已执行（发送中标记 Stop agent=0；待发/重试/离线排队 marker=0）
+C8c	blocked	流式回复需要在线 agent runtime：夹具 agent 的 runtime（Probe550 Runtime）状态为 offline，消息只能排队；流式 token 本轮无法产出（环境前置，不是客户端缺陷）
+C9	pass	项目列表渲染出夹具项目
+C9b	pass	项目详情页打开
+C10	pass	全局搜索输入后返回结果
+B1	blocked	未能从详情点进 picker（chip 未匹配），见 b1-picker-open.png
+B2	fail	菜单按 BACK 后状态不对（detail=n focused=y）
+B3	pass	picker 选中一项后关闭，未残留空壳
+B4	pass	More 下拉菜单开着按 BACK 只关菜单；应用未退出、未切 tab
+B5	blocked	probe550 夹具没有图片附件，本轮无法触发图片查看器（需先上传一张图片）—— 记为已知未覆盖项
+V1	pass	四个 tab 图标齐全（图标框 ink 比例 min=My）： Inbox=0.1206 My Issues=0.1148 Chat=0.1709 More=0.0867 
+V2	pass	冷启动帧取到品牌启动屏背景 #111827（launch-splash-2）
+V2b	fail	prebuild 生成物不符： values-night 有 0
+0 处 color
+V2c	pass	logcat 无 “Failed to hide splash screen”
+V3	pass	深浅两套生效：浅色正文亮度 254（>180）、深色 9（<80）
+V3b	pass	状态栏区域随主题变暗：浅色 254 → 深色 9
+V4	pass	My Issues 的 scope pill 组渲染（Assigned/Created/Agents），替代已废弃的 SegmentedControl
+E1	pass	手势导航下 tab bar 底边 y=2334 ≤ 系统导航条上沿 y=2337（inset=63px）
+E2	pass	三键导航下 tab bar 底边 y=2271 ≤ 导航条上沿 y=2274（inset=126px）
+E3	blocked	未找到聊天输入框，见 e3-chat-nokeyboard.png
+E4	pass	状态栏条带亮度随主题变化：浅色 254 / 深色 9
+E5	pass	picker 滚到底：最低非全屏节点底边 y=2337 ≤ 导航条上沿 y=2337
+E6	pass	设置页滚到底：最低非全屏节点底边 y=1991 ≤ 导航条上沿 y=2337
+M1	pass	语法矩阵夹具已渲染；dump 命中 marker： 加粗（未命中： H1 一级标题 删除线 无序列表 有序列表 未完成项 —— dump 覆盖不全，其余以 m1-frame-*.png 为准）
+M10	fail	高亮器日志异常：initializing=1、highlight failed=0
+0
+M11	fail	logcat 出现 0
+0 次 highlight failed for lang=…
+M13	pass	PROB-3（12 语言代码块夹具）已打开并渲染，着色与否见 m13-langs.png
+M14	pass	Native Heap(Size/Alloc/Free) 后台回落：N1=383516/346070/32563 → N2=383000/259300/118778 → N3=383168/260834/117395 → N4=384028/261755/117355
+M15	pass	PROB-2 长文档滚动到底、无空白占位（见 m15-longdoc-bottom.png）；帧率按 550 结论不作验收判据，数字仅记录于 gfxinfo-scroll.txt
+D1	blocked	深链未落到 picker（见 d1-picker-direct.png）
+D2	fail	重连 25s 后仍未看到断网期间插入的评论（离线 marker=0，见 d2-reconnected.png）
+D3	fail	恢复异常：resume=0 / kill 后冷启 recovered=1（见 d3-*.png）
+C11	pass	设置页渲染（Account / Appearance / Sign out）
+C11b	pass	通知偏好页打开
+C11c	pass	设置页列出工作区（可切换）
+C11d	pass	退出登录后回到登录页

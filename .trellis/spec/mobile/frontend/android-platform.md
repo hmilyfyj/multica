@@ -24,8 +24,30 @@
 | `ActionSheetIOS` | `inbox.tsx:80`、`issue/[id].tsx:126`、`more/settings/profile.tsx:67`、`project/[id].tsx:98`、`components/chat/message-long-press.tsx:56`、`components/issue/comment-context-menu.tsx:111,236` | 6 处 | 已收敛到 `components/ui/action-sheet.tsx`（FEATURE-545）：iOS 转发原生 sheet，其余平台渲 JS 面板 |
 | `headerSearchBarOptions`（原 `useNativeSearchBar`，现 `usePickerSearchBar`） | `mention-picker`、`issue/[id]/picker/{assignee,label,project}`、`new-issue-picker/{assignee,project}`、`project/[id]/picker/lead` | 7 路由 | 已由 FEATURE-546 收敛到 `lib/use-picker-search-bar.tsx` + `components/ui/search-field.tsx`：iOS 用原生 `UISearchController`，其余平台用 body 内搜索框 |
 | `presentation: "formSheet"` + detents/grabber | `app/(app)/[workspace]/_layout.tsx` 的 `SHEET_OPTIONS` | 24 路由 | 参数全部生效但语义不同（挡位→`peekHeight`/`maxHeight`、只圆上两角、抓手不绘制），24 条逐条实测见 FEATURE-547 |
-| `KeyboardAvoidingView` 的 iOS 分支 | 8 个表单/聊天页面 | 8 处 | `behavior` 取值为 `undefined`，需确认是否需要 `height` |
+| `KeyboardAvoidingView` | 8 个表单/聊天页面（`login`、`verify`、`search`、`chat`、`new-issue`、`issue/[id]/edit`、`project/new`、`project/[id]/edit`） | 8 处 | 已由 FEATURE-548 收敛到 `components/ui/keyboard-avoiding-view.tsx`：iOS 仍是 RN 组件 + `padding`（逐字不变），Android 换 `react-native-keyboard-controller` 的 IME inset 实现 |
 | `expo-image` 的 `sf:` SF Symbol 源 | `(tabs)/_layout.tsx` 4 个 tab 图标、`components/nav/more-tab-dropdown.tsx`（3 个菜单图标 + 2 个 chevron）、`switch-workspace.tsx`（checkmark） | 7 处 | **Android 完全空白**（Glide 抛 `IllegalArgumentException: Expected URL scheme 'http' or 'https' but was 'sf'`，静默不画）。已由 FEATURE-549 收敛到 `components/ui/nav-icon.tsx`：iOS 仍走 `sf:`，其余平台走 Ionicons |
+
+### 键盘避让与系统返回键（FEATURE-548）
+
+**键盘避让只有一个入口**：`components/ui/keyboard-avoiding-view.tsx`。不要在页面里直接用 RN 的
+`KeyboardAvoidingView`，也不要再写 `behavior={Platform.OS === "ios" ? "padding" : undefined}` ——
+RN 的实现按 `behavior` 走 `switch`，`undefined` 落到 default 分支，渲染出来的就是普通 `View`，
+等于完全不做避让；而本应用强制 edge-to-edge（`EDGE_TO_EDGE_ENFORCED`，targetSdk 36），系统不再为
+输入法压缩窗口，只把 IME inset 报给应用，必须有人消费它。iOS 分支仍是 RN 组件 + `padding`
+（与改造前逐字一致）；Android 分支用 `react-native-keyboard-controller`（已是本包依赖，
+`KeyboardProvider` 已包住根布局，评论 composer 的 `KeyboardStickyView` 一直走它）。
+
+**Android 返回键按浮层类型分工，每类只有一个负责方**：
+
+| 浮层 | 负责方 | 说明 |
+|---|---|---|
+| formSheet / modal 路由（picker、due-date、new-issue…） | react-native-screens 弹栈 | 路由就是栈成员，BACK 关一层 |
+| 原生 `Modal`（`action-sheet`、`agent-picker-sheet`、图片查看器） | RN 的 `onRequestClose` | **新增 `Modal` 必须带 `onRequestClose`** |
+| `@rn-primitives` 弹层（DropdownMenu 等） | `lib/use-android-back-dismiss.ts` | 画在 `PortalHost` 里，既不注册 BACK 也不进导航栈；不接就会出现「菜单开着按 BACK 直接把应用退到后台」 |
+
+底部安全区不用各页面自己补：底部 tab bar 由 react-navigation 按 `insets.bottom` 抬高
+（`BottomTabBar` 的 `paddingBottom` 与 `getTabBarHeight`），tab 内的页面因此天然位于系统导航条之上；
+不在 tab 里的全屏容器（评论 composer 等）才需要用 `useSafeAreaInsets().bottom` 自己补。
 
 ### 选择器搜索栏（FEATURE-546）
 
@@ -77,7 +99,8 @@
 
 | 配置 | 写法 | 依据 |
 |---|---|---|
-| `android.package` | 三段式 `ai.multica.mobile[.dev/.staging]`；生产可用 `EXPO_ANDROID_PACKAGE_PROD` 覆盖 | 缺失时 `expo prebuild -p android` 退出码 1（动态配置无法回写）；Play 首次上传后 applicationId 不可改，故生产值留覆盖口 |
+| `name` | 三段式：`海尔商城` / `海尔商城 (Staging)` / `海尔商城 (Dev)` | 两端共享：prebuild 把它写进 Android `res/values/strings.xml` 的 `app_name`（应用列表名），同时是 iOS 显示名。FEATURE-557 起用用户指定的品牌名 |
+| `android.package` | 三段式品牌包名 `com.ehaier.zgq.shop.mall[.dev/.staging]`；生产可用 `EXPO_ANDROID_PACKAGE_PROD` 覆盖 | 缺失时 `expo prebuild -p android` 退出码 1（动态配置无法回写）；Play 首次上传后 applicationId 不可改，故生产值留覆盖口。Android 与 iOS 的 id 自 FEATURE-557 起不再同源：iOS 保留 `ai.multica.mobile`（Apple 签名归属） |
 | `android.versionCode` | 字面量，随商店上传递增 | 同一 package 内复用 versionCode 会被 Play 拒绝；不从 `version` 推导，避免版本号一改就静默变动 |
 | `android.adaptiveIcon` | 前景 `assets/adaptive-icon.png`（白标 + 透明）+ 背景 `#111827` | 前景由 `assets/icon.png`（白标压在 #111827 上）反解而来，回合成与源图最大通道差 1 个 8bit 级；白标半径 28.4dp，落在任何 launcher 遮罩都保留的 33dp 圆内，不会裁切 |
 | `android.edgeToEdgeEnabled` | **不写** | SDK 55 已移除该键（Android 16 强制 edge-to-edge），写了 prebuild 会告警要求删除；实际行为由模板 `gradle.properties` 的 `edgeToEdgeEnabled=true` 与 targetSdk ≥ 35 保证 |
@@ -221,6 +244,8 @@ E DevLauncherController: Failed to hide splash screen
 # 前置环境：JAVA_HOME 指向 JDK 21、ANDROID_HOME 指向 Android SDK
 pnpm android:mobile:staging          # 默认设备／模拟器，Debug
 pnpm android:mobile:device:staging   # 从设备列表中选择，Debug
+pnpm android:mobile:dist:prod        # 签名 Release APK → apps/mobile/dist/android/（不安装、不需要设备）
+pnpm android:mobile:dist:prod:aab    # 同上，AAB（Play 上传格式）
 ```
 
 - 完整检查（typecheck / lint / test）在编码完成后一次跑完，不在迭代中途反复跑。
@@ -229,6 +254,81 @@ pnpm android:mobile:device:staging   # 从设备列表中选择，Debug
   模板默认的四套 ABI 在 arm64-v8a 模拟器上实测 245MB APK / `adb install` 38.7s /
   worklets+reanimated 冷编译 187s，收敛后为 87MB / 2.9s / 79s；`MULTICA_ANDROID_ABIS=all` 可恢复默认，release 构建不收敛。
 
+## Markdown 渲染与代码高亮（FEATURE-550 实测，基线 commit `7520b1bc6`）
+
+设备：模拟器 `Medium_Phone_API_35`（Android 15 / API 35，arm64-v8a）；构建：Debug（dev 变体，JS 走 Metro）。
+截图与原始数据：`.trellis/tasks/09-18-android-markdown-highlight/research/verify-final/`。
+
+- **原生渲染在 Android 侧成立**：`react-native-enriched-markdown@0.6.0` 带完整 Android 实现（Kotlin Spannable
+  渲染器 + `android/src/main/jni` 的 md4c C 解析），与 iOS 共用同一 ADR 约束 —— 不需要为 Android 写 renderer。
+- **语法矩阵逐项通过**（浅深两套）：h1–h6、加粗/斜体/删除线、行内代码、普通链接、无序/有序/嵌套列表、
+  任务列表（含已勾选删除线）、引用（含嵌套）、表格（含中/右对齐）、分隔线、ts/python 代码块高亮、
+  未知语言回退纯文本、表情、硬换行、超长行、列表内代码块。
+- **高亮**：12 语言预注册的 Oniguruma scanner 正常；未知语言（`foobar`）与「引擎不可用」走同一条
+  `highlight() → null` → `PlainCode` 分支，前者已在设备上实测不抛错、渲染等宽纯文本。
+- **内存回收**：两个平台都没有 `memoryWarning` / `onTrimMemory` 挂钩（issue 里「iOS 已有」与代码不符）；
+  引擎按 50MB 上限淘汰 pattern cache，但**高亮器实例存活时 scanner 不释放**。Android 现由 AppState 驱动：
+  `background` → `releaseHighlighter()`（dispose → `destroyScanner`），`active` → 重新预热。
+  实测（同一会话，KB）：12 语言渲染后 Native Heap Alloc 342,442 / Free 32,839 → 按 HOME 进后台
+  Alloc 255,976 / Free 118,881（Alloc −86MB、TOTAL PSS −85MB）→ 回前台仍保持释放态，再次打开按需重建。
+  深链会触发一次瞬时 `background → active`（实测 ~165ms），即每次深链释放并立即重建一次，属设计取舍（iOS 不注册）。
+- **长文档**：PROB-2（24 段 × 2 代码块）滚动到底全部渲染、无空白占位。
+- **帧率不作验收结论**：同一构建同一协议实测 2.39% / 28.17% / 33.33% janky（p50 16/38/42ms，宿主 load 10–21），
+  随宿主负载大幅波动；真机 Release 帧率留给后续阶段。
+
+## 构建、签名与分发（FEATURE-552 实测，基线 commit `5d5219b33`）
+
+产物落在 `apps/mobile/dist/android/multica-mobile-{dev,staging,production}-<version>-vc<versionCode>.{apk,aab}`（`dist/` 已 gitignore）。
+实测（M1 Max）：冷构建 `assembleRelease` 7 分 11 秒 / 1074 个 task，production APK 106MB（四套 ABI）；
+紧随其后的 `bundleRelease` 29 秒（66 executed / 922 up-to-date），AAB 72MB。原始证据见任务 `research/`。
+
+- **签名密钥在仓库之外**：默认 `~/.multica-android/{keystore.properties,multica-release.keystore}`，均 `chmod 600`；
+  `MULTICA_ANDROID_KEYSTORE_PROPERTIES` 指向团队已有密钥。根 `.gitignore` 有 `*.keystore` / `*.jks` /
+  `keystore.properties` 兜底，已跟踪文件里没有任何密钥材料。
+- **签名配置由 config plugin 在 prebuild 时追加**到 `android/app/build.gradle` 末尾，不做模板文本锚点替换：
+  Gradle 的 `android { }` 可以重复打开、后写覆盖，所以模板升级不会让注入静默失配（失配的表现是
+  「release 又用 debug 密钥签名」，最难发现的一类）。追加前会删掉上一次的标记块，重跑 prebuild 只有一块。
+- **plugin 宽容、分发脚本严格**：`expo prebuild` 是变体无关的，plugin 每次 prebuild 都跑（含 Debug），
+  所以缺密钥时只打警告并退回模板的 debug 签名；`scripts/android-release.sh` 是产出分发物的一侧，缺密钥直接退出。
+- **产物名取自 `expo config`**（与 prebuild 写入 Gradle 的是同一份配置），不是 package.json 的字面量，
+  所以文件名不可能与包内实际 package / versionCode 漂移。
+- **三种 APP_ENV 包名互不相同**（`…mall.dev` / `…mall.staging` / `…mall`），可同机共存；
+  production 可用 `EXPO_ANDROID_PACKAGE_PROD` 覆盖，dev / staging 不可覆盖。
+- **`versionCode` 是字面量、不派生自 `version`**：发布新的分发版本时手工 +1；同一包名不能复用已用过的
+  `versionCode`（Play 拒收、侧载拒绝降级）。
+- **Release 保留四套 ABI**（只有 Debug 收敛），所以一个 APK 能装到任何手机／模拟器。
+- 完整流程、密钥归属与备份、EAS / CI 接入结论见 `apps/mobile/docs/android-distribution.md`。
+
+## 客户端身份上报与断网恢复预算（FEATURE-559 实测，基线 commit `e35fb0a5a`）
+
+WS 升级 URL 上的 `client_platform` / `client_os` / `client_version` 是后端排障、统计与灰度的维度，
+**必须来自运行平台，不能写死**：
+
+- `client_os` 的取值集在服务端：`server/internal/handler/client_usage.go` 只认
+  `macos | windows | linux | ios | android | chromeos`，其余归一成 `unknown`。
+  `apps/mobile/data/realtime/ws-client.ts` 曾写死字面量 `"ios"`，于是 Android 设备在后端日志里
+  （`websocket connected … client_platform=mobile client_version=0.1.0 client_os=ios`）全部记成 iOS，
+  平台维度的统计、排障与灰度在 Android 上失真（FEATURE-551 §8.1 实测）。现由 `realtime-provider.tsx`
+  传 `Platform.OS`（原生侧就是 `ios` / `android`）。**新增身份维度一律从平台取，不要写字面量。**
+- 传输层 `data/realtime/ws-client.ts` **不 import `react-native`**：`apps/mobile/vitest.config.ts` 只跑
+  Node 环境，RN 原生模块在该 lane 加载不了。平台相关的值由调用方注入（如 `clientOS`），
+  这样这个文件在单测里可构造。
+
+### 断网 / 切网恢复的实时同步预算（30s）
+
+Android 上断开再恢复网络（飞行模式、Wi-Fi 切换、息屏回前台）后，**当前页面的数据必须在 30s 内自愈**，
+不能靠退出重进。三条恢复路径及各自的时延：
+
+1. NetInfo `offline → online` 边沿 → `ws.forceReconnect()`（最快，取决于系统是否上报连通性变化）；
+2. 应用层心跳发现僵尸连接：最坏时延 = `HEARTBEAT_INTERVAL_MS` + `HEARTBEAT_TIMEOUT_MS`（现为 10s + 8s），
+   之后按 full jitter 重拨（首次上限 2s）；
+3. `onopen` 之后收不到 `auth_ack` 的握手看门狗（`AUTH_TIMEOUT_MS`，10s）。**没有它时「OPEN 但未认证」的连接
+   既无定时器也不会 `onclose`**，客户端永不重连，页面数据只能靠重挂载更新。
+
+重连通知（`ws.onReconnect`）是各 feature 刷新自有缓存的唯一入口（`apps/mobile/AGENTS.md` 禁止全局 refetch sweep），
+所以**任何让连接恢复变慢或不恢复的改动都要重跑断网用例**：复现步骤与判据见
+`apps/mobile/docs/android-regression-checklist.md` §7.1。
+
 ## 验收证据要求
 
 平台交互类改动必须同时给出：
@@ -236,5 +336,14 @@ pnpm android:mobile:device:staging   # 从设备列表中选择，Debug
 1. **Android 侧**：真机或模拟器实测结果，标注设备型号、Android 版本、构建类型（Debug/Release）
 2. **iOS 侧**：确认既有行为未变的结论（抽查或全量，说明范围）
 3. 不通过单测结论替代真机验证
+
+### 一次性验收（Android 交互 / 渲染类改动）
+
+一次改完、一次验收：不接受「改一项 → 起一次模拟器 → 截一轮图」的反复验收。
+
+1. **先改完**：本任务的全部改动（含已发现的缺陷）先落到工作区，中途只跑与改动直接相关的单测 / 单文件检查。
+2. **一次构建安装**：只启动一次模拟器、只跑一次完整构建与安装；期间不再改代码、不再重启模拟器。
+3. **一轮取证**：用一个脚本一次覆盖全部验收项（全部页面 × 浅深两套 × 内存前后台序列），产物一次性落进任务 research 目录。
+4. **一轮出结论**：只有「脚本自身缺陷」或「验收项本身写错」才允许重跑，并在结论里写明重跑原因。
 
 新发现的平台约束写回本文件；本文件是 `apps/mobile` 平台差异的唯一权威清单。

@@ -16,6 +16,11 @@
  *     onclose-triggered reconnect that bites RN (close is async over the
  *     bridge — see facebook/react-native#9465).
  *   - Token-mode auth only (no cookies on native).
+ *   - A handshake watchdog around `onopen` → `auth_ack`. The heartbeat only
+ *     covers authenticated sockets, so without this an upgrade that opens and
+ *     never authenticates has no timer, no onclose and no redial: the client
+ *     stays in an unauthenticated OPEN state forever, which also means no
+ *     reconnect notification and no cache refresh (FEATURE-559).
  *
  * Server compatibility: same protocol as web/desktop. Sends
  *   {type:"auth", payload:{token}} as first frame; expects {type:"auth_ack"}
@@ -61,6 +66,13 @@ export interface WSClientOptions {
   workspaceSlug: string;
   /** Mobile app version, surfaced to server logs for debuggability. */
   clientVersion?: string;
+  /** Platform this socket dials from, sent as `client_os`. Supplied by the
+   *  caller because this layer stays free of react-native imports (its vitest
+   *  lane is Node-only). The server records macos / windows / linux / ios /
+   *  android / chromeos and normalizes anything else to `unknown`
+   *  (server/internal/handler/client_usage.go) — a literal here is how every
+   *  Android device reported `ios` (FEATURE-559). */
+  clientOS: string;
   logger?: Logger;
 }
 
@@ -73,8 +85,18 @@ const RECONNECT_MAX_EXPONENT = 6; // 1s → 64s ceiling, capped at 30s
 // can still look OPEN here forever. Its `/ws` handler also supports text
 // {type:"ping"} → {type:"pong"}, which gives the mobile transport an
 // observable liveness check without changing the protocol.
-const HEARTBEAT_INTERVAL_MS = 25_000;
-const HEARTBEAT_TIMEOUT_MS = 10_000;
+//
+// Worst-case detection latency is interval + timeout (where in the cycle the
+// drop lands is random), so the pair is sized to fit inside the 30s recovery
+// budget the Android acceptance run measures — "the timeline catches up
+// within 30s of the network coming back" — leaving room for the redial, the
+// auth frame and the refetch behind it.
+const HEARTBEAT_INTERVAL_MS = 10_000;
+const HEARTBEAT_TIMEOUT_MS = 8_000;
+
+// `onopen` has already succeeded when this starts, so it only bounds how long
+// the server may take to answer the auth frame.
+const AUTH_TIMEOUT_MS = 10_000;
 
 /**
  * Lifecycle state — drives whether onclose schedules a reconnect:
@@ -92,6 +114,7 @@ export class WSClient {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   private pongTimer: ReturnType<typeof setTimeout> | null = null;
+  private authTimer: ReturnType<typeof setTimeout> | null = null;
   private awaitingPong = false;
   private hasConnectedBefore = false;
 
@@ -204,7 +227,7 @@ export class WSClient {
     const url = new URL(this.opts.url);
     url.searchParams.set("workspace_slug", this.opts.workspaceSlug);
     url.searchParams.set("client_platform", "mobile");
-    url.searchParams.set("client_os", "ios");
+    url.searchParams.set("client_os", this.opts.clientOS);
     if (this.opts.clientVersion) {
       url.searchParams.set("client_version", this.opts.clientVersion);
     }
@@ -221,6 +244,7 @@ export class WSClient {
           payload: { token: this.opts.getToken?.() ?? this.opts.token },
         }),
       );
+      this.startAuthTimeout(ws);
     };
 
     ws.onmessage = (event) => {
@@ -278,6 +302,7 @@ export class WSClient {
 
   private onAuthenticated() {
     this.reconnectAttempt = 0;
+    this.clearAuthTimeout();
     this.logger.info("[ws] authenticated");
     this.startHeartbeat();
     if (this.hasConnectedBefore) {
@@ -343,14 +368,14 @@ export class WSClient {
       // they intentionally stay outside WSEventType / WSMessage.
       this.ws.send(JSON.stringify({ type: "ping" }));
     } catch {
-      this.reconnectAfterHeartbeatFailure();
+      this.reconnectAfterHealthFailure();
       return;
     }
 
     this.pongTimer = setTimeout(() => {
       if (this.awaitingPong) {
         this.logger.warn("[ws] heartbeat timed out");
-        this.reconnectAfterHeartbeatFailure();
+        this.reconnectAfterHealthFailure();
       }
     }, HEARTBEAT_TIMEOUT_MS);
   }
@@ -365,11 +390,40 @@ export class WSClient {
     this.logger.debug("[ws] heartbeat pong");
   }
 
-  private reconnectAfterHeartbeatFailure() {
+  /**
+   * Bounds the wait between `onopen` and `auth_ack` for one socket. Without
+   * it a half-open upgrade is a permanent stall: onclose never fires, the
+   * heartbeat never starts (it covers authenticated sockets only) and nothing
+   * else redials an OPEN socket — so the client never reconnects, never
+   * notifies subscribers, and the visible data stays stale until the screen
+   * is remounted (FEATURE-559).
+   */
+  private startAuthTimeout(socket: WebSocket) {
+    this.clearAuthTimeout();
+    this.authTimer = setTimeout(() => {
+      this.authTimer = null;
+      // A newer socket may have replaced this one; its own handshake is
+      // bounded by its own timer.
+      if (this.ws !== socket) return;
+      this.logger.warn("[ws] auth_ack timed out");
+      this.reconnectAfterHealthFailure();
+    }, AUTH_TIMEOUT_MS);
+  }
+
+  private clearAuthTimeout() {
+    if (this.authTimer) {
+      clearTimeout(this.authTimer);
+      this.authTimer = null;
+    }
+  }
+
+  /** Recovery for a socket-level health failure — a missed pong or a
+   *  handshake that never completed. Deliberately not forceReconnect():
+   *  health failures must retain the normal exponential-backoff + full-jitter
+   *  protection used by onclose. */
+  private reconnectAfterHealthFailure() {
     if (this.state !== "active") return;
     this.teardownSocket();
-    // Do not use forceReconnect(): health failures must retain the normal
-    // exponential-backoff + full-jitter protection used by onclose.
     this.scheduleReconnect();
   }
 
@@ -387,6 +441,7 @@ export class WSClient {
 
   private teardownSocket() {
     this.clearHeartbeat();
+    this.clearAuthTimeout();
     if (!this.ws) return;
     const ws = this.ws;
     // Detach BEFORE close — onclose firing after teardown would re-enter
