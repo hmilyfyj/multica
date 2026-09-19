@@ -397,3 +397,24 @@ Android 的「本机通知」是客户端自产自销：`inbox:new` WS 帧到达
   `skipped-muted` / `failed`），设置页把它翻译成人话，并提供「Send a test notification」——与真实事件走完全相同的调用。
   于是「事件根本没到」「被 gate 拦住」「到了但手机丢掉了」三种情况能当场区分，不用接电脑看 logcat。
   新增任何「静默不弹」的分支时，都要同时记录一种 outcome，否则又回到无法诊断的状态。
+
+### 后台收不到通知：WS 被主动 pause（FEATURE-562c，真机实测定位）
+
+真机实测「前台正常、后台收不到、App 没有被杀掉」。原因不在通知链路，而在**实时层的生命周期**：
+`data/realtime/realtime-provider.tsx` 在 `AppState === "background"` 时调用 `ws.pause()`
+（`WSClient.pause()` 会 `teardownSocket()` 并清掉心跳）。这段逻辑当年是为 iOS 写的
+（「iOS 反正会杀后台 socket，干净关闭避免 resume 时的内核级 reset」），当时 App 没有通知功能，暂停没有任何代价。
+
+FEATURE-562 让这件事变成缺陷：本机通知的**唯一**事件源就是这条 WS 的 `inbox:new` 帧，
+所以「切后台 → 停 socket」等于「切后台 → 通知功能关闭」。
+
+约定（已落地）：
+
+- **Android 不在后台暂停 socket**；iOS 保持原行为（`Platform.OS !== "android"` 才 pause）。
+  代价是后台仍在跑 socket + 10s 心跳，这是方案 A 换取后台横幅的代价，属于明确接受项。
+- 前台恢复时照旧 `resume()` + `forceReconnect()`：进程若被冻结，socket 可能已死，
+  立刻重建比等心跳超时（最坏 ~18s）更稳。
+- **不要**为了省电在 Android 后台暂停 WS，除非同时把「后台通知」从需求里去掉；
+  这两件事在本架构下互斥。改这一段前后都要真机验证后台横幅（前台正常不能作为通过依据）。
+- 这仍不解决**进程被冻结/回收**的情况：澎湃/MIUI 等 ROM 冻结缓存进程后帧不会到达，
+  那是方案 A 的固有边界（要彻底解决需要 FCM + 后端改造）。
