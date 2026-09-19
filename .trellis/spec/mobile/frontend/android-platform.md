@@ -347,3 +347,32 @@ Android 上断开再恢复网络（飞行模式、Wi-Fi 切换、息屏回前台
 4. **一轮出结论**：只有「脚本自身缺陷」或「验收项本身写错」才允许重跑，并在结论里写明重跑原因。
 
 新发现的平台约束写回本文件；本文件是 `apps/mobile` 平台差异的唯一权威清单。
+
+## 本机通知（方案 A，FEATURE-562，基线 commit `3fd34cc21`）
+
+Android 的「本机通知」是客户端自产自销：`inbox:new` WS 帧到达后由 App 进程直接弹系统横幅
+（`apps/mobile/lib/local-notifications.ts`），点横幅回到对应 issue 或收件箱条目。**没有推送通道**：
+
+- App 被划掉、被系统回收或长时间后台被清理后，**收不到任何通知**。这不是缺陷，是方案 A 的边界；
+  重新打开 App 后会补拉收件箱列表与未读汇总，所以不会丢数据，只是没有即时提醒。
+- 与「锁屏推送」不是一回事。要让进程死亡后也能收，需要 FCM + 设备 token 注册 + 后端发送侧改造
+  （已评估，暂不做）；现有实现不假装支持。
+
+实现要点（扩展时照此，不要另起一套）：
+
+- 触发点只有一处：`data/realtime/use-inbox-realtime.ts` 的 `inbox:new` 分支，且 `Platform.OS === "android"`
+  才走通知。载荷在 `data/realtime/inbox-notification.ts` + `lib/local-notifications.ts` 里构建，
+  与共享层 `packages/core/platform/system-notification.ts` 的 `slug / itemId / issueId / title / body` 对齐；
+  标题复用 `getInboxDisplayTitle`（收件箱行与详情 sheet 用的同一份文案），不新写文案逻辑。
+- 通知渠道：Android 8+ 必须在 bootstrap 建 channel（`INBOX_NOTIFICATION_CHANNEL_ID = "inbox"`，
+  重要性 HIGH 才有横幅）。渠道缺失时 expo-notifications 会回退到自带 channel，不会丢通知。
+- 前台横幅：`setNotificationHandler` 必须返回 `shouldPlaySound: true`——库文档明确
+  `shouldPlaySound: false` 会让 Android 的 drop-down 横幅不显示，与 channel 重要性无关。
+- 权限（Android 13+ `POST_NOTIFICATIONS`）：**不在冷启动申请**，入口只有
+  `设置 → 通知 → On this device`；被拒后 Android 不再弹窗，该行按钮改为引导到系统设置页。
+  未授权时其它功能照常，只是不弹横幅；也不重复骚扰。
+- 通知标识用收件箱行 id（即 Android 的通知 tag），同一条目重复到达会覆盖而不是堆叠。
+- 单测不得加载 RN 原生模块：被单测覆盖的模块（`lib/local-notifications.ts`、
+  `data/realtime/inbox-notification.ts`）不 import `react-native`，平台判断放在 RN 侧调用点；
+  测试用 `vi.mock("expo-notifications")` 断言真实链路。
+- iOS 完全不参与：Android 之外不注册 handler、不建 channel、不订阅点击，也不新增 iOS 权限文案。

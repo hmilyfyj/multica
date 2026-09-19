@@ -144,6 +144,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       "expo-secure-store",
       "@react-native-community/datetimepicker",
       "react-native-enriched-markdown",
+      // Local (not push) notifications on Android — FEATURE-562. With no props
+      // the plugin only clears the notification icon/colour metadata, keeping
+      // the app icon as the banner icon and the channel's own settings as the
+      // presentation. It is declared anyway so prebuild stays the single place
+      // the notification dependency is configured; it pulls in no Firebase
+      // config and no google-services plugin.
+      "expo-notifications",
       // Android previously had no splash config at all, so prebuild wrote its
       // stock fallback: Expo's placeholder graphic on white, with an EMPTY
       // res/values-night — a dark-mode launch flashed a white screen. Naming

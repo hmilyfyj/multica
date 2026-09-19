@@ -6,19 +6,36 @@
  * hardcoded English (mobile has no i18n infra yet). The group labels MUST
  * stay in sync with web — they describe the same server-side semantics,
  * and divergent labels would violate behavioral parity (apps/mobile/CLAUDE.md).
+ * On Android the screen also owns the OS-side permission (see
+ * DeviceNotificationSection): the banner needs both that grant and the
+ * server-side preference below.
  */
-import { ActivityIndicator, ScrollView, View } from "react-native";
+import { useCallback, useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  AppState,
+  Linking,
+  Platform,
+  ScrollView,
+  View,
+} from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import type {
   NotificationGroupKey,
   NotificationPreferences,
 } from "@multica/core/types";
+import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { useWorkspaceStore } from "@/data/workspace-store";
 import { notificationPreferenceOptions } from "@/data/queries/notification-preferences";
 import { useUpdateNotificationPreferences } from "@/data/mutations/notification-preferences";
+import {
+  getLocalNotificationPermission,
+  requestLocalNotificationPermission,
+  type LocalNotificationPermission,
+} from "@/lib/local-notifications";
 
 const INBOX_GROUPS: {
   key: Exclude<NotificationGroupKey, "system_notifications">;
@@ -101,6 +118,8 @@ export default function NotificationsSettingsScreen() {
       className="flex-1 bg-background"
       contentContainerClassName="px-4 py-4 gap-6"
     >
+      {Platform.OS === "android" ? <DeviceNotificationSection /> : null}
+
       <Section
         title="Inbox notifications"
       >
@@ -180,5 +199,93 @@ function Section({
         {children}
       </View>
     </View>
+  );
+}
+
+/**
+ * Android system-notification permission — the OS gate that must be open
+ * before any banner can appear. It is a different switch from the server-side
+ * `system_notifications` toggle: that one decides whether an item is created
+ * for this user, this one whether the phone is allowed to display it.
+ *
+ * The ask lives here, behind an explicit tap, instead of at startup: a cold
+ * open that immediately demands notification permission is exactly what this
+ * entry point exists to avoid. After a denial Android stops showing its dialog,
+ * so the button becomes a trip to the system settings app. Nothing else in the
+ * app depends on the answer — with the grant missing, items simply stay in the
+ * in-app inbox.
+ */
+function DeviceNotificationSection() {
+  const [permission, setPermission] =
+    useState<LocalNotificationPermission | null>(null);
+  const [asking, setAsking] = useState(false);
+
+  const refresh = useCallback(() => {
+    getLocalNotificationPermission()
+      .then(setPermission)
+      .catch((err) =>
+        console.warn("[notifications] failed to read permission", err),
+      );
+  }, []);
+
+  useEffect(() => {
+    refresh();
+    // The user can flip this in the system settings app; coming back to the
+    // foreground is when that becomes visible here.
+    const sub = AppState.addEventListener("change", (status) => {
+      if (status === "active") refresh();
+    });
+    return () => sub.remove();
+  }, [refresh]);
+
+  const onPress = async () => {
+    setAsking(true);
+    try {
+      if (permission && !permission.canAskAgain) {
+        await Linking.openSettings();
+      } else {
+        setPermission(await requestLocalNotificationPermission());
+      }
+    } catch (err) {
+      console.warn("[notifications] permission request failed", err);
+    } finally {
+      setAsking(false);
+    }
+  };
+
+  const granted = permission?.status === "granted";
+
+  return (
+    <Section
+      title="On this device"
+      description="Android banner for new inbox items. It arrives while the app is running — if the app is swiped away or reclaimed by the system, nothing is delivered."
+    >
+      <View className="flex-row items-center px-4 py-3 gap-3">
+        <View className="flex-1">
+          <Text className="text-base font-medium text-foreground">
+            System notifications
+          </Text>
+          <Text className="text-xs text-muted-foreground mt-0.5">
+            {granted
+              ? "On — new inbox items raise a banner."
+              : "Off — new inbox items stay in the in-app inbox."}
+          </Text>
+        </View>
+        {granted ? (
+          <Text className="text-sm text-muted-foreground">On</Text>
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={asking || permission === null}
+            onPress={onPress}
+          >
+            <Text>
+              {permission?.canAskAgain === false ? "Open settings" : "Turn on"}
+            </Text>
+          </Button>
+        )}
+      </View>
+    </Section>
   );
 }
