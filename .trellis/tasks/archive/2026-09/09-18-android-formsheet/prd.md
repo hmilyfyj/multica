@@ -59,5 +59,5 @@
 - [x] 深链锚点语义成立（深链直达 picker 后返回落在 tabs）
 - [x] due-date 路由在 Android 上可选中日期并落库
 - [x] 实测记录落到 `research/android-sheets.md` + `research/screens/`
-- [ ] iOS 侧抽查：本机无可用 iOS 模拟器运行时（`xcrun simctl list runtimes` 为空），改为「iOS 参数值
+- [x] iOS 侧抽查：本机无可用 iOS 模拟器运行时（`xcrun simctl list runtimes` 为空），改为「iOS 参数值
       未改动 + 分支仅在 `Platform.OS === "android"` 生效」的代码级证据，并在交付评论里说明
