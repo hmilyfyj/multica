@@ -163,8 +163,11 @@ function TranscriptRow({
   }
 }
 
-/** Shared collapsed row: icon + label + one-line summary, chevron when the
- *  row has something to expand into. */
+/** Shared collapsed row: leading glyph + label + one-line summary, wrapped in
+ *  a `Collapsible` when the row has something to expand into. Callers choose
+ *  the glyph the way `chat-timeline.tsx` does — a bulb for thinking, a chevron
+ *  for the tool rows that open — so a transcript reads the same in both
+ *  surfaces. */
 function DisclosureRow({
   entry,
   icon,
@@ -184,16 +187,7 @@ function DisclosureRow({
 }) {
   const trigger = (
     <View className="flex-row items-start gap-1.5 py-0.5">
-      {expandable ? (
-        <Ionicons
-          name="chevron-forward"
-          size={12}
-          color={MUTED}
-          style={{ marginTop: 2 }}
-        />
-      ) : (
-        <Ionicons name={icon} size={12} color={iconColor} style={{ marginTop: 2 }} />
-      )}
+      <Ionicons name={icon} size={12} color={iconColor} style={{ marginTop: 2 }} />
       <Text className="flex-1 text-xs" numberOfLines={2}>
         <Text className="text-xs font-medium text-foreground">
           {runEntryTitle(entry)}
@@ -304,7 +298,12 @@ function ToolCallRow({ entry }: { entry: RunTranscriptEntry }) {
     );
   }
   return (
-    <DisclosureRow entry={entry} icon="build-outline" summary={summary} expandable>
+    <DisclosureRow
+      entry={entry}
+      icon="chevron-forward"
+      summary={summary}
+      expandable
+    >
       <Text className="text-xs text-muted-foreground">{inputText}</Text>
     </DisclosureRow>
   );
@@ -322,7 +321,7 @@ function ToolResultRow({ entry }: { entry: RunTranscriptEntry }) {
   return (
     <DisclosureRow
       entry={entry}
-      icon="return-down-forward-outline"
+      icon="chevron-forward"
       summary={transcriptPreview(output, 100)}
       summaryClassName="text-muted-foreground/80"
       expandable
