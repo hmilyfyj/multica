@@ -120,6 +120,21 @@ const NAV_ITEMS: NavItem[] = [
     ion: "book-outline",
     path: "/more/skills",
   },
+  // Read-only workspace reporting. Both screens are look-only by design, so
+  // they sit after the browsable collections rather than needing their own
+  // section.
+  {
+    label: "Usage",
+    sf: "chart.bar",
+    ion: "bar-chart-outline",
+    path: "/more/usage",
+  },
+  {
+    label: "Billing",
+    sf: "creditcard",
+    ion: "card-outline",
+    path: "/more/billing",
+  },
 ];
 
 export function MoreTabDropdownAnchor({

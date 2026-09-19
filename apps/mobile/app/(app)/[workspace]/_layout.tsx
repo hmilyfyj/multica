@@ -276,6 +276,9 @@ export default function WorkspaceLayout() {
           options={DUE_DATE_OPTIONS}
         />
         <Stack.Screen name="issue/[id]/runs" options={SHEET_OPTIONS} />
+        {/* Thread outline — quick jump between an issue's comment threads,
+            pushed from the timeline's floating thread stepper. */}
+        <Stack.Screen name="issue/[id]/threads" options={SHEET_OPTIONS} />
         {/* Full emoji picker for a comment reaction. Pushed from the "+"
             button inside the comment long-press tapback row — see
             components/issue/comment-context-menu.tsx. */}
@@ -420,6 +423,18 @@ export default function WorkspaceLayout() {
         <Stack.Screen
           name="more/settings/notifications"
           options={{ title: "Notifications", headerBackTitle: "Settings" }}
+        />
+        {/* Read-only workspace reporting, both reached from the More popover:
+            usage trends + failure breakdown, and the current subscription.
+            They carry no writes, so they need nothing from the realtime
+            layer — the rollups refresh on their own cadence and on pull. */}
+        <Stack.Screen
+          name="more/usage"
+          options={{ title: "Usage", headerBackTitle: "Back" }}
+        />
+        <Stack.Screen
+          name="more/billing"
+          options={{ title: "Billing", headerBackTitle: "Back" }}
         />
         <Stack.Screen
           name="more/settings/workspace"
