@@ -578,3 +578,60 @@ iOS 走 `js/SegmentedControl.ios.js`（原生 `UISegmentedControl`），Android 
 
 验收证据（本轮）：`lib/thread-nav.test.ts` 18 例（activity 行与 unread 分隔行不计入、嵌套回复计入根、
 已删除回复不计入回复数、根与回复两种已解决判定、行下标 → 当前线程）；APK 走 GitHub Release 交真机自测。
+
+## 收件箱筛选与归档视图（FEATURE-577，基线 commit `33c94d098`）
+
+页面语义与网络口径对齐 web（`packages/views/inbox/**` + `packages/core/inbox/**`），这里只记
+**平台行为**上踩到或必须固化的几点。
+
+### 长按与滑动可以共存，但要用「先关再执行」的次序
+
+行同时有两条手势路径：横向 pan 由 `ReanimatedSwipeable` 接管（露出动作按钮），
+按住不动由行内 `Pressable` 的 `onLongPress` 接管（打开动作菜单）。二者不冲突——
+移动超过 pan 阈值会取消长按。**但触发动作前必须先 `swipeable.close()`**：行会在下一次渲染
+因为乐观补丁（`archived` 翻转 → 去重过滤）被移出列表，不先关会和回弹动画抢同一批渲染。
+
+### 没有 hover / 右键，动作只能靠长按发现
+
+web 的「标记已读/未读、归档、取消归档」走右键菜单 + 悬浮按钮；Android 没有这两个输入。
+本任务把它们放进**长按动作面板**（`showActionSheet`），并把真机自测步骤写进 Release 说明——
+长按是唯一入口，不能只在代码里存在。
+
+### 归档视图是**数据源切换**，不是列表上的过滤
+
+两个列表互斥（服务端决定某 issue 属于哪个），因此：
+
+- 归档列表走游标分页（`/api/inbox/archived/page`，limit 50），筛选参数**进查询键**（归一化后），
+  换筛选 = 从第一页重新读，与 web 一致；
+- 归档视图**不提供批量归档**（每个批量入口都是从主收件箱归档，放在归档列表里会读成
+  「归档这些」却做反操作）；
+- 归档行**不渲染未读标记**（归档保留真实 `read`，未读计数也不含归档行），
+  与 web 的 `showUnread = read !== true && !isArchivedView` 同一口径。
+
+### 归档筛选计数只能来自服务端
+
+主视图的筛选计数在客户端按「其它维度生效、忽略本维度」的分面规则算（列表已全量加载）；
+归档列表是分页的，客户端没有全量视图，因此归档视图读 `/api/inbox/archived/facets`，
+且只在筛选面板打开时请求。
+
+### 缓存层面：一次刷新覆盖两个列表
+
+`refreshInboxList` 从 `["inbox", wsId, "list"]` 放宽到 `["inbox", wsId]` 前缀——
+归档分页与 facets 都挂在这个前缀下，而一个 inbox 事件可能同时改变两个列表
+（归档 issue 上的新通知会把它放回主收件箱，同时离开归档）。`issue:updated` / `issue:deleted`
+的补丁同样要覆盖归档分页缓存（web 的 `patchInboxLists` 同）。
+
+### 乐观补丁的形态判别与一个测试陷阱
+
+`inboxKeys.archived(wsId)` 前缀下住着**两种形状**：分页缓存的 `InfiniteData<{items}>` 与
+facets 的计数对象。补丁函数必须先判别形状（`isArchivedPagesCache`）再改，
+否则会往计数对象上写 items。
+
+unarchive 的乐观补丁是**把行留在缓存里、只翻 `archived`**，「行从归档列表消失」是渲染侧
+`deduplicateArchivedInboxItems` 的过滤结果；测试里直接断言缓存中的行数会误判为「补丁没生效」，
+要断言 `archived` 标记或经过去重后的可见列表。
+
+验收证据（本轮）：`lib/inbox-filters.test.ts`（分面过滤、actor key、优先级能力）、
+`lib/inbox-display.test.ts`（归档去重）、`data/mutations/inbox.test.ts`（标记未读 / 取消归档的
+乐观补丁与回滚）、`data/stores/inbox-view-store.test.ts`、
+`data/realtime/inbox-ws-updaters.test.ts`（归档缓存补丁）；APK 走 GitHub Release 交真机自测。

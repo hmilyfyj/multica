@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { InboxItem } from "@multica/core/types";
 import {
+  deduplicateArchivedInboxItems,
   deduplicateInboxItems,
   getAutopilotQuotaBody,
   getInboxDisplayTitle,
@@ -54,6 +55,51 @@ describe("deduplicateInboxItems", () => {
         to: "in_review",
         comment_id: "comment-1",
       },
+    });
+  });
+});
+
+describe("deduplicateArchivedInboxItems", () => {
+  it("keeps only the archived rows, one per issue, newest first", () => {
+    const merged = deduplicateArchivedInboxItems([
+      item({
+        id: "still-active",
+        archived: false,
+        created_at: "2026-06-15T09:00:00Z",
+      }),
+      item({
+        id: "archived-older",
+        archived: true,
+        created_at: "2026-06-15T08:00:00Z",
+        details: { comment_id: "comment-1" },
+      }),
+      item({
+        id: "archived-newer",
+        archived: true,
+        type: "status_changed",
+        created_at: "2026-06-15T08:30:00Z",
+        details: { from: "todo", to: "done" },
+      }),
+      item({
+        id: "archived-other-issue",
+        archived: true,
+        issue_id: "issue-2",
+        created_at: "2026-06-15T07:00:00Z",
+      }),
+    ]);
+
+    // The main list's rule applied to the other side of the `archived` flag:
+    // a row that is not archived belongs to the inbox, not the archive, and the
+    // same group collapses to its newest row with the comment anchor carried
+    // forward.
+    expect(merged.map((i) => i.id)).toEqual([
+      "archived-newer",
+      "archived-other-issue",
+    ]);
+    expect(merged[0]?.details).toMatchObject({
+      from: "todo",
+      to: "done",
+      comment_id: "comment-1",
     });
   });
 });
