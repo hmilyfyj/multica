@@ -27,3 +27,25 @@ Android 视觉校准交付：新增 components/ui/nav-icon.tsx 收敛 sf: SF Sym
 ### Status
 
 [OK] **Completed**
+
+
+## Session 12: FEATURE-562 Android 本机通知（方案 A）完成与归档
+<!-- trellis-session: v=2 fp=cd0e0bd2d79c17c6 -->
+
+**Date**: 2026-09-19
+**Task**: FEATURE-562 Android 本机通知（方案 A）完成与归档
+**Branch**: `feature/562-android-local-notifications`
+
+### Summary
+
+Android 收件箱本机通知落地并合入 main@0698402c8：expo-notifications + inbox channel + 13+ 权限设置页入口；inbox:new 分支仅 Android 弹横幅，mute/权限双 gate；补单测（14 例）与 android-platform spec；交付 arm64-v8a Release APK（GitHub Release android-v0.1.0-vc1-notifications）。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0698402c8` | feat(mobile): Android 本机通知（方案 A）—— 收件箱横幅、渠道与权限入口 (#562) |
+
+### Status
+
+[OK] **Completed**
