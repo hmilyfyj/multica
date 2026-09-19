@@ -25,12 +25,12 @@
 
 ## Acceptance Criteria
 
-- [ ] `WSClient` 的 dial URL 携带调用方给的 `client_os`；`clientOS: "android"` 时不再出现 `ios`。
-- [ ] 单测：`onopen` 后无 `auth_ack` → 超过握手窗口后自动重拨（新 socket 实例出现）；`auth_ack` 到达后该看门狗被清除（不会误重拨）。
-- [ ] 单测：重连通知触发 issue 详情 + 时间线缓存失效（`use-issue-realtime` 的 reconnect 契约）。
-- [ ] 最坏情况的僵尸探测时延 < 30s（心跳 interval + timeout）。
-- [ ] `pnpm --filter @multica/mobile typecheck` / `lint` / `test` 通过。
-- [ ] 结论写清两处缺陷各自的复现步骤、修复说明与 FEATURE-558 的复验步骤（含 `adb` 断网/恢复与后端插评论的判据）。
+- [x] `WSClient` 的 dial URL 携带调用方给的 `client_os`；`clientOS: "android"` 时不再出现 `ios`。
+- [x] 单测：`onopen` 后无 `auth_ack` → 超过握手窗口后自动重拨（新 socket 实例出现）；`auth_ack` 到达后该看门狗被清除（不会误重拨）。
+- [x] 单测：重连通知触发 issue 详情 + 时间线缓存失效（`use-issue-realtime` 的 reconnect 契约）。
+- [x] 最坏情况的僵尸探测时延 < 30s（心跳 interval + timeout）。
+- [x] `pnpm --filter @multica/mobile typecheck` / `lint` / `test` 通过。
+- [x] 结论写清两处缺陷各自的复现步骤、修复说明与 FEATURE-558 的复验步骤（含 `adb` 断网/恢复与后端插评论的判据）。
 
 ## Boundaries
 
