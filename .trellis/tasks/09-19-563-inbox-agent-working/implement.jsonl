@@ -1,2 +1,0 @@
-{"file": ".trellis/spec/mobile/frontend/android-platform.md", "reason": "平台差异与验收证据要求（本任务不做设备验收，需在交付里写明未覆盖）"}
-{"file": "apps/mobile/AGENTS.md", "reason": "mobile 行为对齐（web 口径）、实时层约定与验证命令"}

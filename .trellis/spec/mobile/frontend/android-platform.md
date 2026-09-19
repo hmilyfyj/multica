@@ -129,7 +129,7 @@ npx expo prebuild -p android --clean
 ## Android 视觉校准（FEATURE-549 实测，基线 commit `8e94b5dad`）
 
 设备：Android 模拟器 `Medium_Phone_API_35`（Android 15，1080×2400 @420dpi），**Debug** 构建。
-截图与复现脚本：`.trellis/tasks/09-18-android-visual-calibration/research/`
+截图与复现脚本：`.trellis/tasks/archive/2026-09/09-18-android-visual-calibration/research/`
 （`capture-visual.sh`、`cap-one.sh`、`screens-final/`）。
 
 ### `sf:` 图标在 Android 上完全空白（已收敛）
