@@ -71,3 +71,25 @@ Android 收件箱本机通知落地并合入 main@0698402c8：expo-notifications
 ### Status
 
 [OK] **Completed**
+
+
+## Session 14: FEATURE-562c 后台收不到通知：WS 后台暂停修复
+<!-- trellis-session: v=2 fp=3e6fcbb686b92f8e -->
+
+**Date**: 2026-09-19
+**Task**: FEATURE-562c 后台收不到通知：WS 后台暂停修复
+**Branch**: `feature/562-android-local-notifications`
+
+### Summary
+
+定位 realtime-provider 在 AppState=background 时 ws.pause()（本机通知唯一事件源即该 WS），改为 Android 不暂停、iOS 不变；vc3 APK 交付；约定写回 android-platform spec。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ae75f899c` | fix(mobile): 后台收不到本机通知 —— Android 不再在后台暂停 WS (#562) |
+
+### Status
+
+[OK] **Completed**
