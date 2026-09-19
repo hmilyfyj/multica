@@ -7,38 +7,27 @@
  * created bugs at reply-thread boundaries). The previous "Pull to load
  * older" UX and top-edge `fetchOlder` trigger are gone.
  *
- * Inbox deep-link — FlashList v2 `startRenderingFromBottom` (mirrors
- * chat-message-list.tsx):
- *   When `highlightCommentId` is set, we pass
- *   `maintainVisibleContentPosition.startRenderingFromBottom: true` to
- *   FlashList and remount the list via `key={`hl-${highlightNonce}`}` once
- *   timeline data has arrived. FlashList's `getInitialScrollIndex()` then
- *   lands on the last data item; after the initial paint MVCP keeps the
- *   visible content stable across async resizes (Shiki highlight, image
- *   natural-size, WS `comment:updated`). No JS-side scroll dance.
+ * Inbox deep-link landing:
+ *   `resolveCommentLanding` (lib/comment-landing.ts) maps the id the
+ *   notification carries to the row that holds it plus the view inside that
+ *   row which has to end up at the top of the viewport — the reply's own
+ *   bubble for a reply notification, the row itself for a root one. The
+ *   effect below drives the list there (`startLanding`) and holds it while
+ *   the row settles.
  *
- *   The previous implementation hand-rolled a `landed` state gate that
- *   re-fired `scrollToEnd` on every `onContentSizeChange`. That deadlocked
- *   the user at the bottom: `onScrollBeginDrag` queued `setLanded(true)`
- *   but a concurrent `onContentSizeChange` (from MVCP's own ScrollAnchor
- *   reposition, or from a markdown pass finishing) read the stale React
- *   closure, saw `landed === false`, and slammed the user back to bottom
- *   before the commit landed. State-vs-event races don't survive iOS
- *   markdown rendering hogging the JS thread.
+ *   Why not a bare `scrollToIndex`: it positions a *row* against FlashList's
+ *   layout model, which is exact but cannot know where a reply sits inside
+ *   its thread bubble, and it is computed once — async markdown (Shiki
+ *   highlight, image natural-size) keeps changing heights after the jump. So
+ *   the row jump is only the coarse half; the fine half measures the anchor
+ *   in window coordinates and turns the residual into a scroll offset, the
+ *   same loop the web client runs
+ *   (packages/views/issues/components/issue-detail.tsx:1940-1985).
  *
- *   The matching <CommentCard>'s `RootHighlightOverlay` fires when the
- *   target row enters the render window — so for a deep-link pointing
- *   at an old comment, the user scrolls up and the flash plays as the
- *   row mounts. `HIGHLIGHT_HOLD_MS` (5s) is the window for that.
- *
- *   Why not `scrollToIndex`: it requires accurate height estimates that
- *   variable-height markdown bubbles can't provide, even with
- *   `onScrollToIndexFailed` retry. Same lesson web learned (see
- *   `packages/views/issues/components/issue-detail.tsx:1822-1850` — they
- *   split the path into virtualized-for-browse / flat-for-deep-link
- *   precisely because "virtualization and 'land precisely on a target'
- *   have fundamentally opposed contracts"). Mobile sidesteps the split
- *   by not pretending to land precisely.
+ *   `RootHighlightOverlay` / `ReplyHighlightOverlay` flash the anchor once it
+ *   is on screen (`HIGHLIGHT_HOLD_MS`). The older behavior — land at the
+ *   bottom, flash whichever row the user eventually scrolls past — made the
+ *   deep link useless for a comment anywhere above the last screenful.
  *
  * `maintainVisibleContentPosition` is enabled by default on FlashList v2
  * and is implemented inside the C++ shadow tree — it compensates the
@@ -63,13 +52,9 @@
  *      surfacing a JS-side onContentSizeChange storm.
  *
  * What FlashList v2 does NOT change about this file:
- *   - The deep-link "land at bottom + flash on row mount" pattern (Linear
- *     iOS). FlashList's `scrollToIndex` is still estimate-based, so we
- *     intentionally don't try to land precisely on a specific comment —
- *     we land at the bottom and let `RootHighlightOverlay` claim the
- *     target when the user scrolls past it. `startRenderingFromBottom`
- *     is NOT enabled: a normal issue-open should show the header (title,
- *     description, status) first, not jump straight to the latest reply.
+ *   - Where an issue-open lands: the top, so the header (title, description,
+ *     status) reads first. `startRenderingFromBottom` stays off — only a deep
+ *     link moves the list, and only to its target.
  *   - Spacing between rows. FlashList ignores `gap-*` on
  *     `contentContainer` the same way it does in chat-message-list.tsx —
  *     we use `ItemSeparatorComponent` for the 12 px breathing room and
@@ -87,6 +72,7 @@ import {
 } from "react-native";
 import { FlashList, type FlashListRef } from "@shopify/flash-list";
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import type { Issue, TimelineEntry } from "@multica/core/types";
 import { Text } from "@/components/ui/text";
@@ -95,9 +81,17 @@ import { IssueDescription } from "./issue-description";
 import { IssueReactionRow } from "./issue-reaction-row";
 import { ActivityRow } from "./activity-row";
 import { CommentCard } from "./comment-card";
+import { ThreadNavFab } from "./thread-nav-fab";
 import { useLastViewedStore } from "@/data/stores/last-viewed-store";
+import { useThreadNavStore } from "@/data/stores/thread-nav-store";
 import { coalesceTimeline } from "@/lib/timeline-coalesce";
 import { buildTimelineRows, type TimelineRow } from "@/lib/timeline-thread";
+import { resolveCommentLanding, startLanding } from "@/lib/comment-landing";
+import {
+  buildThreadNav,
+  threadIndexAtRow,
+  MIN_THREADS,
+} from "@/lib/thread-nav";
 import { ImageSequenceProvider } from "@/lib/markdown/image-sequence";
 import { issueAttachmentsOptions } from "@/data/queries/issues";
 import { useWorkspaceStore } from "@/data/workspace-store";
@@ -112,9 +106,9 @@ interface Props {
   timelineLoading: boolean;
   refreshing: boolean;
   onRefresh: () => void;
-  /** Inbox deep-link target. Root comment id OR reply id — replies live
-   *  inline inside their parent's CommentCard, so a reply target scrolls
-   *  to the parent's row and the card highlights the matching child. */
+  /** Inbox deep-link target. Root comment id OR reply id — the timeline
+   *  lands on whichever of them the id names, replies included, and the card
+   *  flashes it (see lib/comment-landing.ts). */
   highlightCommentId?: string;
   /** Per-tap nonce. Re-tapping the same inbox row produces the same
    *  `highlightCommentId` but a fresh nonce, which re-triggers the
@@ -122,11 +116,10 @@ interface Props {
   highlightNonce?: string;
 }
 
-/** How long the flash stays "claimed" before we let a new highlight take
- *  over. The fade-out itself is driven by the Reanimated sequence inside
- *  CommentCard; this is just the upstream gate. 5s gives the user time
- *  to land at the bottom, realise the target is an older comment, and
- *  scroll up to it — the overlay still fires when the row mounts. */
+/** How long the flash stays "claimed" before a new highlight may take over.
+ *  The fade-out itself is the Reanimated sequence inside CommentCard (~3.2s
+ *  start to finish); this gate only has to outlast it, so the anchor the
+ *  landing parked at the top keeps its ring while the user reads it. */
 const HIGHLIGHT_HOLD_MS = 5000;
 
 /** Pixel slack at the bottom edge — inside this band we treat the user as
@@ -197,6 +190,34 @@ export function TimelineList({
   const lastStampRef = useRef<string | null>(null);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
 
+  // Thread-outline jump target — set by the floating stepper, and by the
+  // outline sheet through the store. Shares the landing driver below with an
+  // inbox deep link, but parks the row without flashing it.
+  const [navJump, setNavJump] = useState<{
+    rootId: string;
+    nonce: number;
+  } | null>(null);
+  const jumpNonceRef = useRef(0);
+  const onJumpToThread = useCallback((rootId: string) => {
+    setNavJump({ rootId, nonce: (jumpNonceRef.current += 1) });
+  }, []);
+
+  // The comment the current landing parks on — what CommentCard registers as
+  // the measurable anchor. Set where each landing starts rather than read off
+  // `navJump`, so a deep link can never anchor on the thread a previous
+  // outline jump left behind.
+  const [landingAnchorId, setLandingAnchorId] = useState<string | null>(null);
+
+  // Landing plumbing. `viewportRef` is the window-space origin the correction
+  // loop measures against; `anchorRef` is the row/reply view a deep link must
+  // bring to the top, registered by whichever CommentCard owns it.
+  const viewportRef = useRef<View>(null);
+  const anchorRef = useRef<View | null>(null);
+  const setAnchorView = useCallback((node: View | null) => {
+    anchorRef.current = node;
+  }, []);
+  const cancelLandingRef = useRef<(() => void) | null>(null);
+
   // ── "New since last view" divider ─────────────────────────────────────
   // Snapshot the last-viewed timestamp ONCE on mount. Subsequent WS
   // appends shouldn't shift the divider — the user wants a stable
@@ -216,18 +237,6 @@ export function TimelineList({
     return found ? found.entry.id : null;
   }, [data]);
   const dividerScrolledPastRef = useRef(false);
-
-  useEffect(() => {
-    if (!highlightCommentId || data.length === 0) return;
-    const stamp = `${highlightCommentId}:${highlightNonce ?? ""}`;
-    if (lastStampRef.current === stamp) return;
-    lastStampRef.current = stamp;
-
-    setHighlightedId(highlightCommentId);
-
-    const fade = setTimeout(() => setHighlightedId(null), HIGHLIGHT_HOLD_MS);
-    return () => clearTimeout(fade);
-  }, [highlightCommentId, highlightNonce, data.length]);
 
   // ── New-comment-while-reading chip ────────────────────────────────────
   // After landing, if WS appends new entries while the user is NOT at the
@@ -293,6 +302,79 @@ export function TimelineList({
     return [...data.slice(0, anchorIdx), divider, ...data.slice(anchorIdx)];
   }, [data, dividerAnchorId]);
 
+  // ── Thread outline index ──────────────────────────────────────────────
+  // Derived from the rendered array (divider row included) so an outline row
+  // and its jump target are the same row by construction. Feeds the floating
+  // stepper's prev/next and, through the store, the outline sheet.
+  const threadNav = useMemo(
+    () => buildThreadNav(dataWithDivider),
+    [dataWithDivider],
+  );
+  const wsSlug = useWorkspaceStore((s) => s.currentWorkspaceSlug);
+
+  // The sheet hands a picked thread back through the store — mirror it into
+  // state (the landing effect re-arms per nonce) and clear the request.
+  const jumpRequest = useThreadNavStore((s) => s.jumpRequest);
+  const consumeJump = useThreadNavStore((s) => s.consumeJump);
+  useEffect(() => {
+    if (!jumpRequest) return;
+    setNavJump(jumpRequest);
+    consumeJump();
+  }, [jumpRequest, consumeJump]);
+
+  // Literal href, like the Agent Runs sheet: the params come from the route we
+  // are already on, so the workspace has to be resolved from the store.
+  const onOpenThreadOutline = useCallback(() => {
+    if (!wsSlug) return;
+    router.push({
+      pathname: "/[workspace]/issue/[id]/threads",
+      params: { workspace: wsSlug, id: issue.id },
+    });
+  }, [wsSlug, issue.id]);
+
+  // ── Landing: inbox deep link + thread-outline jump ─────────────────────
+  // One landing per (comment id, nonce) pair: the nonce is what re-arms a
+  // re-tap of the same inbox row, and the stamp is what stops a WS append
+  // (fresh `dataWithDivider`) from replaying the jump under the user.
+  useEffect(() => {
+    // Two entry points share this driver: an inbox deep link (which also
+    // flashes the comment) and a thread-outline jump (which only parks it).
+    const targetId = navJump?.rootId ?? highlightCommentId;
+    const targetNonce = navJump ? String(navJump.nonce) : highlightNonce;
+    if (!targetId) return;
+    const list = listRef.current;
+    const landing = list
+      ? resolveCommentLanding(dataWithDivider, targetId)
+      : null;
+    if (!list || !landing) return;
+    const stamp = `${targetId}:${targetNonce ?? ""}`;
+    if (lastStampRef.current === stamp) return;
+    lastStampRef.current = stamp;
+
+    if (!navJump) setHighlightedId(targetId);
+    setLandingAnchorId(targetId);
+
+    const cancelLanding = startLanding({
+      list,
+      targetIndex: landing.rowIndex,
+      probeDown:
+        landing.anchorId !== dataWithDivider[landing.rowIndex]?.entry.id,
+      anchorNode: () => anchorRef.current,
+      viewport: () => viewportRef.current,
+    });
+    cancelLandingRef.current = cancelLanding;
+
+    // A jump parks the row and stops there; only a deep link claims the
+    // highlight — and with it, the resolved thread's automatic expansion.
+    const fade = navJump
+      ? null
+      : setTimeout(() => setHighlightedId(null), HIGHLIGHT_HOLD_MS);
+    return () => {
+      if (fade) clearTimeout(fade);
+      cancelLanding();
+    };
+  }, [navJump, highlightCommentId, highlightNonce, dataWithDivider]);
+
   // Mark "scrolled past" once the divider row leaves the viewport — used
   // by the unmount effect below to decide whether to bump last-viewed.
   const viewabilityConfig = useMemo(
@@ -301,21 +383,33 @@ export function TimelineList({
   );
   const handleViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      const minVisibleIdx = viewableItems.reduce(
+        (acc, v) => (v.index != null && v.index < acc ? v.index : acc),
+        Number.POSITIVE_INFINITY,
+      );
+      // Which thread the viewport top is inside — the stepper's prev/next
+      // origin, and the outline's "you are here". Published to the store
+      // rather than to state: this fires on every scroll, and a re-render
+      // here would rebuild `renderItem` under the visible cells.
+      if (Number.isFinite(minVisibleIdx)) {
+        const threadIdx = threadIndexAtRow(threadNav, minVisibleIdx);
+        useThreadNavStore
+          .getState()
+          .setCurrentThreadId(
+            threadIdx >= 0 ? threadNav[threadIdx]!.rootId : null,
+          );
+      }
       if (!dividerAnchorId) return;
       if (dividerScrolledPastRef.current) return;
       const dividerIdx = dataWithDivider.findIndex(
         (r) => r.entry.id === DIVIDER_ID,
       );
       if (dividerIdx < 0) return;
-      const minVisibleIdx = viewableItems.reduce(
-        (acc, v) => (v.index != null && v.index < acc ? v.index : acc),
-        Number.POSITIVE_INFINITY,
-      );
       if (minVisibleIdx > dividerIdx) {
         dividerScrolledPastRef.current = true;
       }
     },
-    [dividerAnchorId, dataWithDivider],
+    [dividerAnchorId, dataWithDivider, threadNav],
   );
   // FlashList v2 captures `viewabilityConfigCallbackPairs` at mount —
   // "Changing viewabilityConfig on the fly is not supported." So we wrap
@@ -374,23 +468,9 @@ export function TimelineList({
     </View>
   );
 
-  // When a fresh inbox deep-link arrives AND timeline data has loaded, force
-  // a FlashList remount so `getInitialScrollIndex()` re-runs with
-  // `startRenderingFromBottom: true` and lands on the last data item. If we
-  // mounted before data arrived, FlashList's one-shot initial-scroll
-  // (useRecyclerViewController.applyInitialScrollIndex, gated on
-  // `initialScrollCompletedRef`) would have already declared completion at
-  // length 0 and never re-fire. Switching the key when data goes empty →
-  // non-empty under a live highlight is the cheapest way to re-arm it.
-  const hasData = dataWithDivider.length > 0;
-  const flashListKey =
-    highlightCommentId && hasData
-      ? `hl-${highlightNonce ?? "0"}`
-      : "list";
-
   return (
     <ImageSequenceProvider blocks={imageBlocks}>
-    <View className="flex-1">
+    <View className="flex-1" ref={viewportRef}>
       {/* Outer Pressable owns the "tap anywhere outside the selected
           comment to exit text-selection mode" gesture. Disabled when
           no comment is selected → layout-only wrapper, every tap passes
@@ -410,7 +490,6 @@ export function TimelineList({
         style={{ flex: 1 }}
       >
       <FlashList
-        key={flashListKey}
         ref={listRef}
         data={dataWithDivider}
         keyExtractor={(row) => row.entry.id}
@@ -424,16 +503,13 @@ export function TimelineList({
         // Tap-on-row inside the list (long-press a comment, tap a
         // reaction) should still register even when the keyboard is up.
         keyboardShouldPersistTaps="handled"
-        // FlashList v2 MVCP. `startRenderingFromBottom` only applies when a
-        // deep-link is active — a normal issue-open lands at the top so the
-        // user sees the header (title, description, status) first. After
-        // initial paint the (always-on) MVCP keeps visible content stable
-        // when upper rows resize via async markdown / WS events; we do NOT
-        // set `autoscrollToBottomThreshold` because timeline uses an
-        // explicit "↓ N new" chip instead of silently following appends.
-        maintainVisibleContentPosition={{
-          startRenderingFromBottom: !!highlightCommentId,
-        }}
+        // FlashList v2 MVCP keeps its default (on): a landing scroll is
+        // ordinary visible content, and MVCP is what holds it in place when an
+        // upper row resizes via async markdown or a WS event. Two props stay
+        // deliberately unset — `startRenderingFromBottom` (an issue-open must
+        // show the header first) and `autoscrollToBottomThreshold` (the
+        // timeline uses the explicit "↓ N new" chip instead of following
+        // appends).
         // "Activity" is a section heading, not a sibling row — it should
         // hug the first entry the way iOS Settings / Linear sections do.
         // 4 px is just enough breathing room without making the heading
@@ -451,6 +527,8 @@ export function TimelineList({
               issueId={issue.id}
               issueIdentifier={issue.identifier}
               highlightedCommentId={highlightedId}
+              landingViewRef={setAnchorView}
+              anchorCommentId={landingAnchorId ?? undefined}
             />
           ) : (
             <ActivityRow entry={item.entry} />
@@ -461,12 +539,14 @@ export function TimelineList({
         // matches iMessage's behavior where scrolling implicitly commits /
         // dismisses the selection caret. Hooks both drag-start and the
         // momentum kick after a flick so a fast scroll can't escape.
-        onScrollBeginDrag={() =>
-          useCommentSelectStore.getState().clear()
-        }
-        onMomentumScrollBegin={() =>
-          useCommentSelectStore.getState().clear()
-        }
+        onScrollBeginDrag={() => {
+          useCommentSelectStore.getState().clear();
+          cancelLandingRef.current?.();
+        }}
+        onMomentumScrollBegin={() => {
+          useCommentSelectStore.getState().clear();
+          cancelLandingRef.current?.();
+        }}
         viewabilityConfigCallbackPairs={viewabilityCallbackPairs.current}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -476,6 +556,13 @@ export function TimelineList({
       </Pressable>
       {newCount > 0 ? (
         <NewCommentChip count={newCount} onPress={onJumpToNew} />
+      ) : null}
+      {threadNav.length >= MIN_THREADS ? (
+        <ThreadNavFab
+          threads={threadNav}
+          onJump={onJumpToThread}
+          onOpen={onOpenThreadOutline}
+        />
       ) : null}
     </View>
     </ImageSequenceProvider>

@@ -109,12 +109,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       // Play rejects an upload that reuses a versionCode inside the same
       // package, so this counts store uploads and has to grow monotonically.
       // Left as a literal instead of being derived from `version` so a release
-      // bump cannot silently move it.
-      // vc5: background-session forensics (FEATURE-562 — is the process frozen,
-      // or is the socket silent?). Counts store uploads and has to grow
-      // monotonically; it is also the only way to tell on a device which build
-      // is actually installed.
-      versionCode: 5,
+      // bump cannot silently move it — it is also the only way to tell on a
+      // device which build is actually installed.
+      // vc7: comment-thread quick jump (FEATURE-572 — outline sheet + prev/next
+      // stepper over an issue's comment threads).
+      versionCode: 7,
 
       // Keep the window's soft-input mode on `adjustResize` — this is Expo's
       // default (its plugin writes `adjustResize` when the key is absent), so

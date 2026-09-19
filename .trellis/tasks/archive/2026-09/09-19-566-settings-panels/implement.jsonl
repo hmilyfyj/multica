@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/mobile/frontend/component-guidelines.md", "reason": "新增设置子页面与编辑表单时的组件挑选/组合约定"}
+{"file": ".trellis/spec/mobile/frontend/state-management.md", "reason": "query/mutation 归属与缓存更新策略"}
+{"file": "apps/mobile/AGENTS.md", "reason": "mobile 行为对齐（web 口径）、sheet/导航、data 层与验证命令"}
+{"file": ".trellis/spec/mobile/frontend/quality-guidelines.md", "reason": "本任务要补的新增/改名/删除/排序单测的质量口径"}
