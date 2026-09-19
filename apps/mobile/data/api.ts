@@ -39,6 +39,7 @@ import type {
   DashboardUsageByAgent,
   DashboardUsageDaily,
   GetAutopilotResponse,
+  GitHubPullRequest,
   InboxItem,
   InboxWorkspaceUnread,
   Issue,
@@ -110,6 +111,8 @@ import {
   EMPTY_ISSUE_STATUS_ENTRY,
   EMPTY_LIST_ISSUES_RESPONSE,
   EMPTY_TIMELINE_ENTRIES,
+  EMPTY_ISSUE_PULL_REQUESTS_RESPONSE,
+  IssuePullRequestsResponseSchema,
   ChildIssueProgressResponseSchema,
   ChildIssuesResponseSchema,
   IssueSchema,
@@ -1150,6 +1153,23 @@ class ApiClient {
       { ...opts, endpoint: "GET /api/issues/child-progress" },
     );
     return parsed.progress;
+  }
+
+  // Pull requests linked to one issue (GET /api/issues/:id/pull-requests).
+  // The association is written by the GitHub webhook, not by anything this app
+  // does, so the block is read-only here. Same endpoint, schema and inner-array
+  // shape as web's `listIssuePullRequests`.
+  async listIssuePullRequests(
+    issueId: string,
+    opts?: { signal?: AbortSignal },
+  ): Promise<GitHubPullRequest[]> {
+    const parsed = await this.fetchValidated(
+      `/api/issues/${issueId}/pull-requests`,
+      IssuePullRequestsResponseSchema,
+      EMPTY_ISSUE_PULL_REQUESTS_RESPONSE,
+      { ...opts, endpoint: "GET /api/issues/:id/pull-requests" },
+    );
+    return parsed.pull_requests;
   }
 
   // Timeline returns the full ASC entry list in one shot — server-side

@@ -135,3 +135,24 @@ export const childIssueProgressOptions = (wsId: string | null) =>
     },
     enabled: !!wsId,
   });
+
+/**
+ * Pull requests linked to one issue — the "Pull requests" block on issue
+ * detail. Read-only: the association is written by the GitHub webhook, so this
+ * query only ever refetches, never mutates.
+ *
+ * The response's inner array is returned (same style as `issueChildrenOptions`)
+ * so the cache shape stays a flat list. `GitHubPullRequest` carries far more
+ * than the block renders (CI rollup, mergeability, diff stats) — those fields
+ * are passed through untouched and simply not read today.
+ *
+ * Deliberately no `refetchOnMount: "always"` (unlike children): a PR link only
+ * appears when someone opens or pushes a PR, and the detail screen already
+ * refetches this key on pull-to-refresh.
+ */
+export const issuePullRequestsOptions = (wsId: string | null, id: string) =>
+  queryOptions({
+    queryKey: issueKeys.pullRequests(wsId, id),
+    queryFn: ({ signal }) => api.listIssuePullRequests(id, { signal }),
+    enabled: !!wsId && !!id,
+  });
