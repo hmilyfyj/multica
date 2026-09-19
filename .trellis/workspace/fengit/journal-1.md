@@ -49,3 +49,25 @@ Android 收件箱本机通知落地并合入 main@0698402c8：expo-notifications
 ### Status
 
 [OK] **Completed**
+
+
+## Session 13: FEATURE-562b 本机通知澎湃 OS 收不到：自诊断与一次性授权
+<!-- trellis-session: v=2 fp=d84ee2508b6b4adf -->
+
+**Date**: 2026-09-19
+**Task**: FEATURE-562b 本机通知澎湃 OS 收不到：自诊断与一次性授权
+**Branch**: `feature/562-android-local-notifications`
+
+### Summary
+
+定位为手机侧不可见状态（权限/应用级开关/渠道被关/进程冻结），补一次进入收件箱的权限申请、设置页自诊断（最近尝试 + 渠道状态）、测试通知按钮，修正按钮死路；vc2 APK 重新交付。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9e737b10a` | fix(mobile): 本机通知真机收不到（澎湃 OS）—— 一次性权限申请 + 设置页自诊断 (#562) |
+
+### Status
+
+[OK] **Completed**
