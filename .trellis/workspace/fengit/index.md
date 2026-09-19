@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 40
+- **Total Sessions**: 41
 - **Last Active**: 2026-09-19
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~638 | Active |
+| `journal-1.md` | ~674 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 41 | 2026-09-19 | FEATURE-576 子 issue 区块（归档） | `88a81fea1`, `0e17748a5` | `feature/576-issue-sub-issues` |
 | 40 | 2026-09-19 | 归档 09-19-issue-thread-nav（FEATURE-572 issue 详情评论线程快速跳转） | `57394ae27` | `feature/572-thread-minimap-nav` |
 | 39 | 2026-09-19 | 归档 09-19-inbox-comment-landing（FEATURE-571 收件箱深链落点，重新落地） | `f9751a58d` | `feature/571-inbox-scroll-landing` |
 | 38 | 2026-09-19 | 归档 09-19-569-runtimes-squads-skills-readonly（FEATURE-569 Runtimes / Squads / Skills 只读视图） | `1651f9c4c` | `feature/569-runtimes-squads-skills-readonly` |
