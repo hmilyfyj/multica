@@ -49,32 +49,32 @@
 | C2 | 输入 `888888`（满 6 位自动提交） | 通过验证，进入工作区选择 | ✅ 通过 | `run/c2-02-after-otp.png` |
 | C3 | 在工作区列表选 `Probe 550` | 进入收件箱 tab | ✅ 通过 | `run/c3-01-workspaces.png` |
 | C4 | 收件箱列表 | 渲染出服务端按 issue 去重后的提醒行 | ✅ 通过 | `run/c4-01-inbox.png` |
-| C4b | 点开一条提醒 | 进入对应 issue 详情 | ✅ 通过（截图判定） | `run-remeasure/rm-08-item-opened.png`（打开的是 PROB-2） |
+| C4b | 点开一条提醒 | 进入对应 issue 详情 | ✅ 通过（判据词修正后本轮通过） | `run/c4-02-item-opened.png`（打开的是 PROB-2） |
 | C4c | 未读行左滑 | 露出红色 `Archive` 操作 | ✅ 通过 | `run/c4-03-swipe-reveal.png` |
 | C4d | 点 `Archive` | 条目从列表移除 | ✅ 通过 | `run/c4-04-after-archive.png` |
 | C4e | 右上 `⋯`（`Inbox actions`） | 弹出批量操作面板 | ✅ 通过 | `run/c4-05-inbox-actions.png` |
 | C5 | 打开 issue 详情 | 标题 + 时间线渲染 | ✅ 通过 | `run/c5-01-detail-top.png` |
 | C5b | 属性 chip | status / priority / assignee / 标签 / 项目都渲染 | ✅ 通过（命中 In Progress、High、Android 回归项目、android、回归） | `run/c5-01-detail-top.png` |
-| C5c | 滚到时间线 | 评论卡片渲染 | ✅ 通过（截图判定） | `run/c5-02-detail-bottom.png` |
+| C5c | 滚到时间线 | 评论卡片渲染 | ✅ 通过（截图判定，人工复核：加粗/行内代码/列表与表情计数都在） | `run/c5-02-detail-bottom.png` |
 | C5d | 右上 `⋯`（`Issue actions`） | 动作面板列出 Edit details / Pin / Delete issue | ✅ 通过 | `run/c5-03-actions-menu.png` |
-| C5e | 长按评论 | 弹出 `Reply` / `React…` 面板 | ✅ 通过（重测） | `run-remeasure/rm-06-comment-menu.png` |
-| C5f | `React…` → `More reactions…` | 进入 emoji picker（页眉 `Add Reaction`） | ✅ 通过（重测） | `run-remeasure/rm-07-react-panel.png` |
+| C5e | 长按评论 | 弹出 `Reply` / `React…` 面板 | ❌ 本轮 fail：**判定源缺陷**（先把评论滚出视口、失败不留图），已修未复跑 | 见 §9.6 |
+| C5f | `React…` → `More reactions…` | 进入 emoji picker | ⏸ 随 C5e 未判 | — |
 | C6 | 编辑 issue（`⋯` → Edit details） | Title + Description 两字段 | ✅ 通过 | `run/c6-01-edit.png` |
-| C6b | 详情点属性 chip 进选择器 | 每个 chip 都能打开对应选择器 | ✅ 通过（重测：B1 用例走同一条路径成功） | `run-remeasure/rm-b1-picker-open.png` |
-| C6c | 深链 6 个 issue 选择器路由 | status / priority / assignee / label / project / due-date 全开 | ✅ 通过（逐张截图确认；自动断言只认了 4/6，见 §9.2） | `run-remeasure/rm-c6-picker-*.png` |
+| C6b | 详情点属性 chip 进选择器 | 每个 chip 都能打开对应选择器 | ❌ 本轮 fail：点完固定等 3s 判定；已改为等 picker 出现，未复跑 | `run/c6b-picker-*.png` |
+| C6c | 深链 issue 选择器路由 | 6 个路由全开 | ✅ 通过（本轮**抽样** status/priority 2/2；其余 4 个沿用 551 结论） | `run/c6-picker-status.png`、`run/c6-picker-priority.png` |
 | C7 | 新建 issue 页 | 打开、可填标题 | ✅ 通过 | `run/c7-01-new-issue.png` |
-| C7b | 新建页属性 chip | 各自打开 picker 叠层 | ✅ 通过（重测 3/5；另 2 个是带搜索栏的 picker，断言词不适用，见 §9.2） | `run-remeasure/rm-c7-chip-*.png` |
-| C7c | 深链 5 个 `new-issue-picker` 路由 | 4/5 以上可打开 | ✅ 通过（4/5） | `run/c7-picker-*.png` |
-| C7d | 填标题 → 点 `Create issue` | 提交成功 | ✅ 通过 | 后端日志 `POST /api/issues → 201`；DB 新增 `#4 FEATURE-551 acceptance issue`；`run/c7-03-after-create.png` |
-| C8 | 聊天页 | 渲染出会话历史气泡（user + assistant） | ✅ 通过 | `run/c8-01-chat.png`、`run-remeasure/rm-e3-chat.png` |
-| C8b | 输入并发送 | 消息进入列表；离线时进入排队待发 | ✅ 通过（气泡带 `Offline · …` 待发标记） | `run-remeasure/rm-e3-chat.png` |
-| C8c | 等待流式回复 | 逐 token 输出 | ⛔ 阻塞（环境） | 夹具 agent 的 runtime `Probe550 Runtime` 为 **offline**，消息只能排队；不是客户端缺陷 |
-| C9 | 项目列表 → 项目详情 | 列表与详情都渲染 | ✅ 通过 | `run/c9-01-projects.png`、`run/c9-02-project-detail.png` |
-| C10 | 头部搜索图标 → 输入关键词 | 返回结果 | ✅ 通过 | `run/c10-02-search-results.png` |
-| C11 | 设置页 | Account / Notifications / Workspaces / Appearance / Sign out 齐备 | ✅ 通过 | `run/c11-01-settings.png` |
-| C11b | 进通知偏好页 | 渲染出来 | ✅ 通过 | `run/c11-02-notifications.png` |
-| C11c | 设置页工作区段 | 列出可切换的工作区 | ✅ 通过 | `run/c11-03-workspaces.png` |
-| C11d | Sign out → 确认 | 回到登录页 | ✅ 通过 | `run/c11-06-signed-out.png` |
+| C7b | 新建页属性 chip | 各自打开 picker 叠层 | ❌ 本轮 2/5，与 C6b 同因；已修未复跑 | `run/c7-picker-chip-*.png` |
+| C7c | 深链 `new-issue-picker` 路由 | 可打开 | ✅ 通过（本轮**抽样** status/priority 2/2；其余 3 个沿用 551 结论） | `run/c7-picker-status.png`、`run/c7-picker-priority.png` |
+| C7d | 填标题 → 点 `Create issue` | 提交成功 | ❌ 本轮未看到新详情（夹具残留导致服务端 409），未复跑 | `run/c7-03-after-create.png` |
+| C8 | 聊天页 | 渲染出会话历史气泡（user + assistant） | ✅ 通过 | `run/c8-01-chat.png` |
+| C8b | 输入并发送 | 消息进入列表；离线时进入排队待发 | ✅ 通过（乐观气泡=1；本轮无 dev-client 悬浮球遮挡） | `run/c8-04-chat-pending.png` |
+| C8c | 等待流式回复 | 进度体现在 pill 上（客户端没有增量文本） | ⏸ 本轮未判：判据已改为「库侧任务终态 + 截图」，由 Tier 1 的 S6 覆盖同一路径 | — |
+| C9 | 项目列表 → 项目详情 | 列表与详情都渲染 | ⏸ 本轮未跑（Tier 2 停在授权前）；551 结论：通过 | `09-19-android-full-regression/research/run/c9-*.png` |
+| C10 | 头部搜索图标 → 输入关键词 | 返回结果 | ⏸ 本轮未跑；551 结论：通过 | `…/run/c10-02-search-results.png` |
+| C11 | 设置页 | Account / Notifications / Workspaces / Appearance / Sign out 齐备 | ⏸ 本轮未跑；551 结论：通过 | `…/run/c11-01-settings.png` |
+| C11b | 进通知偏好页 | 渲染出来 | ⏸ 本轮未跑；551 结论：通过 | `…/run/c11-02-notifications.png` |
+| C11c | 设置页工作区段 | 列出可切换的工作区 | ⏸ 本轮未跑；551 结论：通过 | `…/run/c11-03-workspaces.png` |
+| C11d | Sign out → 确认 | 回到登录页 | ⏸ 本轮未跑；551 结论：通过 | `…/run/c11-06-signed-out.png` |
 
 ## 2. 键盘避让（FEATURE-548 交接清单 A 组）
 
@@ -87,13 +87,16 @@
 | K3 | 新建 issue 标题 | 同上 | ✅ 通过 | `visible imeTop=1517 focus=[42 252 1038 378]` |
 | K4 | 编辑 issue 标题 | 同上 | ✅ 通过 | `visible imeTop=1517 focus=[42 246 1038 351]` |
 | K5 | 登录邮箱 + Send code | 同上 | ✅ 通过 | `visible imeTop=1517 focus=[63 811 1017 916]` |
-| K6 | 验证码 OTP + Verify | OTP 与 Verify 都在键盘上方 | ✅ 通过（重测） | `run-remeasure/state.log`：`visible imeTop=1633 Verify=[491 958 588 1011]` |
+| K6 | 验证码 OTP + Verify | OTP 与 Verify 都在键盘上方 | ✅ 通过 | `visible imeTop=1633 Verify=[491 958 588 1011]` |
 
 补记：548 要求额外确认的两点也成立 —— 键盘高度按 `IME inset − 导航条` 折算后**没有少垫/多垫**
 （焦点框底边 1389 与键盘顶边 1517 之间留的是 composer 自身高度，未出现被压住），
 且避让基准一致（三个不同页面实测同一个 `imeTop=1517`）。
 
 ## 3. 返回路径（FEATURE-548 交接清单 B 组）
+
+> **本轮（FEATURE-558 Release 轮）状态**：Tier 2 按用户决定停在授权前，**本节各行未在本轮复跑**；
+> 下表是 551 的结论与证据（证据目录见 551 的 research）。Tier 1 冒烟覆盖其中 picker→BACK 这一条（S3）。
 
 | # | 场景 | 预期 | 本次结果 | 证据 |
 |---|---|---|---|---|
@@ -105,6 +108,9 @@
 
 ## 4. edge-to-edge 系统栏（FEATURE-548 交接清单 C 组）
 
+> **本轮状态**：未复跑（Tier 2 停）；Tier 1 冒烟覆盖 tab bar vs 系统导航条这一条（S5，实测
+> `tab bar 底边 2334 ≤ 导航条上沿 2337`）。
+
 | # | 场景 | 预期 | 本次结果 | 证据 |
 |---|---|---|---|---|
 | E1 | 手势导航下的底部 tab bar | 不被手势条压住 | ✅ 通过 | tab bar 底边 y=2334 ≤ 导航条上沿 y=2337（inset 63px）· `run/e1-tabbar-gesture.png` |
@@ -115,6 +121,8 @@
 | E6 | 设置页列表末尾 | 能在 tab bar 上方完整滚出 | ✅ 通过 | 底边 1991 ≤ 2337 · `run/e6-settings-bottom.png` |
 
 ## 5. 视觉与渲染面（FEATURE-549 / 550 / 557）
+
+> **本轮状态**：未复跑（Tier 2 停）；Tier 1 冒烟覆盖品牌启动屏（S8，见 §0 的跑法分层）。
 
 | # | 条目 | 预期 | 本次结果 | 证据 |
 |---|---|---|---|---|
@@ -136,6 +144,9 @@
 
 ## 6. Release 产物核验（FEATURE-552 的签名 APK）
 
+> **本轮状态**：未跑 —— 本轮验收用的是 **staging Release 包**（内嵌 JS，指向本地后端），
+> 没有安装生产签名 APK；生产包的安装/签名/品牌核验沿用 552 与 551 的结论。
+
 | # | 条目 | 预期 | 本次结果 | 证据 |
 |---|---|---|---|---|
 | R1 | `adb install -r` 生产 APK | 装上 | ✅ 通过 | `run-release/install.txt` = `Success` |
@@ -149,32 +160,40 @@
 Release 只核验「装得上、起得来、品牌与签名正确」：生产包的 API base 是 `https://api.multica.ai`，
 没有可用凭据，登录之后的业务流程不归本轮。
 
-## 7. 未通过 / 未覆盖项（含影响面）
+## 7. 未通过 / 未覆盖项（本轮 FEATURE-558 · Release 轮）
 
-### 7.1 断网重连后的实时同步没有在观测窗口内生效 —— ❌ 失败（已知问题）
+本轮只跑了「授权范围内的一段」+ Tier 1 冒烟，所以未覆盖项比上一轮多，逐条列清楚：
 
-- **现象**：断网期间从后端直插一条评论，恢复网络后 30s 内时间线**没有**出现该评论；
-  同一页面稍后（重挂载时）才带出来。
-- **最小复现**：issue 详情页 → `adb shell cmd connectivity airplane-mode enable` + `svc wifi disable`
-  → 后端插入一条评论 → 恢复网络 → 等 30s → 时间线无新评论。
-- **证据**：`run/d2-reconnected.png`、`run-remeasure/rm-d2-reconnected.png`（后者时间线里能看到
-  更早一次插入的 `D2 offline inserted comment`，但刚插入的一条不在）。
-- **影响面**：弱网 / 切网 / 息屏回前台后，时间线可能停留在旧数据，用户需手动刷新或重进页面。
-  登录、收件箱、详情首屏加载等**其余流程不受影响**。
-- **建议**：转单独任务（WS 重连后 invalidate 当前路由的 query，或订阅 reconnect 事件）。
+### 7.1 本轮判定为 fail、但**根因是判定源/驱动缺陷**的 5 条（已修、未复跑）
 
-### 7.2 图片查看器未覆盖 —— ⛔ 未覆盖
+| 编号 | 现象 | 根因（已修） |
+|---|---|---|
+| C5e | 长按评论没弹出动作面板 | 旧驱动先滚 25 次把评论滚出视口，取不到 bounds 直接失败，且失败不留截图 |
+| C5f | 随 C5e 未判 | 同上 |
+| C6b | 详情点 chip 只成功 0 次 | 点完固定 `sleep 3` 就看，慢一点就判失败（C6c 深链能开同一套 picker） |
+| C7b | 新建页 chip 只开 2/5 | 同 C6b |
+| C7d | 提交后没进新详情 | 夹具残留同名 issue，服务端 409；另需确认提交后的跳转判定 |
 
-- **原因**：夹具没有图片附件，模拟器也无法从相册挑图（本机自托管栈没配 S3 / 本地上传目录）。
-- **影响面**：548 的 B5 与 550 的图片渲染路径本轮无设备证据。
-- **建议**：下一轮先给夹具 issue 挂一张图片附件再补这一条。
+**这 5 条都不是产品问题**：修正已进代码（见 §9.6），下一次授权跑时自然重判。
 
-### 7.3 聊天的「流式回复」未覆盖 —— ⛔ 环境阻塞
+### 7.2 本轮未跑（Tier 2 按用户决定停在授权前）
 
-- **原因**：夹具 agent 绑定的 runtime（`Probe550 Runtime`）状态为 offline，消息只能排队。
-- **已覆盖的部分**：历史气泡渲染、composer 键盘避让、发送动作与离线排队态（气泡显示
-  `Offline · …`）都已实测通过。
-- **建议**：需要一台注册在线的 runtime 才能补「流式 token 逐条到达」。
+B 组（返回路径 B1–B5）、D 组（断网恢复 D2 / `client_os` D4/D4b）、E 组（E2–E6）、M 组（M1–M15）、
+V 组（V1–V4）、C9/C10/C11 全系列、以及 §6 的生产 Release 产物核验。
+其中 **B1/B2 的 picker→BACK 已在 Tier 1 冒烟 S3 覆盖并通过**，V2 的启动屏在 S8 覆盖，
+`client_os` 在 S7 覆盖，聊天发送→完成在 S6 覆盖。
+
+### 7.3 上一轮（551）留下的两项，本轮仍未覆盖
+
+- **图片查看器（B5/B5b）**：夹具的图片附件这一轮补上了（`research/seed-fixtures.sql` §11），
+  但本轮没跑到 B 组，**仍无设备证据**。
+- **聊天的增量流式输出**：客户端本身没有增量助手文本（进度在 pill 上），
+  本轮把这条判据改成「库侧任务终态 + 截图」，Tier 1 的 S6 已通过；完整矩阵里的 C8c 未跑。
+
+### 7.4 断网重连（551 §7.1 的已知问题）
+
+FEATURE-559 已修（自动刷新 + 心跳看门狗 + 握手看门狗），551 的 D2 判据本轮**未复跑**，
+所以「30s 内自愈」这条在本轮**没有新的设备证据**；Tier 1 的 S7 只覆盖了 `client_os` 上报。
 
 ## 8. 本轮发现的产品 / 后端缺陷（不在「验收项」内，但值得单独跟）
 
@@ -205,6 +224,15 @@ POST /api/issues status=500
 
 **影响面**：一旦计数器漂移，新建 issue 对用户就是一句 `Failed to create issue 500`，
 且客户端没有可读的冲突提示。建议后端加一次对账，或把冲突转成可读错误。
+
+### 8.3 HTTP 请求的 `client_os` 仍是 `ios`（FEATURE-558 新发现，未修）
+
+FEATURE-559 只改了 WS 握手（§8.1），**HTTP 头没改**：`apps/mobile/data/api.ts:227` 与 `:1319`
+仍写死 `"X-Client-OS": "ios"`。设备实测（D4b）：后端日志里 `probe551` 的接口调用带
+`client_os=ios` 426 条、`android` 0 条；同一时间窗口里 WS 侧已是 `android`。
+
+**影响面**：所有按 HTTP 头判平台的统计/灰度/限流在 Android 上失真。**建议另立任务**修
+`data/api.ts` 的两处，并把「身份维度一律从 `Platform.OS` 取」的规则补进平台 spec（已补）。
 
 ## 9. 驱动脚本的限制与结论口径
 
@@ -266,3 +294,22 @@ issue 详情带长 Markdown 正文时，评论卡会落在虚拟化列表的第 
 | **run/** | 上述问题修完后的一轮（本文采用的主跑，94 张截图） |
 | run-remeasure/ | 只补判定源仍有缺陷的 12 条（K6 / C4b / C5c-e / C6c / C7b / B1 / B2 / D1 / D2 / D3 / E3） |
 | run-release/ | Release APK 的安装与品牌核验（第二次安装，issue 允许） |
+
+### 9.6 本轮（FEATURE-558）修掉的判定源缺陷与两个平台坑
+
+**判定源缺陷**（都在 `09-19-android-final-acceptance/research/` 的脚本里，改的是驱动/判据，不是产品）：
+
+| 编号 | 缺陷 | 修法 |
+|---|---|---|
+| V1 | **空判据**：`My Issues` 带空格被 `printf \| sort` 拆成 `My`，最小值算成字符串，awk 退化成字符串比较 → 「只要四个标签在就恒 pass」（图标 ink 全 0.0 也 pass） | 循环内按数值取最小 |
+| C4b | 判据词用了 `PRB-2`（收件箱行正文）与子串 `长文档性能夹具`，而界面是 `PROB-2` / `PROB 长文档性能夹具`（`any_text` 是整值相等） | 换成界面真实文本 |
+| — | `on_issue_detail` 只认 `Activity` 与 PROB-1 标题：从收件箱打开 PROB-2 必然等满 45 次 ≈ 90s | 改为「⋯ 按钮（`Issue actions`）在任意详情页都有」 |
+| C5e | 旧驱动先滚 25 次把评论滚出视口，`long_press_text` 取不到 bounds 直接失败，且**失败不留截图** | 有界滚动 12 次 + 长按前后都截图 |
+| C6b/C7b | 点完 chip 固定 `sleep 3` 就判 picker 是否打开，慢一点就判失败 | 改成 `wait_for 8 picker_open`（等到出现为止） |
+
+**两个平台坑**（已写进 `.trellis/spec/mobile/frontend/android-platform.md`）：
+
+1. `uiautomator dump` 会在「界面永不 idle」的页面上**挂死**（聊天的 pill 在动画时实测卡 11 分钟），
+   现给每次尝试 5s 上限 + 重试；上限不能调大（动画页会次次等满，反而更慢）。
+2. Release 变体默认**禁明文 HTTP**，而本地验收后端是 `http://10.0.2.2:8090` —— 非生产构建由
+   `app.config.ts` 的 `usesCleartextTraffic: !isProd` 放行。
