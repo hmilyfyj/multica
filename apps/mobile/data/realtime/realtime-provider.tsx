@@ -52,6 +52,7 @@ import { useWorkspaceStore } from "@/data/workspace-store";
 import { getToken } from "@/data/secure-storage";
 import { api } from "@/data/api";
 import { recordRealtimeFrame } from "@/lib/ws-activity";
+import { recordBackgroundFrame } from "@/lib/background-forensics";
 import { WSClient } from "./ws-client";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -116,20 +117,21 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       });
       ws.connect();
       setClient(ws);
-      // Every inbound frame, whatever its type: the settings screen reports the
-      // newest one so "nothing arrived while I was in the background" can be
-      // told apart from "it arrived and the phone dropped the banner".
-      unsubAnyFrame = ws.onAny(() => recordRealtimeFrame());
+      // Every inbound frame, whatever its type. Two readers: the settings screen
+      // shows the newest one (did anything arrive at all?), and the
+      // background-session record counts what arrived while the app was in the
+      // background — together they separate a frozen process from a silent
+      // socket (see lib/background-forensics.ts).
+      unsubAnyFrame = ws.onAny(() => {
+        recordRealtimeFrame();
+        recordBackgroundFrame();
+      });
 
       // ── AppState ────────────────────────────────────────────────
       appStateSub = AppState.addEventListener(
         "change",
         (status: AppStateStatus) => {
           if (status === "active") {
-            // Foreground. On iOS the socket may have been paused (we put it
-            // there) or it may be a zombie (the OS killed it silently); on
-            // Android it was left running and may have been frozen together
-            // with the process. Either way: resume / force-reconnect.
             ws?.resume();
             ws?.forceReconnect();
           } else if (status === "background") {

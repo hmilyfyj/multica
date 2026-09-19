@@ -109,12 +109,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       // Play rejects an upload that reuses a versionCode inside the same
       // package, so this counts store uploads and has to grow monotonically.
       // Left as a literal instead of being derived from `version` so a release
-      // bump cannot silently move it.
-      // vc4: diagnostics that answer "which build is this?" and "is realtime
-      // data still arriving?" (FEATURE-562). Counts store uploads and has to
-      // grow monotonically; it is also the only way to tell on a device which
-      // build is actually installed.
-      versionCode: 4,
+      // bump cannot silently move it — it is also the only way to tell on a
+      // device which build is actually installed.
+      // vc6: inbox deep-link landing (FEATURE-571 — land on the comment a
+      // notification is about, its replies included).
+      versionCode: 6,
 
       // Keep the window's soft-input mode on `adjustResize` — this is Expo's
       // default (its plugin writes `adjustResize` when the key is absent), so

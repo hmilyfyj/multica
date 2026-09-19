@@ -1,0 +1,30 @@
+{
+  "id": "android-full-regression",
+  "name": "android-full-regression",
+  "title": "核心流程 Android 全量回归验收",
+  "description": "在 Android 上做唯一一次全量验收：一次构建安装、一个脚本、一轮结论，覆盖核心流程与阶段 3（548/549/550/557）改动面；产出 apps/mobile/docs/android-regression-checklist.md。不改业务代码。",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": "mobile",
+  "priority": "P0",
+  "creator": "fengit",
+  "assignee": "fengit",
+  "createdAt": "2026-09-19",
+  "completedAt": "2026-09-19",
+  "branch": "feature/551-android-full-regression",
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "commit": "e35fb0a5a",
+    "pr_url": "https://github.com/hmilyfyj/multica/pull/15",
+    "meta_extra": "模拟器验收；未通过 1 项（断网重连同步），未覆盖 2 项（图片查看器/流式回复）"
+  }
+}

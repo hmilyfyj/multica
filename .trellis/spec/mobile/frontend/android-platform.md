@@ -475,3 +475,43 @@ FEATURE-562 让这件事变成缺陷：本机通知的**唯一**事件源就是�
 后台待几分钟再回设置页，若「Last realtime data」停在切后台那一刻之前 → 进程被冻结；
 若刚刚还在更新 → 事件到了，问题在通知侧。
 装包是否真的换新也由构建号一行回答，避免再出现「测的是哪个包」的扯皮。
+
+#### 冻结 vs 静默：后台会话取证（FEATURE-562e）
+
+真机结论（澎湃 OS）：**省电策略设为「无限制」也不会阻止系统冻结后台进程**。Android 冻结的是 *cached* 状态
+的进程（cgroup freezer），这与省电策略、Doze 不是同一个开关；进程被冻结时内存全在、回前台秒恢复，
+所以「App 没有被杀掉」**不能**推出「App 在后台有运行」。这一点在真机排查中被反复误判，写进约定：
+
+- 任何「后台收不到」的排查，先用 `lib/background-forensics.ts` 的三个读数区分机制，不要凭现象猜：
+  - **JS 心跳为 0** → 进程被冻结（方案 A 边界）→ 只能上前台服务或推送通道；
+  - **JS 有心跳、frames 为 0** → 进程在跑但数据没到 → 查连接（socket/服务器）；
+  - **HTTP 探针也全失败** → 后台网络被 ROM 掐断（澎湃的联网限制是独立开关）。
+- 设置页「On this device」直接给出结论行：`Background 12m · JS ran 48× · frames 0 · probe 12/12 ok → …`。
+  新增「后台不弹」相关分支时，必须让这里能区分机制，否则又变成无法定位。
+- 前台/后台的 AppState 边界只在这里记录会话（`setAppBackgrounded`），`_layout.tsx` 负责两个常驻定时器
+  （15s JS 心跳、60s 后台 HTTP 探针），`realtime-provider` 负责帧计数。
+- 已知结论：**普通应用在 Android 上做不到「后台持续收事件」**。要么前台服务（常驻通知换取不被冻结），
+  要么厂商/聚合推送（杀进程也能收，需外部账号），要么接受方案 A 的边界。
+
+## 时间线 deep-link 落点（FEATURE-571，基线 commit `26c8192e3`）
+
+收件箱通知带的是 comment id，点进来必须落到该评论/回复的起始位置。这里有三条容易踩的约束：
+
+- **一行 ≠ 一条评论**：移动端时间线一行是一个线程根，整条回复链内嵌在同一个气泡里
+  （`lib/timeline-thread.ts` 的 `buildTimelineRows`）。所以「回复在屏幕上的位置」**不是行下标能表达的**，
+  也不能照抄 web 的 `#comment-<id>` —— web 是递归树 + 每条评论一个节点。
+- **落点必须两段式**（`lib/comment-landing.ts` 的 `resolveCommentLanding` + `startLanding`）：
+  `scrollToIndex(row, viewPosition: 0)` 只能把「行」放到视口顶（回复可能在这行下方一两屏），
+  再用 `measureInWindow` 量锚点的窗口 y，把残差转成 scroll offset 迭代修正；跳转后 Shiki/图片/
+  markdown 仍在改行高，同一回路负责收敛。iOS/Android 同构，**不做平台分支**。
+- **FlashList v2 的 offset 有两个坐标系**：`scrollToOffset({ skipFirstItemOffset: true })` 的参数
+  == `getAbsoluteLastScrollOffset()` == 原生 contentOffset；**不传 `skipFirstItemOffset` 会再加一次
+  `firstItemOffset`（即 ListHeader 高度）**，两者混用会整天偏一个表头高。落点回路全程用原生偏移。
+
+纪律与边界：
+
+- 落点逻辑**不得 import `react-native`**：`apps/mobile/vitest.config.ts` 的 Node lane 只收 `lib/**`、`data/**`，
+  所以列表与视图以结构化接口（`LandingList` / `Measurable`）注入，`FlashListRef` 与 `View` 天然满足。
+- 锚点始终不可测时（例如折叠的已解决线程）由帧预算兜底停手，不空转；用户一开始拖动立即 cancel。
+- 已知边界：回复位于根评论气泡底部约 7 屏以外时，探测上限内找不到就停在行顶（仍优于旧的「落到底部」）。
+  真机上遇到长线程深度回复需要复核这一条。

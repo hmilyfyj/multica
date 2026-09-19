@@ -44,6 +44,7 @@ import {
   type LocalNotificationPermission,
 } from "@/lib/local-notifications";
 import { getLastRealtimeFrameAt } from "@/lib/ws-activity";
+import { getBackgroundSession } from "@/lib/background-forensics";
 
 const INBOX_GROUPS: {
   key: Exclude<NotificationGroupKey, "system_notifications">;
@@ -389,6 +390,9 @@ function DeviceNotificationSection() {
           {describeFrames(lastFrameAt)}
         </Text>
         <Text className="text-xs text-muted-foreground">{describeBuild()}</Text>
+        <Text className="text-xs text-muted-foreground">
+          {describeBackgroundSession()}
+        </Text>
         <Button
           variant="outline"
           size="sm"
@@ -445,4 +449,34 @@ function describeBuild(): string {
   const version = Constants.nativeAppVersion ?? "?";
   const build = Constants.nativeBuildVersion ?? "?";
   return `App build ${version} (vc${build})`;
+}
+
+/**
+ * The background session in words — the answer to "why does nothing arrive while
+ * the app is in the background?". Zero JS ticks means the system never gave the
+ * process CPU (frozen: plan A's limit, and the battery policy is a different
+ * switch); ticks but no frames means the app was running and the data itself did
+ * not arrive.
+ */
+function describeBackgroundSession(): string {
+  const session = getBackgroundSession();
+  if (!session) {
+    return "No background session yet — background the app for a few minutes, then return to this screen.";
+  }
+  const seconds = Math.max(
+    1,
+    Math.round(((session.endedAt ?? Date.now()) - session.startedAt) / 1000),
+  );
+  const duration = seconds >= 90 ? `${Math.round(seconds / 60)}m` : `${seconds}s`;
+  const probes =
+    session.httpProbes === 0
+      ? "no network probe"
+      : `probe ${session.httpProbes - session.httpProbeFailures}/${session.httpProbes} ok`;
+  const verdict =
+    session.jsTicks === 0
+      ? "the app never got CPU (frozen by the system)"
+      : session.frames === 0
+        ? "the app ran, but no realtime data arrived"
+        : "realtime data arrived while backgrounded";
+  return `Background ${duration} · JS ran ${session.jsTicks}× · frames ${session.frames} · ${probes} → ${verdict}`;
 }

@@ -13,6 +13,8 @@ import { useChatSessionsRealtime } from "@/data/realtime/use-chat-sessions-realt
 import { useProjectsRealtime } from "@/data/realtime/use-projects-realtime";
 import { usePinsRealtime } from "@/data/realtime/use-pins-realtime";
 import { usePresenceRealtime } from "@/data/realtime/use-presence-realtime";
+import { useWorkspaceRealtime } from "@/data/realtime/use-workspace-realtime";
+import { useCatalogsRealtime } from "@/data/realtime/use-catalogs-realtime";
 import { useWorkspacePresencePrefetch } from "@/lib/use-workspace-presence-prefetch";
 import { ModalCloseButton } from "@/components/ui/modal-close-button";
 import { useNewIssueDraftResetOnWorkspaceChange } from "@/data/stores/new-issue-draft-store";
@@ -128,6 +130,11 @@ function RealtimeSubscriptions() {
   // the deliberately-skipped high-frequency events.
   useWorkspacePresencePrefetch();
   usePresenceRealtime();
+  // Workspace identity/membership and the picker catalogs (squads, labels,
+  // the issue status catalog) — the families web answers in its refreshMap
+  // prefixes. See use-workspace-realtime.ts / use-catalogs-realtime.ts.
+  useWorkspaceRealtime();
+  useCatalogsRealtime();
   return null;
 }
 
@@ -350,6 +357,13 @@ export default function WorkspaceLayout() {
         <Stack.Screen
           name="more/agents"
           options={{ title: "Agents", headerBackTitle: "Back" }}
+        />
+        {/* Agent detail. The title is overridden in-screen with the agent's
+            own name once the roster resolves; this is the cold-start /
+            deep-link fallback. */}
+        <Stack.Screen
+          name="more/agents/[id]"
+          options={{ title: "Agent", headerBackTitle: "Agents" }}
         />
         <Stack.Screen
           name="more/pins"
