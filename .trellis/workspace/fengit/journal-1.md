@@ -430,3 +430,27 @@ Trellis 归档清尾：09-19-realtime-defects 任务归档到 archive/2026-09；
 ### Status
 
 [OK] **Completed**
+
+
+## Session 33: 归档 FEATURE-558 阶段 5 收尾验收
+<!-- trellis-session: v=2 fp=46dcfc971c60f3e7 -->
+
+**Date**: 2026-09-19
+**Task**: 归档 FEATURE-558 阶段 5 收尾验收
+**Package**: mobile
+**Branch**: `feature/558-android-final-acceptance`
+
+### Summary
+
+Trellis 归档清尾：09-19-android-final-acceptance 任务归档到 archive/2026-09；业务改动（Tier 1 冒烟门禁 + Release 包验收结论 + 回归清单回写）已由 #28 合入 main；10 项 AC 全部勾选。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f0979ddfe` | test(mobile): Android 验收提速（冒烟门禁 + Release 包 + 判定源修正） |
+| `903338f10` | docs(mobile): 清单更新为 FEATURE-558 Release 轮结论（Tier 1 冒烟 + 未跑项逐条说明） |
+
+### Status
+
+[OK] **Completed**
