@@ -63,4 +63,38 @@ describe("useChatSessionsRealtime", () => {
     });
     expect(invalidateQueries).not.toHaveBeenCalled();
   });
+
+  it("refreshes the session list only when a cancellation settled as stopped", () => {
+    useChatSessionsRealtime();
+    expect(subscriptionSetups).toHaveLength(1);
+
+    const handlers = new Map<string, EventHandler>();
+    const ws: MockWS = {
+      on: vi.fn((event: string, handler: EventHandler) => {
+        handlers.set(event, handler);
+        return () => {};
+      }),
+      onReconnect: vi.fn(() => () => {}),
+    };
+
+    subscriptionSetups[0](ws, "workspace-1");
+
+    // `restored` leaves the transcript untouched — nothing to refetch.
+    handlers.get("chat:cancel_finalized")?.({
+      outcome: "restored",
+      chat_session_id: "session-1",
+      task_id: "t1",
+    });
+    expect(invalidateQueries).not.toHaveBeenCalled();
+
+    // `stopped` persists a "Stopped." row, which changes the preview.
+    handlers.get("chat:cancel_finalized")?.({
+      outcome: "stopped",
+      chat_session_id: "session-1",
+      task_id: "t1",
+    });
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: chatKeys.sessions("workspace-1"),
+    });
+  });
 });

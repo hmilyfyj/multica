@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 16
+- **Total Sessions**: 23
 - **Last Active**: 2026-09-19
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~139 | Active |
+| `journal-1.md` | ~294 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,13 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 23 | 2026-09-19 | FEATURE-547 归档：formSheet 路由 Android 校准 | `44413160a` | `feature/547-formsheet-android` |
+| 22 | 2026-09-19 | FEATURE-546 归档：七个搜索栏选择器 Android 替代实现 | `a00c1bb62` | `feature/546-android-search-bar` |
+| 21 | 2026-09-19 | FEATURE-545 归档：ActionSheetIOS 六处调用替换为跨平台动作菜单 | `389bf2526` | `feature/545-actionsheet-cross-platform` |
+| 20 | 2026-09-19 | FEATURE-544 归档：Android 构建脚本与开发文档 | `fee8f990d` | `feature/544-android-scripts` |
+| 19 | 2026-09-19 | FEATURE-543 归档：app.config.ts 的 Android 配置与图标资源 | `86843f607` | `feature/543-android-config` |
+| 18 | 2026-09-19 | FEATURE-542 归档：Android 环境探针与可行性报告 | `97aa6efba`, `733b0a3fb` | `feature/542-android-env-probe` |
+| 17 | 2026-09-19 | FEATURE-563 收件箱展示智能体正在工作状态 | `520c68206` | `feature/563-inbox-agent-working` |
 | 16 | 2026-09-19 | FEATURE-562e 后台会话取证 | `8c5276d1e` | `feature/562-android-local-notifications` |
 | 15 | 2026-09-19 | FEATURE-562d 后台诊断：构建号与实时数据到达时间 | `d831aaa5f` | `feature/562-android-local-notifications` |
 | 14 | 2026-09-19 | FEATURE-562c 后台收不到通知：WS 后台暂停修复 | `ae75f899c` | `feature/562-android-local-notifications` |
