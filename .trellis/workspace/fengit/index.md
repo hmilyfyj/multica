@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 20
+- **Total Sessions**: 21
 - **Last Active**: 2026-09-19
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~228 | Active |
+| `journal-1.md` | ~250 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 21 | 2026-09-19 | FEATURE-545 归档：ActionSheetIOS 六处调用替换为跨平台动作菜单 | `389bf2526` | `feature/545-actionsheet-cross-platform` |
 | 20 | 2026-09-19 | FEATURE-544 归档：Android 构建脚本与开发文档 | `fee8f990d` | `feature/544-android-scripts` |
 | 19 | 2026-09-19 | FEATURE-543 归档：app.config.ts 的 Android 配置与图标资源 | `86843f607` | `feature/543-android-config` |
 | 18 | 2026-09-19 | FEATURE-542 归档：Android 环境探针与可行性报告 | `97aa6efba`, `733b0a3fb` | `feature/542-android-env-probe` |

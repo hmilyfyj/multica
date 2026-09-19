@@ -43,11 +43,11 @@
 
 ## Acceptance Criteria
 
-- [ ] 业务代码内 `rg "ActionSheetIOS"` 只命中 `components/ui/action-sheet.tsx`，且该文件内有平台分支
-- [ ] `pnpm --filter @multica/mobile typecheck` / `lint` 通过
-- [ ] Android 模拟器（Medium_Phone_API_35）逐个验证 6 个入口：打开、选择、取消都不崩
-- [ ] iOS 侧 6 个入口行为与改动前一致（模拟器实测，逐个确认）
-- [ ] 无新增依赖（`package.json` 依赖段无变化）
+- [x] 业务代码内 `rg "ActionSheetIOS"` 只命中 `components/ui/action-sheet.tsx`，且该文件内有平台分支（本地复核：`apps/mobile` 内仅 `components/ui/action-sheet.tsx:81` 有 `Platform.OS === "ios"` 分支，另一命中为历史探针文档 `docs/android-probe.md`）
+- [x] `pnpm --filter @multica/mobile typecheck` / `lint` 通过（PR #4 记录 typecheck / lint 0 error / test 通过；合入 main 后代码未再改动）
+- [x] Android 模拟器（Medium_Phone_API_35）逐个验证 6 个入口：打开、选择、取消都不崩（PR #4 验证段：6 入口 + 二级面板 + 遮罩/返回键 + destructive 二次确认）
+- [ ] iOS 侧 6 个入口行为与改动前一致（模拟器实测，逐个确认）—— 保留未核销：本机无 iOS 模拟器运行时（`xcrun simctl list runtimes` 为空）且无 CocoaPods，未做模拟器实测；现有依据仅代码级证据（iOS 分支为参数不变的纯转发，见 PR #4 验证段）
+- [x] 无新增依赖（`package.json` 依赖段无变化；PR #4 的 18 个改动文件不含 `package.json`）
 
 ## Notes
 
