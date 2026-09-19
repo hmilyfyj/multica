@@ -39,12 +39,12 @@
 
 ## Acceptance Criteria
 
-- [ ] AC1 `apps/mobile/docs/android-regression-checklist.md` 存在，含**可勾选步骤 + 预期结果**，并逐条标注本次结果（通过 / 失败 / 阻塞）
-- [ ] AC2 每条结果标注**设备型号、Android 版本、构建类型（Debug / Release）**
-- [ ] AC3 失败项给出**最小复现 + 报错**；未覆盖项记为已知问题并写明影响面
-- [ ] AC4 全部证据（截图 / logcat / `dumpsys` / 脚本与结果表）落在 `.trellis/tasks/09-19-android-full-regression/research/`
-- [ ] AC5 不把「单测通过」当验收证据；区分模拟器结论与真机结论
-- [ ] AC6 结论按仓库授权自行 squash 合并进 `main`
+- [x] AC1 `apps/mobile/docs/android-regression-checklist.md` 存在，含**可勾选步骤 + 预期结果**，并逐条标注本次结果（通过 / 失败 / 阻塞）
+- [x] AC2 每条结果标注**设备型号、Android 版本、构建类型（Debug / Release）**
+- [x] AC3 失败项给出**最小复现 + 报错**；未覆盖项记为已知问题并写明影响面
+- [x] AC4 全部证据（截图 / logcat / `dumpsys` / 脚本与结果表）落在 `.trellis/tasks/09-19-android-full-regression/research/`
+- [x] AC5 不把「单测通过」当验收证据；区分模拟器结论与真机结论
+- [x] AC6 结论按仓库授权自行 squash 合并进 `main`
 
 ## Notes
 
