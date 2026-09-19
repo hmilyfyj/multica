@@ -248,3 +248,25 @@ Android 收件箱本机通知落地并合入 main@0698402c8：expo-notifications
 ### Status
 
 [OK] **Completed**
+
+
+## Session 22: FEATURE-546 归档：七个搜索栏选择器 Android 替代实现
+<!-- trellis-session: v=2 fp=2c9c63ebfa45d11f -->
+
+**Date**: 2026-09-19
+**Task**: FEATURE-546 归档：七个搜索栏选择器 Android 替代实现
+**Branch**: `feature/546-android-search-bar`
+
+### Summary
+
+归档 09-18-android-picker-search。issue FEATURE-546 done；业务 PR #6 已 squash 合并进 main（a00c1bb62）；trellis-check ran(clean)，本任务仅 .trellis/ 产物。本批归档在最新 main 上重跑。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a00c1bb62` | feat(mobile): 七个搜索型 picker 路由补 Android 搜索框 |
+
+### Status
+
+[OK] **Completed**
