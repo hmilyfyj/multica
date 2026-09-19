@@ -14,7 +14,10 @@
  *     Android kills or reclaims the process: if the user swipes the app away,
  *     runs the device low on memory, or leaves it backgrounded long enough for
  *     the OS to reap it, new inbox items simply go unnoticed until the app is
- *     opened again. That is the accepted limit of plan A, not a defect.
+ *     opened again. That is the accepted limit of plan A, not a defect. It is
+ *     also why OEM background policies matter on top of it — HyperOS/MIUI
+ *     freeze cached apps, which ends the socket even though the user never
+ *     swiped anything away.
  *   - **Not the same thing as lock-screen push.** Delivering to a dead process
  *     needs FCM (device token registration, a backend sender, per-device
  *     fan-out) — evaluated and deliberately out of scope. Adding it later means
@@ -22,6 +25,15 @@
  *   - **Android only.** iOS keeps its existing behaviour: `use-inbox-realtime`
  *     does not call this module there, so no banner is posted and no permission
  *     prompt is raised.
+ *
+ * A banner can also fail to appear with nothing wrong in this file: the OS
+ * permission may be missing, the app may be switched off in the system's own
+ * notification settings (HyperOS reports that as `denied` too — see
+ * `NotificationPermissionsModule.kt`), or our channel may have been turned off
+ * in the channel list. All three are invisible to the user, so the last attempt
+ * and the channel state are recorded here and surfaced in the settings screen —
+ * that is the only way a user on a real device can tell "the phone blocked it"
+ * from "nothing was sent".
  *
  * This module must not import `react-native`: the mobile Vitest lane is Node
  * only and cannot load RN native modules (see `apps/mobile/vitest.config.ts`),
@@ -220,18 +232,80 @@ export async function getLocalNotificationPermission(): Promise<LocalNotificatio
 }
 
 /**
- * Ask the OS (Android 13+ shows the `POST_NOTIFICATIONS` dialog). Only call
- * this from an explicit user action — the settings row is the only caller, so a
- * declined app never re-prompts on its own.
+ * Ask the OS (Android 13+ shows the `POST_NOTIFICATIONS` dialog). Used by the
+ * settings row and by the one-time prompt on the first inbox visit
+ * (`lib/inbox-notification-prompt.ts`); it is never called on a timer or on
+ * every launch, so a declined app is not asked again.
+ *
+ * A `denied` result does not always mean the user tapped "Don't allow": when
+ * the app itself is switched off in the system notification settings, Android
+ * has nothing left to ask and returns `denied` without showing anything.
  */
 export async function requestLocalNotificationPermission(): Promise<LocalNotificationPermission> {
   return toPermission(await Notifications.requestPermissionsAsync());
 }
 
+export interface InboxNotificationChannelState {
+  exists: boolean;
+  /** False when the user switched this channel off in the system's channel list. */
+  enabled: boolean;
+}
+
+/**
+ * Whether our channel exists and is still switched on. Android lets the user
+ * disable one channel without touching the app-level switch, and a disabled
+ * channel silently swallows every banner posted to it — the second most common
+ * "notifications don't work" state after a missing permission, and invisible
+ * from inside the app unless it is asked for.
+ */
+export async function getInboxNotificationChannelState(): Promise<InboxNotificationChannelState> {
+  const channel = await Notifications.getNotificationChannelAsync(
+    INBOX_NOTIFICATION_CHANNEL_ID,
+  );
+  if (!channel) return { exists: false, enabled: false };
+  return {
+    exists: true,
+    enabled: channel.importance !== Notifications.AndroidImportance.NONE,
+  };
+}
+
+export type InboxNotificationOutcome =
+  | "shown"
+  | "skipped-permission"
+  | "skipped-muted"
+  | "failed";
+
+export interface InboxNotificationAttempt {
+  outcome: InboxNotificationOutcome;
+  /** The inbox row the attempt was for; a settings-screen test uses "test". */
+  itemId: string;
+  title: string;
+  at: number;
+  /** Failure message, or the permission status that blocked the banner. */
+  detail?: string;
+}
+
+// Diagnostics only: the newest attempt, in memory, so the settings screen can
+// answer "why didn't it show?" on a device where nobody can read logcat. Not a
+// queue and not persisted — it describes this process's last event, which is
+// exactly the question being asked.
+let lastAttempt: InboxNotificationAttempt | null = null;
+
+export function recordInboxNotificationAttempt(
+  attempt: InboxNotificationAttempt,
+): void {
+  lastAttempt = attempt;
+}
+
+export function getLastInboxNotificationAttempt(): InboxNotificationAttempt | null {
+  return lastAttempt;
+}
+
 /**
  * Post the banner for one inbox item. A no-op without permission, mirroring
  * `showWebNotification` on web: the in-app inbox and its badge already reflect
- * the item, so a missing grant degrades instead of erroring.
+ * the item, so a missing grant degrades instead of erroring. The skip is
+ * recorded so the settings screen can say so.
  *
  * `identifier` is the inbox row id, which becomes the Android notification tag —
  * a repeat for the same item replaces the previous banner instead of stacking,
@@ -241,7 +315,16 @@ export async function showInboxNotification(
   payload: InboxNotificationPayload,
 ): Promise<void> {
   const { status } = await Notifications.getPermissionsAsync();
-  if (status !== "granted") return;
+  if (status !== "granted") {
+    recordInboxNotificationAttempt({
+      outcome: "skipped-permission",
+      itemId: payload.itemId,
+      title: payload.title,
+      at: Date.now(),
+      detail: status,
+    });
+    return;
+  }
   await Notifications.scheduleNotificationAsync({
     identifier: payload.itemId,
     content: {
@@ -249,8 +332,15 @@ export async function showInboxNotification(
       body: payload.body,
       data: toNotificationData(payload),
     },
-    // `{ channelId }` is the immediate trigger on Android; other platforms
-    // resolve it to a plain immediate delivery.
+    // `{ channelId }` is the immediate trigger on Android (`ExpoSchedulingDelegate`
+    // presents a channel-aware trigger right away); other platforms resolve it to
+    // a plain immediate delivery.
     trigger: { channelId: INBOX_NOTIFICATION_CHANNEL_ID },
+  });
+  recordInboxNotificationAttempt({
+    outcome: "shown",
+    itemId: payload.itemId,
+    title: payload.title,
+    at: Date.now(),
   });
 }

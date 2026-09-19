@@ -12,6 +12,10 @@
  *      client rather than just the loud ones;
  *   2. the OS notification permission, checked inside `showInboxNotification`.
  *
+ * Whichever gate declines, the attempt is recorded (`recordInboxNotificationAttempt`)
+ * so the settings screen can tell the user which one — on a phone with no
+ * logcat, "nothing happened" is otherwise indistinguishable from a bug.
+ *
  * Unlike web, the item's own `workspace_id` is not used to find the mute
  * setting: mobile holds one WebSocket per active workspace (the upgrade URL
  * carries `workspace_slug`), so the only workspace this connection can report
@@ -23,6 +27,7 @@ import type { InboxItem } from "@multica/core/types";
 import { notificationPreferenceOptions } from "@/data/queries/notification-preferences";
 import {
   buildInboxNotificationPayload,
+  recordInboxNotificationAttempt,
   showInboxNotification,
 } from "@/lib/local-notifications";
 
@@ -39,11 +44,27 @@ export async function notifyNewInboxItem(
   wsId: string | null,
   slug: string,
 ): Promise<void> {
+  const payload = buildInboxNotificationPayload(item, slug);
   try {
-    if (!(await systemNotificationsEnabled(qc, wsId))) return;
-    await showInboxNotification(buildInboxNotificationPayload(item, slug));
+    if (!(await systemNotificationsEnabled(qc, wsId))) {
+      recordInboxNotificationAttempt({
+        outcome: "skipped-muted",
+        itemId: payload.itemId,
+        title: payload.title,
+        at: Date.now(),
+      });
+      return;
+    }
+    await showInboxNotification(payload);
   } catch (err) {
     console.warn("[notifications] failed to show inbox banner", err);
+    recordInboxNotificationAttempt({
+      outcome: "failed",
+      itemId: payload.itemId,
+      title: payload.title,
+      at: Date.now(),
+      detail: err instanceof Error ? err.message : String(err),
+    });
   }
 }
 

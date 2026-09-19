@@ -110,7 +110,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       // package, so this counts store uploads and has to grow monotonically.
       // Left as a literal instead of being derived from `version` so a release
       // bump cannot silently move it.
-      versionCode: 1,
+      // vc2: the notification permission/diagnostics fix (FEATURE-562). vc1 is
+      // already installed on the reporting device, and an equal versionCode
+      // makes "did the new build actually land?" unanswerable there.
+      versionCode: 2,
 
       // Keep the window's soft-input mode on `adjustResize` — this is Expo's
       // default (its plugin writes `adjustResize` when the key is absent), so

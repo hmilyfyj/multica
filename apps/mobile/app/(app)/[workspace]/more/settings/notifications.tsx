@@ -32,8 +32,13 @@ import { useWorkspaceStore } from "@/data/workspace-store";
 import { notificationPreferenceOptions } from "@/data/queries/notification-preferences";
 import { useUpdateNotificationPreferences } from "@/data/mutations/notification-preferences";
 import {
+  getInboxNotificationChannelState,
+  getLastInboxNotificationAttempt,
   getLocalNotificationPermission,
   requestLocalNotificationPermission,
+  showInboxNotification,
+  type InboxNotificationAttempt,
+  type InboxNotificationChannelState,
   type LocalNotificationPermission,
 } from "@/lib/local-notifications";
 
@@ -203,22 +208,38 @@ function Section({
 }
 
 /**
- * Android system-notification permission — the OS gate that must be open
- * before any banner can appear. It is a different switch from the server-side
- * `system_notifications` toggle: that one decides whether an item is created
- * for this user, this one whether the phone is allowed to display it.
+ * Android system-notification state — the OS gate that must be open before any
+ * banner can appear, plus the two things that silently contradict it. It is a
+ * different switch from the server-side `system_notifications` toggle: that one
+ * decides whether an item is created for this user, this one whether the phone
+ * is allowed to display it.
  *
- * The ask lives here, behind an explicit tap, instead of at startup: a cold
- * open that immediately demands notification permission is exactly what this
- * entry point exists to avoid. After a denial Android stops showing its dialog,
- * so the button becomes a trip to the system settings app. Nothing else in the
- * app depends on the answer — with the grant missing, items simply stay in the
- * in-app inbox.
+ * This section exists because a phone can swallow a banner three ways and none
+ * of them is visible from inside the app: the permission may be missing, the
+ * app may be switched off in the system's own notification settings (Android
+ * reports that as `denied` too), or our channel may have been turned off in the
+ * channel list. So it reports the OS state, reports what the last inbox event
+ * actually did, and offers a test banner that goes through the same call as a
+ * real one — "the event path works but the phone dropped it" and "no event ever
+ * arrived" then look different.
+ *
+ * The ask stays behind an explicit tap here; the one-time prompt on the first
+ * inbox visit (`lib/inbox-notification-prompt.ts`) covers the user who never
+ * opens this screen. Nothing else in the app depends on the answer — with the
+ * grant missing, items simply stay in the in-app inbox.
  */
 function DeviceNotificationSection() {
   const [permission, setPermission] =
     useState<LocalNotificationPermission | null>(null);
-  const [asking, setAsking] = useState(false);
+  const [channel, setChannel] = useState<InboxNotificationChannelState | null>(
+    null,
+  );
+  const [attempt, setAttempt] = useState<InboxNotificationAttempt | null>(null);
+  const [busy, setBusy] = useState(false);
+  // Set once an ask came back unresolved: from then on the only route left is
+  // the system settings app, so the button stops offering a dialog that will
+  // not appear.
+  const [needsSystemSettings, setNeedsSystemSettings] = useState(false);
 
   const refresh = useCallback(() => {
     getLocalNotificationPermission()
@@ -226,34 +247,70 @@ function DeviceNotificationSection() {
       .catch((err) =>
         console.warn("[notifications] failed to read permission", err),
       );
+    getInboxNotificationChannelState()
+      .then(setChannel)
+      .catch((err) =>
+        console.warn("[notifications] failed to read channel", err),
+      );
+    setAttempt(getLastInboxNotificationAttempt());
   }, []);
 
   useEffect(() => {
     refresh();
-    // The user can flip this in the system settings app; coming back to the
-    // foreground is when that becomes visible here.
+    // The user can flip any of this in the system settings app; coming back to
+    // the foreground is when that becomes visible here.
     const sub = AppState.addEventListener("change", (status) => {
       if (status === "active") refresh();
     });
     return () => sub.remove();
   }, [refresh]);
 
-  const onPress = async () => {
-    setAsking(true);
+  const openSystemSettings = () => {
+    Linking.openSettings().catch((err) =>
+      console.warn("[notifications] failed to open settings", err),
+    );
+  };
+
+  const onTurnOn = async () => {
+    setBusy(true);
     try {
-      if (permission && !permission.canAskAgain) {
-        await Linking.openSettings();
-      } else {
-        setPermission(await requestLocalNotificationPermission());
-      }
+      const next = await requestLocalNotificationPermission();
+      setPermission(next);
+      if (next.status !== "granted") setNeedsSystemSettings(true);
     } catch (err) {
       console.warn("[notifications] permission request failed", err);
+      setNeedsSystemSettings(true);
     } finally {
-      setAsking(false);
+      setBusy(false);
+    }
+  };
+
+  const onSendTest = async () => {
+    setBusy(true);
+    try {
+      // Same call the real events use, so a banner here proves the whole native
+      // path works. `itemId` doubles as the notification tag, so repeat taps
+      // replace one another instead of piling up.
+      await showInboxNotification({
+        slug: "",
+        itemId: "test-notification",
+        issueId: null,
+        title: "Test notification",
+        body: "If you can see this, banners reach this device.",
+      });
+    } catch (err) {
+      console.warn("[notifications] test notification failed", err);
+    } finally {
+      setBusy(false);
+      refresh();
     }
   };
 
   const granted = permission?.status === "granted";
+  const offerSettings = needsSystemSettings || permission?.canAskAgain === false;
+  // A channel that has not been created yet (first launch, before bootstrap
+  // finishes) is not a problem worth warning about.
+  const channelOff = channel?.exists === true && !channel.enabled;
 
   return (
     <Section
@@ -268,7 +325,7 @@ function DeviceNotificationSection() {
           <Text className="text-xs text-muted-foreground mt-0.5">
             {granted
               ? "On — new inbox items raise a banner."
-              : "Off — new inbox items stay in the in-app inbox."}
+              : "Off — the phone is not allowed to show them yet."}
           </Text>
         </View>
         {granted ? (
@@ -277,15 +334,80 @@ function DeviceNotificationSection() {
           <Button
             variant="outline"
             size="sm"
-            disabled={asking || permission === null}
-            onPress={onPress}
+            disabled={busy || permission === null}
+            onPress={offerSettings ? openSystemSettings : onTurnOn}
           >
-            <Text>
-              {permission?.canAskAgain === false ? "Open settings" : "Turn on"}
-            </Text>
+            <Text>{offerSettings ? "Open settings" : "Turn on"}</Text>
           </Button>
         )}
       </View>
+
+      {!granted && needsSystemSettings ? (
+        <View className="px-4 pb-3">
+          <Text className="text-xs text-muted-foreground">
+            Android did not offer a dialog (it is already decided, or the app is
+            switched off in the system settings). Allow notifications for 海尔商城
+            there.
+          </Text>
+        </View>
+      ) : null}
+
+      {channelOff ? (
+        <>
+          <Separator />
+          <View className="flex-row items-center px-4 py-3 gap-3">
+            <View className="flex-1">
+              <Text className="text-base font-medium text-foreground">
+                Inbox channel
+              </Text>
+              <Text className="text-xs text-muted-foreground mt-0.5">
+                Turned off in the system notification settings — banners posted
+                to it are discarded.
+              </Text>
+            </View>
+            <Button variant="outline" size="sm" onPress={openSystemSettings}>
+              <Text>Open settings</Text>
+            </Button>
+          </View>
+        </>
+      ) : null}
+
+      <Separator />
+      <View className="px-4 py-3 gap-2">
+        <Text className="text-base font-medium text-foreground">
+          Last attempt
+        </Text>
+        <Text className="text-xs text-muted-foreground">
+          {describeAttempt(attempt)}
+        </Text>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={busy}
+          onPress={onSendTest}
+          className="self-start"
+        >
+          <Text>Send a test notification</Text>
+        </Button>
+      </View>
     </Section>
   );
+}
+
+/** Plain-language form of the newest attempt, for a user with no logcat. */
+function describeAttempt(attempt: InboxNotificationAttempt | null): string {
+  if (!attempt) {
+    return "No inbox event has reached this app since it started.";
+  }
+  const at = new Date(attempt.at).toLocaleTimeString();
+  switch (attempt.outcome) {
+    case "shown":
+      return `${at} · sent to the phone. If no banner appeared, the phone dropped it — check this app's notification settings there.`;
+    case "skipped-permission":
+      return `${at} · skipped: notifications are not allowed on this device (${attempt.detail ?? "denied"}).`;
+    case "skipped-muted":
+      return `${at} · skipped: “System notifications” is muted for this workspace.`;
+    case "failed":
+      return `${at} · failed: ${attempt.detail ?? "unknown error"}`;
+  }
 }
