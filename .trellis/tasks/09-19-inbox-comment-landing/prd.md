@@ -26,11 +26,12 @@
 
 ## Acceptance Criteria
 
-- [ ] `resolveCommentLanding` 单测覆盖：根评论 / 回复 / 无 comment id / 已删除回复回退 / 时间线里没有该 id。
-- [ ] `startLanding` 单测覆盖：锚点停在 inset（视口顶 + 12px）；回复深埋在行下方时能被搜到并收敛；取消后不再滚动；锚点始终不渲染时在帧预算内停止（不空转）。
-- [ ] `pnpm -C apps/mobile typecheck` / `lint` / `test` 通过。
-- [ ] 打新 APK 走 GitHub Release 交付，结论里给文件名、大小、SHA-256、签名证书指纹与真机自测步骤。
-- [ ] 结论写清本地验证与真机验收的边界（本地不启模拟器）。
+- [x] `resolveCommentLanding` 单测覆盖：根评论 / 回复 / 无 comment id / 已删除回复回退 / 时间线里没有该 id。（`lib/comment-landing.test.ts`，5 例）
+- [x] `startLanding` 单测覆盖：锚点停在 inset（视口顶 + 12px）；回复深埋在行下方时能被搜到并收敛；取消后不再滚动；锚点始终不渲染时在帧预算内停止（不空转）。（同文件，4 例）
+- [x] `pnpm -C apps/mobile typecheck` / `lint` / `test` 通过（合并 origin/main 后的树上复跑：typecheck 无错误、lint 0 error、vitest 35 files / 246 tests + 4 个脚本用例套件全过）。
+- [x] 打新 APK 走 GitHub Release 交付，结论里给文件名、大小、SHA-256、签名证书指纹与真机自测步骤。
+  （tag `android-v0.1.0-vc6-inbox-landing`，48,549,283 字节，sha256 `94443882…a21030`，签名证书 `267600f2…b25ccf`）
+- [x] 结论写清本地验证与真机验收的边界（本地不启模拟器；真机三项自测步骤写进 Release 说明与交付结论）。
 
 ## Boundaries
 
