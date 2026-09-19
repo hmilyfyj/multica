@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 17
+- **Total Sessions**: 26
 - **Last Active**: 2026-09-19
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~161 | Active |
+| `journal-1.md` | ~197 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 26 | 2026-09-19 | FEATURE-565 Agents 只读视图（列表 + 详情） | `a87736874`, `ee04cedc5` | `feature/565-agents-readonly` |
 | 17 | 2026-09-19 | FEATURE-563 收件箱展示智能体正在工作状态 | `520c68206` | `feature/563-inbox-agent-working` |
 | 16 | 2026-09-19 | FEATURE-562e 后台会话取证 | `8c5276d1e` | `feature/562-android-local-notifications` |
 | 15 | 2026-09-19 | FEATURE-562d 后台诊断：构建号与实时数据到达时间 | `d831aaa5f` | `feature/562-android-local-notifications` |

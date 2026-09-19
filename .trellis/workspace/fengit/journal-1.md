@@ -159,3 +159,39 @@ Android 收件箱本机通知落地并合入 main@0698402c8：expo-notifications
 ### Status
 
 [OK] **Completed**
+
+
+## Session 26: FEATURE-565 Agents 只读视图（列表 + 详情）
+<!-- trellis-session: v=2 fp=953372fe2a832c75 -->
+
+**Date**: 2026-09-19
+**Task**: FEATURE-565 Agents 只读视图（列表 + 详情）
+**Package**: mobile
+**Branch**: `feature/565-agents-readonly`
+
+### Summary
+
+把 apps/mobile 的 more/agents.tsx 占位页换成真正的 Agents 只读视图：列表（头像/名称/presence/模型/最近活动，三态+下拉刷新）与详情路由 more/agents/[id]（身份块、状态与基本信息、Active/Recent 运行含状态与耗时、跳相关 issue）。数据层只追加 api.listAgentTasks + agentTasksOptions（GET /api/agents/:id/tasks）；presence 继续复用 @multica/core/agents 纯函数派生；分桶/排序/最近活动/耗时下沉 lib/agent-runs.ts 并补 12 条单测。turbo typecheck lint test --filter=@multica/mobile 4/4 通过；按 issue 要求未启动模拟器，设备视觉验收交用户真机自测。
+
+### Main Changes
+
+- apps/mobile 新增 components/agents/（agent-row / agent-presence-line / agent-detail-header / agent-facts-section / agent-runs-section）、路由 more/agents.tsx 重写 + more/agents/[id].tsx 新增、lib/agent-runs.ts(+test)、data/api.ts 与 data/queries/agents.ts 追加、_layout.tsx 注册详情路由
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a87736874` | feat(mobile): Agents 只读视图（列表 + 详情） |
+| `ee04cedc5` | feat(mobile): Agents 只读视图（列表 + 详情） (#41) |
+
+### Testing
+
+- [OK] pnpm exec turbo typecheck lint test --filter=@multica/mobile → 4/4 successful（typecheck/lint/test 全绿，0 error）
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 设备/视觉验收由用户在真机执行；More 菜单缺 Agents 入口（不在本任务文件边界），建议与 FEATURE-569 一并补
