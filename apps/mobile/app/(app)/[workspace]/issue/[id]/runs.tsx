@@ -9,7 +9,8 @@
  * the legacy `useRunsSheetStore` is gone since the route system is the
  * single source of truth for what's open.
  *
- * Past-row tap is a no-op in v1 — transcript drilldown is deferred.
+ * Every row (Active and Past) opens the run detail
+ * (`issue/[id]/runs/[taskId]`) — see `components/issue/run-row.tsx`.
  */
 import { useMemo } from "react";
 import { ScrollView, View } from "react-native";

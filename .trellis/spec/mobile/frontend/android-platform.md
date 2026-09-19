@@ -771,3 +771,63 @@ schema `IssuePullRequestsResponseSchema` / 哨兵 `EMPTY_ISSUE_PULL_REQUESTS_RES
 （取消：乐观清 pendingTask、回填响应、按 `message_id` 清理消息缓存、失败回滚；改名：乐观改标题、
 失败回滚、不凭空造列表）—— vite Node lane 只收 `lib/**`、`data/**`，判断逻辑与 mutation 必须放这两处。
 真机验收（发消息 → 运行中停止；会话标题改名）由用户在 Release APK 上执行。
+
+## 运行详情 / transcript（FEATURE-581，基线 commit `5d1f2f2b5`）
+
+issue 的 Runs sheet 原来点历史 run 是 no-op。本轮补上 `issue/[id]/runs/[taskId]` 详情页（完整时间线 +
+客户端开窗分页 + WS 实时追加），行内再加一个「Steps」折叠。平台侧固化以下几点：
+
+### 容器选 formSheet（单挡 0.95），不是 card push / modal
+
+`apps/mobile/AGENTS.md` 的容器表把「长列表」判给 formSheet，transcript 正是长列表读数面，因此
+详情页注册为 `{ ...SHEET_OPTIONS, sheetAllowedDetents: [0.95] }`：
+
+- **单挡 0.95** 而不是默认 `[0.6, 0.95]`：0.6 挡放不下时间线，用户得先把 sheet 拖起来才能读；
+  Android 侧 detents 映射为 `peekHeight = detents[0]`、`maxHeight = detents[last]`（FEATURE-547 实测），
+  单挡正好是「打开即接近全屏」。
+- 没有选 `presentation: "modal"`（虽然它是本仓验证过的 full-screen 容器：new-issue → picker）：
+  `formSheet → modal` 这层叠放同样没有实测先例，而 formSheet 家族本身有实测记录（FEATURE-547 §5.5 /
+  §5.7：modal → sheet、pushed 页面 → sheet 都正常）。
+- **本轮未实测「formSheet 上再推 formSheet」**（没有启动模拟器）。可查的机制依据：RNS 4.23 的
+  Android 侧把 sheet 实现在**每个 `ScreenStackFragment` 自己的 CoordinatorLayout +
+  `BottomSheetBehavior`** 上（`ScreenStackFragment.kt:192-238` 只在
+  `screen.usesFormSheetPresentation()` 时装配），即 presentation 是逐屏属性、不依赖是否栈底；
+  iOS 侧同一 navigator 推第二个 modal/sheet 有仓库内先例（new-issue 是 modal，其 picker 是 sheet）。
+  真机若发现叠放异常，退路是把详情页改成 `presentation: "modal"`（只改 `_layout.tsx` 一行）。
+
+### 「查看更早」只能客户端开窗
+
+`GET /api/tasks/{taskId}/messages` **没有分页参数**：只有可选 `?since=<seq>`（用于追进度），
+SQL `ListTaskMessages`（`server/pkg/db/queries/task_message.sql:84`）无 LIMIT，一次返回整条 run。
+所以 mobile 与 web 一样整条拉，但只渲染最新 `RUN_TRANSCRIPT_PAGE_SIZE`（20）条，顶部
+「Show N earlier steps」每点一次多 20 条。web 的对应控件在评论内联 run 行上
+（`inline-comment-run.tsx`，+12/次），**dialog 里没有**这一项——它是纯展示组件。
+
+### `task:message` 在移动端必须按记录自己订阅
+
+`use-chat-session-realtime.ts:140` 的 `task:message` 处理器 gate 在 `chat_session_id`，
+issue 触发的 run（没有 `chat_session_id`）的帧会被丢掉；WS 只有 `auth` 帧、没有按事件订阅，
+所以「订阅」= 在本端注册 handler。`components/issue/use-run-transcript.ts` 按 `task_id` 过滤后
+`appendTaskMessage`，并在 reconnect 时 invalidate 补拉；**不要**把它挪进
+`RealtimeSubscriptions` 全局订阅（蜂窝数据规则，见 `use-presence-realtime.ts` 头注释）。
+
+### 行内折叠不能嵌 VirtualizedList
+
+Runs sheet 的 body 是普通 `ScrollView`（`runs.tsx`）。行内「Steps」折叠里如果再放 `FlashList`
+就是 VirtualizedList 嵌普通 ScrollView，会告警也更慢。因此 `RunTranscript` 有 `compact` 密度：
+普通 `View` 映射 + 更紧的行距；详情页（顶层）才用 `FlashList` + 与聊天同一组
+`maintainVisibleContentPosition`（`autoscrollToBottomThreshold: 0.2`、`startRenderingFromBottom`）。
+
+### 折叠的惰性靠 `Collapsible` 的默认不挂载
+
+`@rn-primitives/collapsible` 的 `CollapsibleContent` 在 `!open && !forceMount` 时直接
+`return null`（`dist/collapsible.js:110-117`），所以把「取数 + 订阅」放进 content 的子组件即可拿到
+web 的语义（*Historical, collapsed runs still don't fetch transcripts*）：没展开的行既不请求
+也不收帧。若哪天给该 `CollapsibleContent` 传 `forceMount`，这条惰性会静默失效。
+
+### 验证
+
+`lib/run-transcript.test.ts` 25 例（seq 排序、流式同类合并 / 不跨类不跨任务合并、脱敏在合并之后
+生效、工具摘要优先级与 120 字符裁剪、开窗边界、截断三态、input 逐值脱敏）。
+真机验收（Runs 列表点历史 run → 步骤与消息 →「Show earlier steps」→ 运行中实时追加）由用户在
+Release APK 上执行。
