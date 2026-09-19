@@ -695,3 +695,26 @@ Session summary was not supplied.
 ### Status
 
 [OK] **Completed**
+
+
+## Session 43: FEATURE-579 聊天停止任务 + 会话重命名（归档）
+<!-- trellis-session: v=2 fp=a81f88f89b818771 -->
+
+**Date**: 2026-09-19
+**Task**: FEATURE-579 聊天停止任务 + 会话重命名（归档）
+**Branch**: `chore/579-trellis-archive`
+
+### Summary
+
+移动端聊天补齐网页版两项：停止运行中的任务（读回 cancelled_chat_message 做草稿回填、消息缓存清理、失败回滚；刻意不带 chat-draft-restore-v1 能力头，避免服务端把输入交给 mobile 没有的 durable 恢复路径）与会话重命名（行长按 → Rename 行内编辑，200 上限、空值/同值不发请求、乐观更新 + 失败回滚）。数据层只追加 cancelChatTask / updateChatSession 与两个 mutation；新增 lib/chat-session-rename.ts 与其单测、data/mutations/chat.test.ts。版本 0.1.1 vc11，Release APK 走 GitHub Release 交真机自测。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `817a35edb` | feat(mobile): 聊天停止运行中的任务 + 会话重命名 (#579) |
+| `5284dc949` | Merge remote-tracking branch 'origin/main' into feature/579-chat-stop-rename |
+
+### Status
+
+[OK] **Completed**
