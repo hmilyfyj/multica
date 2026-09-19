@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 24
+- **Total Sessions**: 25
 - **Last Active**: 2026-09-19
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~317 | Active |
+| `journal-1.md` | ~340 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 25 | 2026-09-19 | 归档 FEATURE-550 Android 构建按目标设备收敛 ABI | `3c1a101af` | `feature/550-android-build-abi` |
 | 24 | 2026-09-19 | 归档 FEATURE-548 Android 输入、键盘与系统导航行为校准 | `805a69427` | `feature/548-android-input-keyboard-nav` |
 | 23 | 2026-09-19 | FEATURE-547 归档：formSheet 路由 Android 校准 | `44413160a` | `feature/547-formsheet-android` |
 | 22 | 2026-09-19 | FEATURE-546 归档：七个搜索栏选择器 Android 替代实现 | `a00c1bb62` | `feature/546-android-search-bar` |

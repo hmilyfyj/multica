@@ -315,3 +315,26 @@ Trellis 归档清尾：FEATURE-548 任务归档到 archive/2026-09，业务改�
 ### Status
 
 [OK] **Completed**
+
+
+## Session 25: 归档 FEATURE-550 Android 构建按目标设备收敛 ABI
+<!-- trellis-session: v=2 fp=914b6d440f235a21 -->
+
+**Date**: 2026-09-19
+**Task**: 归档 FEATURE-550 Android 构建按目标设备收敛 ABI
+**Package**: mobile
+**Branch**: `feature/550-android-build-abi`
+
+### Summary
+
+Trellis 归档清尾：09-18-android-build-abi 任务归档到 archive/2026-09；业务改动已由 #9 合入 main；5 项 AC 全部勾选。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3c1a101af` | perf(mobile): Android 调试构建按目标设备收敛 ABI |
+
+### Status
+
+[OK] **Completed**
