@@ -1,0 +1,9 @@
+R1	pass	Release APK 安装成功（multica-mobile-production-0.1.0-vc1.apk）：Performing Streamed Install
+Success
+R2	pass	包名 com.ehaier.zgq.shop.mall 出现在 pm list packages；package: name='com.ehaier.zgq.shop.mall' versionCode='1' versionName='0.1.0' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'
+application-label:'海尔商城'
+R3	pass	应用列表名为「海尔商城」（application-label）
+R4	pass	Release 由自用发布密钥签名（SHA-256 267600f22ac5b0c4249b59105d0a9d3db4b06beb705c2cb9d61a2b55fbb25ccf 与 ~/.multica-android 密钥库一致，非 debug 密钥）
+R5	pass	Release 冷启动取到品牌启动屏背景 #111827（release-launch-1）
+R6	pass	Release 内嵌 bundle 正常加载：冷启动后渲染出登录页（不连 Metro）
+R7	pass	前台窗口是 Release 包：mCurrentFocus=Window{22ac251 u0 com.ehaier.zgq.shop.mall/com.ehaier.zgq.shop.mall.MainActivity}

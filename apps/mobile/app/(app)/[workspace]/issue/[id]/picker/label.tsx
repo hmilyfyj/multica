@@ -1,8 +1,9 @@
 /**
  * Label picker route for an existing issue — multi-select with inline
- * create. Uses native iOS Stack header + UISearchController via
- * `useNativeSearchBar` (sheet stays open across toggles; the user
- * dismisses via the sheet grabber or the Back button).
+ * create. The search bar is wired by `usePickerSearchBar` (iOS: the native
+ * header's UISearchController registered in ../_layout.tsx; other platforms:
+ * the shared `SearchField` above the list). The sheet stays open across
+ * toggles; the user dismisses via the sheet grabber or the Back button.
  */
 import { useRef } from "react";
 import { useLocalSearchParams } from "expo-router";
@@ -15,7 +16,7 @@ import {
 } from "@/data/mutations/issues";
 import { useCreateLabel } from "@/data/mutations/labels";
 import { useWorkspaceStore } from "@/data/workspace-store";
-import { useNativeSearchBar } from "@/lib/use-native-search-bar";
+import { usePickerSearchBar } from "@/lib/use-picker-search-bar";
 
 export default function IssueLabelPickerRoute() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -24,7 +25,9 @@ export default function IssueLabelPickerRoute() {
   const attachLabel = useAttachLabel(id);
   const detachLabel = useDetachLabel(id);
   const createLabel = useCreateLabel();
-  const query = useNativeSearchBar("Search labels", { autoFocus: true });
+  const { query, searchBar } = usePickerSearchBar("Search labels", {
+    autoFocus: true,
+  });
 
   // Synchronous lock to prevent double-submit on rapid taps on the Create
   // row before React state updates — mirrors web's `creatingRef` pattern in
@@ -34,26 +37,29 @@ export default function IssueLabelPickerRoute() {
   const attached = issue?.labels ?? [];
 
   return (
-    <LabelPickerBody
-      attached={attached}
-      query={query}
-      onAttach={(label) => attachLabel.mutate({ label })}
-      onDetach={(labelId) => detachLabel.mutate({ labelId })}
-      onCreate={(name, color) => {
-        if (creatingRef.current) return;
-        creatingRef.current = true;
-        createLabel.mutate(
-          { name, color },
-          {
-            onSuccess: (label) => {
-              attachLabel.mutate({ label });
+    <>
+      {searchBar}
+      <LabelPickerBody
+        attached={attached}
+        query={query}
+        onAttach={(label) => attachLabel.mutate({ label })}
+        onDetach={(labelId) => detachLabel.mutate({ labelId })}
+        onCreate={(name, color) => {
+          if (creatingRef.current) return;
+          creatingRef.current = true;
+          createLabel.mutate(
+            { name, color },
+            {
+              onSuccess: (label) => {
+                attachLabel.mutate({ label });
+              },
+              onSettled: () => {
+                creatingRef.current = false;
+              },
             },
-            onSettled: () => {
-              creatingRef.current = false;
-            },
-          },
-        );
-      }}
-    />
+          );
+        }}
+      />
+    </>
   );
 }

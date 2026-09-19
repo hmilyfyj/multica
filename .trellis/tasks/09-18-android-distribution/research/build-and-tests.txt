@@ -1,0 +1,41 @@
+# 构建与测试证据（FEATURE-552）
+
+## 产物清单
+total 182240
+drwxr-xr-x 4 fengit staff       128 Sep 19 00:02 .
+drwxr-xr-x 3 fengit staff        96 Sep 19 00:00 ..
+-rw-r--r-- 1 fengit staff  75312855 Sep 19 00:02 multica-mobile-production-0.1.0-vc1.aab
+-rw-r--r-- 1 fengit staff 111298154 Sep 19 00:00 multica-mobile-production-0.1.0-vc1.apk
+
+## assembleRelease（production APK，冷构建）
+BUILD SUCCESSFUL in 7m 11s
+1074 actionable tasks: 1074 executed
+android-release: 产物已就绪 → dist/android/multica-mobile-production-0.1.0-vc1.apk
+  package   com.ehaier.zgq.shop.mall
+  version   0.1.0 (versionCode 1)
+  size      106M
+  sha256    ce2a7fec08533a187f25e2fe4c8e6c0f392d953b143aefd8117eee9f4e58f999
+  安装      adb install -r dist/android/multica-mobile-production-0.1.0-vc1.apk
+
+## bundleRelease（production AAB，增量）
+BUILD SUCCESSFUL in 29s
+988 actionable tasks: 66 executed, 922 up-to-date
+android-release: 产物已就绪 → dist/android/multica-mobile-production-0.1.0-vc1.aab
+  package   com.ehaier.zgq.shop.mall
+  version   0.1.0 (versionCode 1)
+  size      72M
+  sha256    442b6b30aa635d450a0ea78e9891413d4644622649fa7e68e602742d6013c91a
+  AAB 不能直接安装：经 Play 上传，或 bundletool 转 APK 后再装
+
+## 脚本测试
+$ bash scripts/android-keystore.test.sh && bash scripts/android-release.test.sh
+android-keystore.test.sh: all assertions passed
+android-release.test.sh: all assertions passed
+
+## 插件变换探针（一次性脚本，已删除）
+probe ok: idempotent single block, path inlined and escaped
+
+## 移动端检查
+$ pnpm -C apps/mobile lint      → 0 errors
+$ pnpm -C apps/mobile typecheck → clean
+$ pnpm -C apps/mobile test      → vitest + ios-run/android-run/android-keystore/android-release 四个脚本测试全过

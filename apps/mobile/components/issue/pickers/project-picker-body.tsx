@@ -1,10 +1,10 @@
 /**
  * Pure picker body for an issue's project — single-select. Mirrors the
- * assignee picker pattern: header + search bar are the iOS native nav
- * header (registered in `app/(app)/[workspace]/_layout.tsx`); the route
- * wires `headerSearchBarOptions.onChangeText` to a local `query` state
- * via `useNativeSearchBar` and passes it in as `query`. Body is a pure
- * FlatList — no chrome.
+ * assignee picker pattern: search chrome is owned by the route via
+ * `usePickerSearchBar` (iOS: the native nav header registered in
+ * `app/(app)/[workspace]/_layout.tsx`; other platforms: a `SearchField`
+ * above the list), which passes the `query` in. Body is a pure FlatList —
+ * no chrome.
  */
 import { useMemo } from "react";
 import { FlatList, Pressable, View } from "react-native";

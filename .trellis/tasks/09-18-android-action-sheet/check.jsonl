@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/mobile/frontend/android-platform.md", "reason": "核对 Android/iOS 双向验收证据要求与「不改 iOS 既有行为」原则"}
+{"file": "apps/mobile/AGENTS.md", "reason": "核对 UI 约定（动作菜单容器选择）与 Verification 段的检查命令范围"}

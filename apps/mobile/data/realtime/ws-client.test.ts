@@ -43,6 +43,7 @@ function connectAuthenticatedClient() {
     url: "wss://example.test/ws",
     token: "token",
     workspaceSlug: "workspace",
+    clientOS: "ios",
   });
   client.connect();
   const socket = MockWebSocket.instances[0];
@@ -112,6 +113,7 @@ describe("WSClient session renewal", () => {
       url: "wss://example.test/ws",
       token: "token-v1",
       workspaceSlug: "workspace",
+      clientOS: "ios",
       getToken: () => current,
     });
 
@@ -138,6 +140,7 @@ describe("WSClient session renewal", () => {
       url: "wss://example.test/ws",
       token: "token-only",
       workspaceSlug: "workspace",
+      clientOS: "ios",
     });
 
     client.connect();
@@ -147,5 +150,92 @@ describe("WSClient session renewal", () => {
       type: "auth",
       payload: { token: "token-only" },
     });
+  });
+});
+
+// The server records client_os verbatim for macos / windows / linux / ios /
+// android / chromeos, and normalizes anything else to `unknown`
+// (server/internal/handler/client_usage.go). A literal in the transport is how
+// every Android device reported `ios` in the backend logs (FEATURE-559).
+describe("WSClient client identity", () => {
+  beforeEach(() => {
+    vi.stubGlobal("WebSocket", MockWebSocket);
+    MockWebSocket.instances = [];
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("reports the caller's platform as client_os", () => {
+    const client = new WSClient({
+      url: "wss://example.test/ws",
+      token: "token",
+      workspaceSlug: "workspace",
+      clientOS: "android",
+    });
+
+    client.connect();
+
+    const dialed = new URL(MockWebSocket.instances[0].url);
+    expect(dialed.searchParams.get("client_os")).toBe("android");
+    expect(dialed.searchParams.get("client_platform")).toBe("mobile");
+
+    client.disconnect();
+  });
+});
+
+// An upgrade can open and then never authenticate — a half-open socket after a
+// network flap, or a server that never answers the auth frame. The heartbeat
+// only covers authenticated sockets, so this state used to have no timer, no
+// onclose and no redial: the client never reconnected, so no subscriber was
+// told to refresh and the visible data stayed stale until a remount.
+describe("WSClient auth handshake", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.stubGlobal("WebSocket", MockWebSocket);
+    MockWebSocket.instances = [];
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("redials a socket that opens but never authenticates", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    const client = new WSClient({
+      url: "wss://example.test/ws",
+      token: "token",
+      workspaceSlug: "workspace",
+      clientOS: "ios",
+    });
+
+    client.connect();
+    MockWebSocket.instances[0].open();
+
+    // Past the handshake window; the extra tick runs the jittered redial the
+    // failure schedules (same shape as the heartbeat test above).
+    vi.advanceTimersByTime(10_000);
+    vi.advanceTimersByTime(1);
+
+    expect(MockWebSocket.instances).toHaveLength(2);
+    client.disconnect();
+  });
+
+  it("keeps the socket once auth_ack lands", () => {
+    const { client, socket } = connectAuthenticatedClient();
+
+    // Past the handshake window, answering each ping so that the heartbeat —
+    // and not a watchdog left armed — is the only thing that could redial.
+    for (let round = 0; round < 2; round += 1) {
+      socket.receive({ type: "pong" });
+      vi.advanceTimersByTime(10_000);
+    }
+
+    expect(MockWebSocket.instances).toHaveLength(1);
+    client.disconnect();
   });
 });

@@ -1,0 +1,13 @@
+K6	pass	验证码页 OTP：Verify 按钮整块在键盘顶边之上（重测，已等键盘占位）
+C4b	fail	点开条目后未进入详情（重测，见 rm-08-item-opened.png）
+C5c	pass	时间线渲染出夹具评论卡片（重测：以 rm-05-detail-bottom.png 截图判定；评论节点未进无障碍树，属 dump 覆盖限制）
+C5e	pass	长按评论弹出动作面板（Reply / React…）（重测）
+C5f	pass	More reactions… 进入 emoji picker 页（页眉 Add Reaction）（重测）
+C6c	fail	issue 属性选择器只打开 4/6 个（重测，见 rm-c6-picker-*.png）
+C7b	pass	新建 issue 的属性 chip 可打开 picker 叠层（重测：3/5）
+B1	pass	详情点 chip 进入 picker（sheet 叠 sheet）后按 BACK 只关 picker，回到 issue 详情（重测）
+B2	pass	⋯ 菜单按 BACK 只关面板；详情未弹栈、应用仍在前台（重测）
+D1	fail	深链 picker=0 / BACK 后 tab 根=y（重测，见 rm-d1-*.png）
+D2	fail	重连后仍未看到断网期间插入的评论（离线 marker=0，见 rm-d2-reconnected.png）
+D3	pass	HOME→回前台恢复到应用（原焦点：mCurrentFocus=Window{6a85554 u0 com.ehaier.zgq.shop.mall.staging/com.ehaier.zgq.shop.mall.staging.MainActivity}）；am kill 后 dev-client 冷启重新渲染（重测）
+E3	blocked	仍未找到聊天输入框（重测，见 rm-e3-chat.png）
