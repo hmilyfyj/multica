@@ -27,3 +27,25 @@ Android 视觉校准交付：新增 components/ui/nav-icon.tsx 收敛 sf: SF Sym
 ### Status
 
 [OK] **Completed**
+
+
+## Session 6: FEATURE-544 归档：Android 构建脚本与开发文档
+<!-- trellis-session: v=2 fp=a62b1c663a9743bf -->
+
+**Date**: 2026-09-19
+**Task**: FEATURE-544 归档：Android 构建脚本与开发文档
+**Branch**: `feature/544-android-scripts`
+
+### Summary
+
+每日归档：09-18-android-build-scripts。issue done；业务 PR 已 squash 合并进 main；AC 全部核验；trellis-check ran(clean)。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `fee8f990d` | feat(mobile): 新增 Android 构建脚本与开发文档 (#3) |
+
+### Status
+
+[OK] **Completed**
