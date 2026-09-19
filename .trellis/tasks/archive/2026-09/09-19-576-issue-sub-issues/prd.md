@@ -59,17 +59,28 @@
 
 ## Acceptance Criteria
 
-- [ ] `pnpm --filter @multica/mobile typecheck` 通过。
-- [ ] `pnpm --filter @multica/mobile lint` 通过（0 error）。
-- [ ] `pnpm --filter @multica/mobile test` 通过，且新增单测覆盖：
-      - [ ] stage 分组映射：stage 升序、无 stage 最后、组内保持输入顺序、全无 stage 时只有一组；
-      - [ ] 完成计数映射：按状态**类别**判定 done（自定义 done 类状态计入、cancelled/closed 不计入）；
-      - [ ] 每行子进度映射：`Map` → 计数文本，无条目 / total 为 0 时不显示。
-- [ ] 打 arm64-v8a / production / `EXPO_PUBLIC_API_URL=https://fengit-multica.frp.tbxzs.net` 的
-      Release APK，走 GitHub Release 交付，说明含文件名、大小、SHA-256、签名证书与真机自测步骤。
-- [ ] 本地可用性验证（不启模拟器）：typecheck / lint / test；真机验收由用户执行，交付里分开写明。
-- [ ] squash 合并进 `main`（GitHub PR），合并后本 issue 置 `done`。
-- [ ] 合并后启动第 2 波（FEATURE-578 / FEATURE-579），先确认没有在跑的 run。
+- [x] `pnpm --filter @multica/mobile typecheck` 通过。核验：收尾轮 `rtk err -- corepack pnpm --filter
+      @multica/mobile typecheck` → ok（期间修掉一次 schema 导入放错模块的错误）。
+- [x] `pnpm --filter @multica/mobile lint` 通过（0 error）。核验：`rtk err -- corepack pnpm --filter
+      @multica/mobile lint` → 0 errors；改动文件单独 eslint 亦无输出。
+- [x] `pnpm --filter @multica/mobile test` 通过，且新增单测覆盖：
+      - [x] stage 分组映射：stage 升序、无 stage 最后、组内保持输入顺序、全无 stage 时只有一组。
+      - [x] 完成计数映射：按状态类别判定 done（自定义 done 类状态计入、cancelled/closed 不计入）。
+      - [x] 每行子进度映射：`Map` → 计数文本，无条目 / total 为 0 时不显示。
+      核验：`apps/mobile/lib/sub-issues.test.ts` 13 例通过；全量 `test` = vitest 489 例 / 56 文件 +
+      4 个 shell 脚本用例全过。变异验证：把计数改回 `child.status === "done"` 时
+      「自定义 done 类状态」用例失败（RED，1 failed / 12 passed），`git checkout --` 恢复后全绿。
+- [x] 打 arm64-v8a / production / `EXPO_PUBLIC_API_URL=https://fengit-multica.frp.tbxzs.net` 的
+      Release APK，走 GitHub Release 交付。核验：Release `android-v0.1.1-vc9-sub-issues`，
+      资产 `haier-mall-android-0.1.1-vc9-arm64-v8a-sub-issues.apk`，48,733,043 字节，
+      sha256 `5e44b855…52483ab`，签名证书 `267600f2…b25ccf`（与 vc8 同证书，可覆盖安装）；
+      包内仅 `lib/arm64-v8a/`，bundle 内 `fengit-multica.frp.tbxzs.net` 出现 1 次、
+      `api.multica.ai` 0 次。
+- [x] 本地可用性验证（不启模拟器）：typecheck / lint / test；真机验收由用户执行，交付里分开写明。
+      核验：未启动任何模拟器与设备；Release 说明含 7 步真机自测与已知边界。
+- [x] squash 合并进 `main`（GitHub PR #65 → `5d4f84e0a`），合并后本 issue 置 `done`。
+- [x] 合并后启动第 2 波（FEATURE-578 / FEATURE-579），先确认没有在跑的 run。
+      核验：`multica issue runs FEATURE-578/579 --active` 均为空后指派。
 
 ## Boundaries
 
