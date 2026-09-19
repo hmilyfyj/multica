@@ -1,4 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
+import type * as TanstackQuery from "@tanstack/react-query";
 import type {
   CommentDeletedPayload,
   CommentUpdatedPayload,
@@ -21,10 +22,11 @@ type SubscriptionSetup = (ws: MockWS, wsId: string) => (() => void)[];
 const state = vi.hoisted(() => ({
   qc: undefined as unknown as QueryClient,
   subscriptionSetups: [] as SubscriptionSetup[],
+  reconnect: null as (() => void) | null,
 }));
 
 vi.mock("@tanstack/react-query", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@tanstack/react-query")>()),
+  ...(await importOriginal<typeof TanstackQuery>()),
   useQueryClient: () => state.qc,
 }));
 
@@ -48,7 +50,10 @@ function connect() {
       handlers.set(event, handler);
       return () => {};
     }),
-    onReconnect: vi.fn(() => () => {}),
+    onReconnect: vi.fn((handler: () => void) => {
+      state.reconnect = handler;
+      return () => {};
+    }),
   };
   state.subscriptionSetups[0](ws, wsId);
   return (event: string, payload: unknown) => {
@@ -125,5 +130,30 @@ describe("useIssueRealtime owner issue revision on comment deletes", () => {
     for (const key of [detailKey, myKey, issueKeys.list(wsId)]) {
       expect(state.qc.getQueryState(key)?.isInvalidated).toBe(true);
     }
+  });
+});
+
+// The server keeps no replay buffer, so anything that landed while the socket
+// was down is only visible after a refetch. This is the path the Android
+// regression (FEATURE-551 D2) caught: a comment inserted while the phone was
+// offline did not show up until the screen was remounted.
+describe("useIssueRealtime reconnect refresh", () => {
+  beforeEach(() => {
+    state.qc = new QueryClient();
+    state.subscriptionSetups.length = 0;
+    state.reconnect = null;
+  });
+
+  it("refetches the open issue's detail and timeline", () => {
+    const timelineKey = issueKeys.timeline(wsId, issueId);
+    state.qc.setQueryData<Issue>(detailKey, { id: issueId } as Issue);
+    state.qc.setQueryData<Issue[]>(timelineKey, []);
+    useIssueRealtime(issueId);
+    connect();
+
+    state.reconnect?.();
+
+    expect(state.qc.getQueryState(detailKey)?.isInvalidated).toBe(true);
+    expect(state.qc.getQueryState(timelineKey)?.isInvalidated).toBe(true);
   });
 });
