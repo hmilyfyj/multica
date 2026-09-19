@@ -707,6 +707,16 @@ Session summary was not supplied.
 ### Summary
 
 移动端补 web 的「关联 PR 列表」只读区块：状态文案/色调/副行拼装/折叠切分为纯函数（lib/pull-requests.ts + 13 例单测，含未知状态回退与折叠边界的变异 RED 证据）；区块门禁走 deriveGitHubSettings(workspace).prSidebar（为绕开 core 的 barrel 白名单，core exports 只加一条 ./github/settings 子路径）；数据层只追加 listIssuePullRequests + pullRequests key + issuePullRequestsOptions。合并时 main 已前进（577/579），versionCode 冲突解为 vc12 并重打 APK，走 GitHub Release android-v0.1.1-vc12-pull-requests 交真机自测。合并后启动第 3 波 FEATURE-580 / FEATURE-582。
+## Session 43: FEATURE-579 聊天停止任务 + 会话重命名（归档）
+<!-- trellis-session: v=2 fp=a81f88f89b818771 -->
+
+**Date**: 2026-09-19
+**Task**: FEATURE-579 聊天停止任务 + 会话重命名（归档）
+**Branch**: `chore/579-trellis-archive`
+
+### Summary
+
+移动端聊天补齐网页版两项：停止运行中的任务（读回 cancelled_chat_message 做草稿回填、消息缓存清理、失败回滚；刻意不带 chat-draft-restore-v1 能力头，避免服务端把输入交给 mobile 没有的 durable 恢复路径）与会话重命名（行长按 → Rename 行内编辑，200 上限、空值/同值不发请求、乐观更新 + 失败回滚）。数据层只追加 cancelChatTask / updateChatSession 与两个 mutation；新增 lib/chat-session-rename.ts 与其单测、data/mutations/chat.test.ts。版本 0.1.1 vc11，Release APK 走 GitHub Release 交真机自测。
 
 ### Git Commits
 
@@ -714,6 +724,8 @@ Session summary was not supplied.
 |------|---------|
 | `802124561` | feat(mobile): issue 详情关联 PR 列表（只读）(#578) |
 | `103a68e39` | Merge remote-tracking branch 'origin/main' into feature/578-issue-pull-requests |
+| `817a35edb` | feat(mobile): 聊天停止运行中的任务 + 会话重命名 (#579) |
+| `5284dc949` | Merge remote-tracking branch 'origin/main' into feature/579-chat-stop-rename |
 
 ### Status
 

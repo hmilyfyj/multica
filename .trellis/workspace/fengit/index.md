@@ -30,6 +30,7 @@
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
 | 44 | 2026-09-19 | FEATURE-578 issue 详情关联 PR 列表（只读） | `802124561`, `103a68e39` | `feature/578-issue-pull-requests` |
+| 43 | 2026-09-19 | FEATURE-579 聊天停止任务 + 会话重命名（归档） | `817a35edb`, `5284dc949` | `chore/579-trellis-archive` |
 | 42 | 2026-09-19 | FEATURE-577 收件箱筛选 / 标记未读 / 归档视图（归档） | `c445aae02`, `ea54895bd` | `chore/577-trellis-archive` |
 | 41 | 2026-09-19 | FEATURE-576 子 issue 区块（归档） | `88a81fea1`, `0e17748a5` | `feature/576-issue-sub-issues` |
 | 40 | 2026-09-19 | 归档 09-19-issue-thread-nav（FEATURE-572 issue 详情评论线程快速跳转） | `57394ae27` | `feature/572-thread-minimap-nav` |
