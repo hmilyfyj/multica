@@ -524,3 +524,26 @@ Trellis 归档清尾：09-19-android-final-acceptance 任务归档到 archive/20
 ### Status
 
 [OK] **Completed**
+
+
+## Session 36: 归档 09-19-ws-event-coverage（FEATURE-564 WS 事件订阅补齐）
+<!-- trellis-session: v=2 fp=cbffc99ca294680e -->
+
+**Date**: 2026-09-19
+**Task**: 归档 09-19-ws-event-coverage（FEATURE-564 WS 事件订阅补齐）
+**Branch**: `feature/564-ws-event-subscriptions`
+
+### Summary
+
+trellis-check ran(clean)：AC 6 项逐条核验（对照表 34 行=13 补齐+2 已由 563 覆盖+19 不补；覆盖率 47→60/79；RealtimeSubscriptions 挂载 useWorkspaceRealtime/useCatalogsRealtime 且含 onReconnect；realtime 13 例测试通过；mobile typecheck/lint/vitest 476 例通过）。finish-work 四步完成，task 目录移入 .trellis/tasks/archive/2026-09/。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `cd760e71b` | feat(mobile): 补齐 WS 事件订阅（workspace/member/squad/label/issue_status/chat） |
+| `9508a29cd` | feat(mobile): 补齐 WS 事件订阅（workspace/member/squad/label/issue_status/task/chat） |
+
+### Status
+
+[OK] **Completed**

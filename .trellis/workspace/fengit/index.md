@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 35
+- **Total Sessions**: 36
 - **Last Active**: 2026-09-19
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~526 | Active |
+| `journal-1.md` | ~549 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 36 | 2026-09-19 | 归档 09-19-ws-event-coverage（FEATURE-564 WS 事件订阅补齐） | `cd760e71b`, `9508a29cd` | `feature/564-ws-event-subscriptions` |
 | 35 | 2026-09-19 | FEATURE-568 Usage / Billing 只读查看（含归档） | `037f13251`, `85993fc86` | `chore/568-task-journal` |
 | 34 | 2026-09-19 | FEATURE-566 设置面板补齐：工作区 / 标签 / issue 状态 | `0759aac3c`, `446919803` | `feature/566-settings-workspace-labels-statuses` |
 | 33 | 2026-09-19 | 归档 FEATURE-558 阶段 5 收尾验收 | `f0979ddfe`, `903338f10` | `feature/558-android-final-acceptance` |
