@@ -292,3 +292,26 @@ Android 收件箱本机通知落地并合入 main@0698402c8：expo-notifications
 ### Status
 
 [OK] **Completed**
+
+
+## Session 24: 归档 FEATURE-548 Android 输入、键盘与系统导航行为校准
+<!-- trellis-session: v=2 fp=b5276fcb125121cb -->
+
+**Date**: 2026-09-19
+**Task**: 归档 FEATURE-548 Android 输入、键盘与系统导航行为校准
+**Package**: mobile
+**Branch**: `feature/548-android-input-keyboard-nav`
+
+### Summary
+
+Trellis 归档清尾：FEATURE-548 任务归档到 archive/2026-09，业务改动已由 #13 合入 main。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `805a69427` | feat(mobile): Android 输入/键盘/返回键校准 |
+
+### Status
+
+[OK] **Completed**
