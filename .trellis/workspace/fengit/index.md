@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 1
-- **Last Active**: 2026-09-18
+- **Total Sessions**: 8
+- **Last Active**: 2026-09-19
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~29 | Active |
+| `journal-1.md` | ~51 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 8 | 2026-09-19 | FEATURE-551 归档：核心流程 Android 全量回归验收 | `f2d85dcfc` | `feature/551-android-full-regression` |
 | 1 | 2026-09-18 | FEATURE-549 Android 视觉校准归档 | `fd622eca6` | `feature/549-android-visual-calibration` |
 <!-- @@@/auto:session-history -->
 
