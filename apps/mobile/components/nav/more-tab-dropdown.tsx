@@ -90,6 +90,14 @@ const NAV_ITEMS: NavItem[] = [
     ion: "albums-outline",
     path: "/more/projects",
   },
+  // Web's route icon for /autopilots is Zap (packages/core/paths/route-icons.ts);
+  // SF has no Zap, so both platforms get the bolt/flash glyph.
+  {
+    label: "Autopilots",
+    sf: "bolt.fill",
+    ion: "flash-outline",
+    path: "/more/autopilots",
+  },
   // Read-only workspace reporting. Both screens are look-only by design, so
   // they sit after the browsable collections rather than needing their own
   // section.

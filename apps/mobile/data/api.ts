@@ -17,12 +17,15 @@ import type {
   Agent,
   AgentTask,
   Attachment,
+  Autopilot,
   AutopilotQuotaUsage,
+  AutopilotRun,
   ChatMessage,
   ChatPendingTask,
   ChatSession,
   Comment,
   CreateIssueRequest,
+  CreateIssueStatusRequest,
   CreateLabelRequest,
   CreateProjectRequest,
   CreateProjectResourceRequest,
@@ -32,6 +35,7 @@ import type {
   DashboardRunTimeDaily,
   DashboardUsageByAgent,
   DashboardUsageDaily,
+  GetAutopilotResponse,
   InboxItem,
   InboxWorkspaceUnread,
   Issue,
@@ -39,6 +43,9 @@ import type {
   IssueLimitUsage,
   Label,
   IssueReaction,
+  IssueStatusCategory,
+  IssueStatusEntry,
+  LabelResourceType,
   ListIssuesParams,
   ListIssuesResponse,
   ListLabelsResponse,
@@ -62,29 +69,37 @@ import type {
   TaskMessagePayload,
   TimelineEntry,
   UpdateIssueRequest,
+  UpdateLabelRequest,
   UpdateMeRequest,
   UpdateProjectRequest,
+  UpdateIssueStatusRequest,
   User,
   Workspace,
+  WorkspaceRepo,
   WorkspaceSubscriptionSummary,
 } from "@multica/core/types";
 import {
   AppConfigSchema,
   AutopilotQuotaUsageSchema,
+  AutopilotRunSchema,
   DashboardAgentRunTimeListSchema,
   DashboardFailureByAgentListSchema,
   DashboardFailureDailyListSchema,
   DashboardRunTimeDailyListSchema,
   DashboardUsageByAgentListSchema,
   DashboardUsageDailyListSchema,
+  FALLBACK_AUTOPILOT_RUN,
   IssueLimitUsageSchema,
+  ListAutopilotsResponseSchema,
   EMPTY_APP_CONFIG,
   EMPTY_REFRESH_SESSION_RESPONSE,
   RefreshSessionResponseSchema,
   EMPTY_LIST_ISSUE_STATUSES_RESPONSE,
+  EMPTY_ISSUE_STATUS_ENTRY,
   EMPTY_LIST_ISSUES_RESPONSE,
   EMPTY_TIMELINE_ENTRIES,
   IssueSchema,
+  IssueStatusEntrySchema,
   ListIssuesResponseSchema,
   ListIssueStatusesResponseSchema,
   TimelineEntriesSchema,
@@ -98,6 +113,8 @@ import {
   ActiveTasksResponseSchema,
   AgentListSchema,
   AgentTaskListSchema,
+  AutopilotDetailSchema,
+  AutopilotRunListSchema,
   AttachmentListSchema,
   AttachmentSchema,
   ChatMessageListSchema,
@@ -108,6 +125,9 @@ import {
   EMPTY_ACTIVE_TASKS_RESPONSE,
   EMPTY_AGENT_LIST,
   EMPTY_AGENT_TASK_LIST,
+  EMPTY_AUTOPILOT_LIST,
+  EMPTY_AUTOPILOT_DETAIL,
+  EMPTY_AUTOPILOT_RUN_LIST,
   EMPTY_ATTACHMENT_LIST,
   EMPTY_CHAT_MESSAGE_LIST,
   EMPTY_CHAT_PENDING_TASK,
@@ -177,6 +197,19 @@ export interface FileAsset {
   uri: string;
   name: string;
   type: string;
+}
+
+/** Body of `PATCH /api/workspaces/{id}`. Mirrors the inline shape in
+ *  `packages/core/api/client.ts` updateWorkspace — core exports no named
+ *  type for it, and the fields this screen writes are a subset of these. */
+export interface UpdateWorkspaceRequest {
+  name?: string;
+  description?: string;
+  context?: string;
+  settings?: Record<string, unknown>;
+  repos?: WorkspaceRepo[];
+  issue_prefix?: string;
+  avatar_url?: string;
 }
 
 /** Web mirrors this from `packages/core/constants/upload.ts`. Mobile keeps
@@ -534,6 +567,26 @@ class ApiClient {
     });
   }
 
+  /**
+   * Patch the workspace's own fields. Owner/admin only — the route sits in
+   * the owner|admin group in server/cmd/server/router.go, so a plain member
+   * gets a 403 ApiError.
+   *
+   * Raw `this.fetch<Workspace>` rather than `fetchValidatedWith`: the
+   * response replaces the cached Workspace, and a parseWithFallback stand-in
+   * would blank the settings form instead of surfacing the drift. Mirrors
+   * `packages/core/api/client.ts` updateWorkspace.
+   */
+  async updateWorkspace(
+    id: string,
+    body: UpdateWorkspaceRequest,
+  ): Promise<Workspace> {
+    return this.fetch<Workspace>(`/api/workspaces/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    });
+  }
+
   // --- Inbox ---
   async listInbox(opts?: { signal?: AbortSignal }): Promise<InboxItem[]> {
     const raw = await this.fetch<unknown>("/api/inbox", {
@@ -676,6 +729,89 @@ class ApiClient {
     return parseWithFallback(raw, SquadListSchema, EMPTY_SQUAD_LIST, {
       endpoint: "listSquads",
     });
+  }
+
+  // --- Autopilots ---
+  // Read-only browse plus the one write the mobile view offers: a manual
+  // "run now". Web answers the rest (create / edit / pause / delete, trigger
+  // editors, webhook token rotation, access management); none of it is here.
+
+  // Workspace autopilot list. Omitting `status` is exactly web's "all" scope:
+  // the server returns active + paused and never archived
+  // (server/pkg/db/queries/autopilot.sql). Rows already carry the three derived
+  // columns the list renders (trigger_kinds / next_run_at / last_run_status,
+  // enabled triggers only), so the page never N+1s into the detail endpoint.
+  async listAutopilots(opts?: { signal?: AbortSignal }): Promise<Autopilot[]> {
+    const raw = await this.fetch<unknown>("/api/autopilots", {
+      signal: opts?.signal,
+    });
+    const parsed = parseWithFallback(
+      raw,
+      ListAutopilotsResponseSchema,
+      EMPTY_AUTOPILOT_LIST,
+      { endpoint: "GET /api/autopilots" },
+    );
+    return parsed.autopilots;
+  }
+
+  // Autopilot + its configured triggers. The list response cannot back the
+  // detail screen (it carries no triggers, only the derived `trigger_kinds`).
+  // A missing / out-of-workspace id answers 404, which the screen renders as
+  // its not-found state — same scope the list page shows, so the two agree.
+  async getAutopilot(
+    id: string,
+    opts?: { signal?: AbortSignal },
+  ): Promise<GetAutopilotResponse> {
+    return this.fetchValidated(
+      `/api/autopilots/${id}`,
+      AutopilotDetailSchema,
+      EMPTY_AUTOPILOT_DETAIL,
+      { ...opts, endpoint: "GET /api/autopilots/:id" },
+    );
+  }
+
+  // Run history, newest first. The endpoint pages at 20 by default (100 max)
+  // and omits each run's `trigger_payload` — a webhook envelope can reach
+  // 256 KiB, so `limit` rows of it would be megabytes on cellular. Rows carry
+  // status / source / failure_reason / timestamps, which is all this screen
+  // shows.
+  async listAutopilotRuns(
+    id: string,
+    opts?: { signal?: AbortSignal },
+  ): Promise<AutopilotRun[]> {
+    const raw = await this.fetch<unknown>(`/api/autopilots/${id}/runs`, {
+      signal: opts?.signal,
+    });
+    const parsed = parseWithFallback(
+      raw,
+      AutopilotRunListSchema,
+      EMPTY_AUTOPILOT_RUN_LIST,
+      { endpoint: "GET /api/autopilots/:id/runs" },
+    );
+    return parsed.runs;
+  }
+
+  // Manual "run now". A 200 does NOT mean the run started: the pre-flight
+  // admission check can block it and still answer 200, carrying the outcome on
+  // the run's `status` + `reason_code` (MUL-4525), so the caller branches on
+  // the run, never on the HTTP code. Quota rejection is the one HTTP-level
+  // failure (429 + `reason_code: quota_exceeded`).
+  //
+  // The Idempotency-Key mirrors web, which also mints a fresh id per request:
+  // it is the dispatch ledger's uniqueness key, not a client retry cache.
+  // Mobile has no WebCrypto (`crypto.randomUUID` is not available on Hermes),
+  // so this uses the mobile-owned request-id helper.
+  async triggerAutopilot(id: string): Promise<AutopilotRun> {
+    return this.fetchValidatedWith(
+      `/api/autopilots/${id}/trigger`,
+      AutopilotRunSchema,
+      FALLBACK_AUTOPILOT_RUN,
+      {
+        method: "POST",
+        headers: { "Idempotency-Key": createRequestId() },
+      },
+      { endpoint: "POST /api/autopilots/:id/trigger" },
+    );
   }
 
   // --- Issues ---
@@ -961,8 +1097,13 @@ class ApiClient {
   // --- Labels ---
   async listLabels(opts?: {
     signal?: AbortSignal;
+    /** Catalog to read. Omitted means the server default — `issue`. */
+    resourceType?: LabelResourceType;
   }): Promise<ListLabelsResponse> {
-    const raw = await this.fetch<unknown>("/api/labels", {
+    const query = opts?.resourceType
+      ? `?resource_type=${encodeURIComponent(opts.resourceType)}`
+      : "";
+    const raw = await this.fetch<unknown>(`/api/labels${query}`, {
       signal: opts?.signal,
     });
     return parseWithFallback(
@@ -982,6 +1123,30 @@ class ApiClient {
       method: "POST",
       body: JSON.stringify(body),
     });
+  }
+
+  /**
+   * Rename / recolour / re-describe an existing label. `PUT` is a sparse
+   * update — the server COALESCEs absent fields — so send only what changed.
+   * Raw `this.fetch<Label>` on purpose, same as `createLabel`: the result is
+   * written straight into the list cache, and a parseWithFallback stand-in
+   * would plant a phantom row there instead of surfacing the drift.
+   *
+   * A name already used in the workspace (any resource_type, case-
+   * insensitive) comes back as a 409 ApiError, which the form shows verbatim.
+   */
+  async updateLabel(id: string, body: UpdateLabelRequest): Promise<Label> {
+    return this.fetch<Label>(`/api/labels/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    });
+  }
+
+  /** Delete a label. The server clears its issue/agent/skill links in the
+   *  same transaction, so no client-side cache repair is needed beyond
+   *  dropping the row. 204 No Content — `this.fetch` maps that to undefined. */
+  async deleteLabel(id: string): Promise<void> {
+    await this.fetch<void>(`/api/labels/${id}`, { method: "DELETE" });
   }
 
   async attachLabel(
@@ -1030,6 +1195,92 @@ class ApiClient {
       ListIssueStatusesResponseSchema,
       EMPTY_LIST_ISSUE_STATUSES_RESPONSE,
       { ...opts, endpoint: "GET /api/issue-statuses" },
+    );
+  }
+
+  /**
+   * Create a CUSTOM status. Owner/admin only (the handler re-checks the role
+   * and returns 403 otherwise).
+   *
+   * `key` is deliberately not sendable — the server derives it from `name`
+   * (`issuestatus.DeriveKey`) and returns it, which is what the editor's
+   * "Referred to as {{key}} by the API and the CLI" hint reports.
+   */
+  async createIssueStatus(
+    body: CreateIssueStatusRequest,
+  ): Promise<IssueStatusEntry> {
+    return this.fetchValidatedWith(
+      "/api/issue-statuses",
+      IssueStatusEntrySchema,
+      EMPTY_ISSUE_STATUS_ENTRY,
+      { method: "POST", body: JSON.stringify(body) },
+      { endpoint: "createIssueStatus" },
+    );
+  }
+
+  /** Rename / recolour / re-describe / re-icon a CUSTOM status. `key` and
+   *  `category` are not settable — both are immutable server-side, and the
+   *  editor locks the category for that reason. Built-ins are refused. */
+  async updateIssueStatus(
+    id: string,
+    body: UpdateIssueStatusRequest,
+  ): Promise<IssueStatusEntry> {
+    return this.fetchValidatedWith(
+      `/api/issue-statuses/${id}`,
+      IssueStatusEntrySchema,
+      EMPTY_ISSUE_STATUS_ENTRY,
+      { method: "PATCH", body: JSON.stringify(body) },
+      { endpoint: "updateIssueStatus" },
+    );
+  }
+
+  /**
+   * Rewrite one category's order in a single server-side statement. Not
+   * expressible as a sequence of `updateIssueStatus` calls: a row rejected
+   * mid-sequence would leave the earlier rows already reordered while the
+   * caller saw a failure.
+   *
+   * LOAD-BEARING CONTRACT: `ids` must name EVERY active (non-archived)
+   * status in `category`, in the intended order — `include_system` decides
+   * whether the built-ins of that category are part of the scope. Leaving
+   * one out, naming a status from another category, or naming an archived
+   * one is a 4xx, not a partial apply. The response is the whole catalog
+   * (archived rows included), so callers can write it straight to cache.
+   */
+  async reorderIssueStatuses(
+    category: IssueStatusCategory,
+    ids: string[],
+    includeSystem = false,
+  ): Promise<ListIssueStatusesResponse> {
+    return this.fetchValidatedWith(
+      "/api/issue-statuses/reorder",
+      ListIssueStatusesResponseSchema,
+      EMPTY_LIST_ISSUE_STATUSES_RESPONSE,
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          category,
+          ids,
+          include_system: includeSystem,
+        }),
+      },
+      { endpoint: "reorderIssueStatuses" },
+    );
+  }
+
+  /**
+   * Archive a custom status — terminal on the server, there is no restore.
+   * Refused with 409 `{ code: "issue_status_in_use", issue_count: N }` while
+   * any issue still carries it; `issueStatusArchiveConflictCount` turns that
+   * body into the count the confirm dialog quotes.
+   */
+  async archiveIssueStatus(id: string): Promise<IssueStatusEntry> {
+    return this.fetchValidatedWith(
+      `/api/issue-statuses/${id}`,
+      IssueStatusEntrySchema,
+      EMPTY_ISSUE_STATUS_ENTRY,
+      { method: "DELETE" },
+      { endpoint: "archiveIssueStatus" },
     );
   }
 

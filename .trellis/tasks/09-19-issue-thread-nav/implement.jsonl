@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/mobile/frontend/android-platform.md", "reason": "平台差异原则（无 hover、命中区 ≥24px、formSheet 在 Android 的语义）与验收证据要求"}
+{"file": ".trellis/spec/mobile/frontend/component-guidelines.md", "reason": "组件放置与 props 约定（components/ui vs components/<domain>）"}
+{"file": ".trellis/spec/mobile/frontend/state-management.md", "reason": "本地态 / 跨路由态 / 服务端态的分工（决定 store 还是 props）"}
+{"file": ".trellis/spec/mobile/frontend/quality-guidelines.md", "reason": "验证命令与单测口径（Node lane、行为断言）"}
+{"file": ".trellis/spec/mobile/frontend/hook-guidelines.md", "reason": "effect 依赖/清理与订阅约定"}
