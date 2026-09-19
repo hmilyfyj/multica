@@ -9,13 +9,12 @@
  * Per-record realtime: `useProjectRealtime(id, onDeleted=back)` subscribes
  * to `project:updated` (full replace) and `project:deleted` (pop back).
  *
- * Right-top "…" menu (ActionSheetIOS) → Edit / Delete. Delete asks for
+ * Right-top "…" menu (action sheet) → Edit / Delete. Delete asks for
  * confirmation via `Alert.alert` per iOS HIG (destructive actions need
  * a second tap).
  */
 import { useCallback } from "react";
 import {
-  ActionSheetIOS,
   ActivityIndicator,
   Alert,
   Linking,
@@ -26,6 +25,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { showActionSheet } from "@/components/ui/action-sheet";
 import { Text } from "@/components/ui/text";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
@@ -95,7 +95,7 @@ export default function ProjectDetail() {
       "Delete",
     ];
     const destructiveIndex = options.length - 1;
-    ActionSheetIOS.showActionSheetWithOptions(
+    showActionSheet(
       {
         options,
         cancelButtonIndex: 0,

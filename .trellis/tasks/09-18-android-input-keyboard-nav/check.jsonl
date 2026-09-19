@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/mobile/frontend/android-platform.md", "reason": "验收证据要求（Android 实测 + iOS 不受影响确认），且新平台约束必须写回此文件"}
+{"file": ".trellis/tasks/09-18-android-input-keyboard-nav/prd.md", "reason": "本任务验收条件与修改边界，逐条核对"}

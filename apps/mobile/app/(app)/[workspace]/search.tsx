@@ -16,8 +16,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   TextInput,
   View,
@@ -38,6 +36,7 @@ import { StatusIcon } from "@/components/ui/status-icon";
 import { PriorityIcon } from "@/components/ui/priority-icon";
 import { ProjectIcon } from "@/components/ui/project-icon";
 import { ProjectStatusIcon } from "@/components/ui/project-status-icon";
+import { KeyboardAvoidingView } from "@/components/ui/keyboard-avoiding-view";
 import { api } from "@/data/api";
 import { useWorkspaceStore } from "@/data/workspace-store";
 import {
@@ -437,7 +436,6 @@ export default function SearchModal() {
     <SafeAreaView className="flex-1 bg-background" edges={["bottom"]}>
       <KeyboardAvoidingView
         className="flex-1"
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         {/* Search input row */}
         <View className="flex-row items-center gap-3 border-b border-border px-4 py-2">

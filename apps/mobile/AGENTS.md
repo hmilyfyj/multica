@@ -22,7 +22,7 @@ These rules apply only to `apps/mobile/`, in addition to the [root instructions]
 
 - Inspect existing rows, pickers, forms, and domain visuals before adding components. Extend a suitable existing pattern; do not rewrite a domain component merely because a new feature uses it.
 - For a new interaction, prefer a native iOS/RN API, then an RNR component. If neither fits, compose existing primitives inline for a local need. A new generic primitive requires at least three callers and no suitable native/RNR alternative; clarify unresolved interaction requirements before inventing one.
-- Native examples: `Alert.prompt` for text prompts, `Alert.alert` for confirmation, `ActionSheetIOS` for action menus, existing native date/media/document pickers, `Share.share`, and `expo-haptics`.
+- Native examples: `Alert.prompt` for text prompts, `Alert.alert` for confirmation, the wrapper in `components/ui/action-sheet.tsx` for action menus, existing native date/media/document pickers, `Share.share`, and `expo-haptics`.
 - Add RNR components with `npx @react-native-reusables/cli@latest add <name>`. Review generated changes and preserve local customizations. Keep default variants/spacing unless a concrete product need requires changes.
 - Generic primitives live in `components/ui/`; domain compositions live in `components/<domain>/`. Use the existing `cn()` in `lib/utils.ts` and semantic tokens.
 - Screens have titles, tab bars have icons, secondary labels use type-aware helpers, and multiple trailing row elements stack vertically. Check long text, keyboard, safe areas, scrolling, and both themes.

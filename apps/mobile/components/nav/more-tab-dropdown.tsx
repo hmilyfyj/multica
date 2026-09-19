@@ -34,9 +34,8 @@
  *     Earlier shape (every workspace inlined here) made the popover long
  *     and offered no friction against accidental taps.
  */
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Image, Pressable, View } from "react-native";
-import { Image as ExpoImage } from "expo-image";
 import { router, usePathname } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -49,6 +48,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { NavIcon, type IoniconName } from "@/components/ui/nav-icon";
 import { Text } from "@/components/ui/text";
 import { WorkspaceAvatar } from "@/components/workspace/workspace-avatar";
 import { workspaceListOptions } from "@/data/queries/workspaces";
@@ -56,6 +56,7 @@ import { useAuthStore } from "@/data/auth-store";
 import { useWorkspaceStore } from "@/data/workspace-store";
 import { useColorScheme } from "@/lib/use-color-scheme";
 import { THEME } from "@/lib/theme";
+import { useAndroidBackDismiss } from "@/lib/use-android-back-dismiss";
 import { cn } from "@/lib/utils";
 
 // iOS bottom tab bar default height (above safe-area). React Navigation
@@ -67,16 +68,28 @@ const TAB_BAR_HEIGHT = 49;
 
 interface NavItem {
   label: string;
-  /** SF Symbol name, rendered via expo-image `source: "sf:<name>"`. */
-  icon: string;
+  /** SF Symbol name for iOS — see `NavIcon`. */
+  sf: string;
+  /** Ionicons name for Android — see `NavIcon`. */
+  ion: IoniconName;
   /** Path under /:slug/ — final href is `/${slug}${path}`. */
   path: string;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: "Pinned", icon: "pin", path: "/more/pins" },
-  { label: "Issues", icon: "list.bullet", path: "/more/issues" },
-  { label: "Projects", icon: "square.stack", path: "/more/projects" },
+  { label: "Pinned", sf: "pin", ion: "pin-outline", path: "/more/pins" },
+  {
+    label: "Issues",
+    sf: "list.bullet",
+    ion: "list-outline",
+    path: "/more/issues",
+  },
+  {
+    label: "Projects",
+    sf: "square.stack",
+    ion: "albums-outline",
+    path: "/more/projects",
+  },
 ];
 
 export function MoreTabDropdownAnchor({
@@ -85,6 +98,13 @@ export function MoreTabDropdownAnchor({
   triggerRef: React.RefObject<TriggerRef | null>;
 }) {
   const insets = useSafeAreaInsets();
+
+  // Android 的返回键不会自己关掉这张菜单（原因见 useAndroidBackDismiss），所以把
+  // 打开状态接出来：菜单开着时 BACK 先被消费掉，不再落到导航器上 —— 在 tab 根节点
+  // 那等于「连着菜单一起把应用退到后台」。
+  const [menuOpen, setMenuOpen] = useState(false);
+  const closeMenu = useCallback(() => triggerRef.current?.close(), [triggerRef]);
+  useAndroidBackDismiss(menuOpen, closeMenu);
   const slug = useWorkspaceStore((s) => s.currentWorkspaceSlug);
   const user = useAuthStore((s) => s.user);
   const pathname = usePathname();
@@ -109,7 +129,7 @@ export function MoreTabDropdownAnchor({
         height: TAB_BAR_HEIGHT,
       }}
     >
-      <DropdownMenu>
+      <DropdownMenu onOpenChange={setMenuOpen}>
         <DropdownMenuTrigger ref={triggerRef} asChild>
           {/* Invisible, non-tappable: the real tab button below catches
               all touches; we open this trigger imperatively via ref.
@@ -158,10 +178,11 @@ export function MoreTabDropdownAnchor({
                 isActive(item.path) && "bg-secondary",
               )}
             >
-              <ExpoImage
-                source={`sf:${item.icon}`}
-                tintColor={t.foreground}
-                style={{ width: 18, height: 18 }}
+              <NavIcon
+                sf={item.sf}
+                ion={item.ion}
+                color={t.foreground}
+                size={18}
               />
               <Text className="text-sm text-foreground">{item.label}</Text>
             </DropdownMenuItem>
@@ -222,10 +243,11 @@ function UserCard({
           </Text>
         ) : null}
       </View>
-      <ExpoImage
-        source="sf:chevron.right"
-        tintColor={chevronTint}
-        style={{ width: 12, height: 12 }}
+      <NavIcon
+        sf="chevron.right"
+        ion="chevron-forward"
+        color={chevronTint}
+        size={12}
       />
     </DropdownMenuItem>
   );
@@ -283,10 +305,11 @@ function WorkspaceCard({
         </Text>
       </View>
       {canSwitch ? (
-        <ExpoImage
-          source="sf:chevron.right"
-          tintColor={chevronTint}
-          style={{ width: 12, height: 12 }}
+        <NavIcon
+          sf="chevron.right"
+          ion="chevron-forward"
+          color={chevronTint}
+          size={12}
         />
       ) : null}
     </DropdownMenuItem>

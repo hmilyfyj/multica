@@ -1,0 +1,18 @@
+# git check-ignore：签名材料与产物目录
+
+## $ git check-ignore -v apps/mobile/android/keystore.properties
+apps/mobile/.gitignore:16:android/	apps/mobile/android/keystore.properties
+## $ git check-ignore -v apps/mobile/dist/android/haier.apk
+apps/mobile/.gitignore:3:dist/	apps/mobile/dist/android/haier.apk
+## $ git check-ignore -v ./multica-release.keystore
+.gitignore:84:*.keystore	./multica-release.keystore
+## $ git check-ignore -v ./keystore.properties
+.gitignore:85:keystore.properties	./keystore.properties
+## $ git check-ignore -v apps/mobile/debug.keystore
+.gitignore:84:*.keystore	apps/mobile/debug.keystore
+## $ git check-ignore -v ~/.multica-android/keystore.properties  (仓库之外，不适用)
+（仓库外路径 git 不跟踪）
+
+## 已跟踪文件中是否存在密钥材料
+$ git ls-files | grep -iE "keystore|\.jks$"
+(无)

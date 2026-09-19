@@ -62,6 +62,12 @@ import { useChatSessionPickerResetOnWorkspaceChange } from "@/data/stores/chat-s
  *     tap on the dimmed backdrop — both Android conventions, neither true on
  *     iOS. Keep `sheetAllowedDetents` numeric for both platforms: Android
  *     never sees the iOS 26 `"fitToContents"` bugs above.
+ *   - `headerShown: true` (set by the search pickers below) draws nothing
+ *     here: no title bar, no search field, and it takes no height — the
+ *     sheet starts at its first content row. The pickers' filter input is
+ *     therefore rendered by the route inside the sheet body
+ *     (`usePickerSearchBar` → `components/ui/search-field.tsx`), while iOS
+ *     keeps its native `UISearchController`.
  */
 const SHEET_OPTIONS: ComponentProps<typeof Stack.Screen>["options"] = {
   presentation: "formSheet",
@@ -221,13 +227,19 @@ export default function WorkspaceLayout() {
           name="issue/[id]/picker/priority"
           options={SHEET_OPTIONS}
         />
-        {/* Experiment: assignee uses iOS-native nav header + UISearchController
-            instead of the body-rendered header pattern in SHEET_OPTIONS.
-            Eliminates the #3634 overlap class of bugs and the focus-loss
-            footgun of a custom TextInput inside ListHeaderComponent. The
-            route file wires `headerSearchBarOptions` via setOptions. If this
-            proves out, propagate to label / project / other search pickers
-            and update CLAUDE.md Lesson 6 with a carve-out. */}
+        {/* Search-enabled pickers wire their filter input through
+            `usePickerSearchBar`. On iOS that is the native nav header +
+            UISearchController registered below (`headerShown: true` +
+            title), which eliminates the #3634 overlap class of bugs and the
+            focus-loss footgun of a custom TextInput inside
+            ListHeaderComponent. Android accepts `headerSearchBarOptions` and
+            renders none of it, so the hook hands those routes a
+            body-rendered `SearchField` instead. Both platforms keep this
+            config as-is, so nothing on the iOS side changes.
+            label / project / lead are intentionally NOT in this group: they
+            still register bare SHEET_OPTIONS (no header), so iOS shows no
+            search field for them either — a pre-existing gap left untouched
+            by FEATURE-546, which is scoped to Android. */}
         <Stack.Screen
           name="issue/[id]/picker/assignee"
           options={{

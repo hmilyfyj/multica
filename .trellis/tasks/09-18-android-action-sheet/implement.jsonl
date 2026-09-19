@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/mobile/frontend/android-platform.md", "reason": "Android 平台差异原则（集中封装、不改 iOS 行为）、构建命令与验收证据要求"}
+{"file": "apps/mobile/AGENTS.md", "reason": "Sheets and navigation 表（短动作菜单 vs formSheet）、UI components 的通用原语门槛与 Verification 命令"}
+{"file": "apps/mobile/docs/android-probe.md", "reason": "FEATURE-542 探针报告：ActionSheetIOS 在 Android 的报错原文、9 个入口的实测证据与取证方式"}

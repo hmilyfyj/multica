@@ -192,6 +192,25 @@ React-tree renderer:
   platform bugs documented above — same root cause as the 2026-05-09
   inline-code CJK line-breakage incident.
 
+### Android parity (verified 2026-09-18, FEATURE-550)
+
+All three rendering paths hold on Android, and the memory lifecycle differs by platform:
+
+- **Native prose renderer**: enriched-markdown 0.6.0 ships the full Android implementation (a Kotlin
+  Spannable renderer over the same md4c C front end), so "native rendering, no custom renderer" is not
+  an iOS-only property. Verified against a 12-item GFM matrix on an Android 15 emulator, light + dark.
+- **Code fence highlighting**: the Oniguruma scanners behind `react-native-shiki-engine` run on Android
+  with the same token palette; an unknown fence language takes the same `highlight() → null` → plain
+  monospace branch as "engine unavailable" (verified on-device, no throw).
+- **Memory lifecycle**: neither platform exposes a memory-warning hook, and the engine's 50 MB pattern
+  cache cap does not evict while the highlighter lives. Android now releases through AppState
+  (`background` → `dispose()` → native `destroyScanner`, `active` → re-prewarm); measured 12-grammar
+  render → background drops Native Heap Alloc 342 MB → 256 MB (TOTAL PSS 628 → 543 MB), and resume keeps
+  it released. iOS is deliberately untouched: it keeps its long-standing resident instance.
+- **Emulator frame timings are not acceptance evidence**: the same build and scroll protocol measured
+  2.39 % / 28.17 % / 33.33 % janky frames (p50 16 / 38 / 42 ms) as host load moved between 10 and 21.
+  Device Release numbers belong to a later stage.
+
 ### What's explicitly out of scope
 
 - **Replacing the whole stack with a single library**: every alternative

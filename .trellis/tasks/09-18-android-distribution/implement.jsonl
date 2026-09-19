@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/mobile/frontend/android-platform.md", "reason": "Android 平台差异的权威清单：生成目录不手改、构建与验证命令、验收证据要求"}
+{"file": ".trellis/tasks/09-18-android-distribution/design.md", "reason": "签名注入方式的四个决策与风险表，实现按此执行"}
+{"file": "apps/mobile/docs/android-distribution.md", "reason": "本任务产出的分发文档，命令与命名规则需与实现一致"}
