@@ -32,6 +32,15 @@ pnpm ios:mobile:device:prod:release
 
 **7-day signing limit**: a free Apple ID signs builds for 7 days. After that, plug back into the Mac and re-run the command to re-sign. An Apple Developer Program account ($99/yr) extends this to 1 year.
 
+**On Android none of that applies** — an Android phone installs a Release APK straight from a file, and the key it is signed with is generated once by this project, outside the repo:
+
+```bash
+pnpm android:mobile:keystore   # once — creates the signing key under ~/.multica-android
+pnpm android:mobile:dist:prod  # → apps/mobile/dist/android/multica-mobile-production-<version>-vc<versionCode>.apk
+```
+
+Copy that file to the phone and tap it; Android asks once for permission to install from that source, and the install never expires. The prerequisites are a Mac or Linux box with **JDK 21** and the **Android SDK** — no Apple ID, no Xcode. Other variants, the AAB, and signing errors: [`docs/android-distribution.md`](./docs/android-distribution.md).
+
 Everything below is for app developers — you can ignore the rest if you only wanted a personal install.
 
 ## Scripts
@@ -105,14 +114,14 @@ A free Apple ID signs builds for **7 days only**, Debug and Release both. After 
 
 ## Android
 
-Android 与 iOS 共用同一套 `APP_ENV` 变体（包名 `ai.multica.mobile[.dev/.staging]`，见 `app.config.ts`），
+Android 与 iOS 共用同一套 `APP_ENV` 变体，但包名不同：Android 是品牌包名 `com.ehaier.zgq.shop.mall[.dev/.staging]`、应用名「海尔商城」（Staging / Dev 变体各带后缀），iOS 仍是 `ai.multica.mobile[.dev/.staging]`（均见 `app.config.ts`），
 脚本族与 `ios:*` 一一对应，底层是 `expo run:android`。端到端实测记录（含 20 张截图）见 [`docs/android-probe.md`](./docs/android-probe.md)。
 
 ### 首次构建前置
 
 | 项 | 要求 | 为什么 |
 |---|---|---|
-| JDK | **21**，并设 `JAVA_HOME` 指向它 | 本机默认的 JDK 25 会让 Gradle 直接失败（`JvmVendorSpec … IBM_SEMERU`）；同一份 wrapper 在 JDK 21 下正常 |
+| JDK | **21**，并设 `JAVA_HOME` 指向它 | 本机默认的 JDK 25 会让 Gradle 直接失败（`JvmVendorSpec … IBM_SEMERU`）；同一份 wrapper 在 JDK 21 下正常。**`java_home -v 21` 在只注册了 25 的机器上会静默返回 25**，包装脚本发现版本不是 21 时会提示 |
 | Android SDK | 显式设 `ANDROID_HOME`（macOS 常见路径 `~/Library/Android/sdk`） | Gradle 不会自行探测 SDK，未设时报 `SDK location not found` |
 | SDK 组件 | 无需手动安装 | 首次构建由 Gradle 自动补 `platforms/android-36`、`build-tools 36.0.0`、`NDK 27.1` |
 | 设备 | 模拟器（AVD）或 USB 真机，至少有一个 | `run:android` 需要一个安装目标；列表里未启动的 AVD 会被自动启动 |
@@ -123,6 +132,36 @@ export ANDROID_HOME="$HOME/Library/Android/sdk"
 ```
 
 首次构建（含上述组件下载）约 **7–8 分钟**，日志会长时间停在下载步骤，属正常，不是卡死。
+
+### 装到安卓手机（可分发 APK）
+
+非开发人员装机走这一条：
+
+```bash
+pnpm android:mobile:keystore   # 一次性：在仓库之外生成自用签名密钥（~/.multica-android）
+pnpm android:mobile:dist:prod  # 构建签好名的 Release APK
+```
+
+产物落在 `apps/mobile/dist/android/multica-mobile-production-<version>-vc<versionCode>.apk`，拷进手机点开安装即可
+（首次要允许「从此来源安装应用」）。三种变体的包名互不相同，可以同机共存；AAB 走
+`pnpm android:mobile:dist:prod:aab`，供将来上架。密钥归属与备份、换成团队已有密钥、产物命名规则、
+`versionCode` 策略、签名报错对照，见 [`docs/android-distribution.md`](./docs/android-distribution.md)。
+
+### 原生 ABI 收敛（Debug）
+
+prebuild 模板给 `reactNativeArchitectures` 列了四套 ABI（`armeabi-v7a,arm64-v8a,x86,x86_64`），
+但一次安装只会用到目标设备实际运行的那一套。`scripts/android-run.sh` 因此在 **Debug** 构建里收敛到
+已连接设备的 `ro.product.cpu.abi`（多个设备取并集；没有已连接设备时按宿主架构映射
+`arm64→arm64-v8a`、`x86_64→x86_64`），写进 prebuild 刚生成的 `android/gradle.properties`
+（改的是本次运行重新生成的构建产物，不是源码）。不用 `ORG_GRADLE_PROJECT_reactNativeArchitectures`：
+`run:android` 会给 Gradle 传一套自己的环境变量，实测该前缀到不了 Gradle。
+
+arm64-v8a 模拟器上实测：debug APK **245MB → 87MB**，`adb install -r` **38.7s → 2.9s**，
+`react-native-worklets` + `react-native-reanimated` 的冷编译 **187s → 79s**。
+
+- 关闭收敛：`MULTICA_ANDROID_ABIS=all pnpm android:mobile:device:staging`
+- 指定集合：`MULTICA_ANDROID_ABIS=arm64-v8a,armeabi-v7a pnpm android:mobile:device`
+- Release 构建（`--variant release`，用于分发）不收敛，仍是四套 ABI。
 
 ### 常用命令
 
@@ -136,13 +175,18 @@ export ANDROID_HOME="$HOME/Library/Android/sdk"
 | `pnpm android:mobile:device:staging:release` | 同上，Release（内嵌 JS，不连 Metro） | staging |
 | `pnpm android:mobile:device:prod` | 同上，Debug | production |
 | `pnpm android:mobile:device:prod:release` | 同上，Release（内嵌 JS，不连 Metro） | production |
+| `pnpm android:mobile:keystore` | 生成发布签名密钥（仓库之外，只需一次） | — |
+| `pnpm android:mobile:dist:prod` | 构建**签名 Release APK** 到 `dist/android/`，不安装、不需要设备 | production |
+| `pnpm android:mobile:dist:prod:aab` | 同上，产出 Play 上传格式 AAB | production |
 
 后端切换规则与 iOS 相同：改 `.env.*` 里的 `EXPO_PUBLIC_API_URL`，Debug 构建重启 Metro 即可，
 Release 构建要把命令重跑一遍（值在构建时写进内嵌 bundle）。
 
 ### 与 iOS 的差异
 
-- 不需要 Xcode／Apple ID／描述文件，也没有 7 天重签限制：`expo prebuild` 生成的 `android/app/build.gradle` 里 debug 与 release 都用工程自带的 debug keystore 签名，可直接装到设备；只有上架 Play 才需要换成自己的上传密钥。
+- 不需要 Xcode／Apple ID／描述文件，也没有 7 天重签限制，Android 直接分发 APK。Release 构建用仓库之外的
+  自用密钥签名（由 `plugins/with-android-release-signing.js` 在 prebuild 时注入）；没有密钥时会退回模板默认的
+  debug 签名，那种产物只能自用、不能分发。详见 [`docs/android-distribution.md`](./docs/android-distribution.md)。
 - `--device` 语义不同：iOS 上是「USB 真机 vs 默认模拟器」；Android 上是「从设备列表里挑一个」，
   列表里也包含尚未启动的 AVD，选中会自动启动。不带 `--device` 时直接用第一个可用设备，不提示。
 - 构建类型开关名不同：iOS 是 `--configuration Release`，Android 是 `--variant release`。
@@ -160,6 +204,10 @@ Release 构建要把命令重跑一遍（值在构建时写进内嵌 bundle）�
 | `SDK location not found. Define a valid SDK location with an ANDROID_HOME environment variable …` | 未设 `ANDROID_HOME` |
 | 首次构建长时间停在下载／`Downloading …` | Gradle 在补 SDK 组件，等待即可 |
 | prebuild 报 `Cannot automatically write to dynamic config at: app.config.ts` | 动态配置里缺 `android` 段必填字段（如 `android.package`）；本仓库已补齐 |
+| 原生编译阶段 `configureCMakeDebug[…]` 报 `A restricted method in java.lang.System has been called` | `JAVA_HOME` 实际指向 JDK 25（只注册了 25 的机器上 `java_home -v 21` 会返回 25）；指向 `/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home` 再跑 |
+| prebuild 打印 `with-android-release-signing: no keystore properties at …` | 还没生成发布密钥，release 会退回 **debug 签名**：跑 `pnpm android:mobile:keystore` 后重建 |
+| `INSTALL_FAILED_UPDATE_INCOMPATIBLE`／`signatures do not match` | 手机上已装的同包名应用是另一套密钥签的：卸载重装，或改用那套密钥构建 |
+| `INSTALL_FAILED_VERSION_DOWNGRADE` | 新包 `versionCode` 不大于已装版本：`app.config.ts` 里 `android.versionCode` +1 后重建 |
 
 ## Pointing at a different backend
 

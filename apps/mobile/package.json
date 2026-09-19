@@ -23,9 +23,16 @@
     "android:device:staging:release": "dotenv -e .env.staging -- cross-env APP_ENV=staging ./scripts/android-run.sh --device --variant release",
     "android:device:prod": "dotenv -e .env.production -- cross-env APP_ENV=production ./scripts/android-run.sh --device",
     "android:device:prod:release": "dotenv -e .env.production -- cross-env APP_ENV=production ./scripts/android-run.sh --device --variant release",
+    "android:keystore": "./scripts/android-keystore.sh",
+    "android:dist": "./scripts/android-release.sh",
+    "android:dist:staging": "dotenv -e .env.staging -- cross-env APP_ENV=staging ./scripts/android-release.sh",
+    "android:dist:prod": "dotenv -e .env.production -- cross-env APP_ENV=production ./scripts/android-release.sh",
+    "android:dist:aab": "./scripts/android-release.sh --format aab",
+    "android:dist:staging:aab": "dotenv -e .env.staging -- cross-env APP_ENV=staging ./scripts/android-release.sh --format aab",
+    "android:dist:prod:aab": "dotenv -e .env.production -- cross-env APP_ENV=production ./scripts/android-release.sh --format aab",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run && bash scripts/ios-run.test.sh && bash scripts/android-run.test.sh"
+    "test": "vitest run && bash scripts/ios-run.test.sh && bash scripts/android-run.test.sh && bash scripts/android-keystore.test.sh && bash scripts/android-release.test.sh"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
@@ -63,6 +70,7 @@
     "expo-linking": "~55.0.0",
     "expo-router": "~55.0.14",
     "expo-secure-store": "~55.0.13",
+    "expo-splash-screen": "~55.0.25",
     "expo-status-bar": "~55.0.0",
     "expo-system-ui": "~55.0.0",
     "input-otp-native": "^0.5.0",

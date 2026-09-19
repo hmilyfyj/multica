@@ -33,8 +33,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   View,
 } from "react-native";
 import { router } from "expo-router";
@@ -82,6 +80,7 @@ import { useWorkspaceAgentAvailability } from "@/lib/workspace-agent-availabilit
 import { sendFailureMessage } from "@/lib/dispatch-reason";
 import { useAgentPresence } from "@/lib/use-agent-presence";
 import { Header } from "@/components/ui/header";
+import { KeyboardAvoidingView } from "@/components/ui/keyboard-avoiding-view";
 import { ChatTitleButton } from "@/components/chat/chat-title-button";
 import { ChatSessionActions } from "@/components/chat/chat-session-actions";
 import { ChatMessageList } from "@/components/chat/chat-message-list";
@@ -513,7 +512,6 @@ export default function ChatTab() {
       />
       {availability === "none" ? <NoAgentBanner /> : null}
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
         className="flex-1"
       >
         <ChatMessageList
