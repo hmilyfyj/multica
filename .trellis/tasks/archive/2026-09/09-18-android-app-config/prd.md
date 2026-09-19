@@ -42,9 +42,9 @@
 
 ## Acceptance Criteria
 
-- [ ] `npx expo prebuild -p android --clean` 成功，`android/app/build.gradle` 里 `applicationId` /
+- [x] `npx expo prebuild -p android --clean` 成功，`android/app/build.gradle` 里 `applicationId` /
       `versionCode` 与配置一致
-- [ ] `npx expo config --type public` 输出包含完整 `android` 段
-- [ ] 三个 APP_ENV 下 `android.package` 互不相同
-- [ ] `git diff` 中 `ios:` 段无变化
-- [ ] 生成的 manifest 中无 `CAMERA` / `RECORD_AUDIO`，`adaptive icon` 资源到位
+- [x] `npx expo config --type public` 输出包含完整 `android` 段
+- [x] 三个 APP_ENV 下 `android.package` 互不相同
+- [x] `git diff` 中 `ios:` 段无变化
+- [x] 生成的 manifest 中无 `CAMERA` / `RECORD_AUDIO`，`adaptive icon` 资源到位
