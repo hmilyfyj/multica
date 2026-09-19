@@ -1,0 +1,5 @@
+workspace=probe550 issue_counter=3|max=3
+ERROR:  operator does not exist: uuid ~~ unknown
+LINE 5:       WHERE id LIKE '55100000-0000-4000-8000-00000000005%' O...
+                       ^
+HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.

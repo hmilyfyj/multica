@@ -1,0 +1,25 @@
+--------- beginning of main
+09-19 03:16:33.565 20640 20738 I ReactNativeJS: [shiki] released highlighter (native scanners destroyed)
+09-19 03:16:34.124 20640 20738 I ReactNativeJS: '[api] → GET /api/issues/01a0b3a5-0bf0-7702-b33b-5c38dc6ded45/active-task', { rid: 'fzulosguam6b' }
+09-19 03:16:34.132 20640 20738 I ReactNativeJS: '[api] → GET /api/issues/01a0b3a5-0bf0-7702-b33b-5c38dc6ded45/task-runs', { rid: 'gug0fmfpam6l' }
+09-19 03:16:34.147 20640 20738 I ReactNativeJS: '[api] → GET /api/projects', { rid: 'h8s9m0g3am6x' }
+09-19 03:16:34.165 20640 20738 I ReactNativeJS: [shiki] initializing highlighter
+09-19 03:16:34.183 20640 20738 I ReactNativeJS: '[api] → GET /api/issues/01a0b3a5-0bf0-7702-b33b-5c38dc6ded45/attachments', { rid: 'v9w1o85sam7s' }
+09-19 03:16:34.200 20640 20738 I ReactNativeJS: '[api] → GET /api/issues/01a0b3a5-0bf0-7702-b33b-5c38dc6ded45', { rid: 'gbmer68pam8d' }
+09-19 03:16:34.205 20640 20738 I ReactNativeJS: '[api] → GET /api/issues/01a0b3a5-0bf0-7702-b33b-5c38dc6ded45/timeline', { rid: 'q6011abfam8q' }
+09-19 03:16:34.211 20640 20738 I ReactNativeJS: '[api] → GET /api/pins', { rid: 'ey94jal8am8v' }
+09-19 03:16:34.540 20640 20738 I ReactNativeJS: '[ws] dialing', 'ws://10.0.2.2:8090/ws?workspace_slug=probe550&client_platform=mobile&client_os=ios&client_version=0.1.0'
+09-19 03:16:34.541 20640 20738 I ReactNativeJS: '[ws] dialing', 'ws://10.0.2.2:8090/ws?workspace_slug=probe550&client_platform=mobile&client_os=ios&client_version=0.1.0'
+09-19 03:16:34.567 20640 20738 I ReactNativeJS: [ws] socket open, sending auth frame
+09-19 03:16:34.993 20640 20738 I ReactNativeJS: '[api] ← 200 /api/issues/01a0b3a5-0bf0-7702-b33b-5c38dc6ded45/active-task', { rid: 'fzulosguam6b', duration: '878ms' }
+09-19 03:16:35.008 20640 20738 I ReactNativeJS: '[api] ← 200 /api/issues/01a0b3a5-0bf0-7702-b33b-5c38dc6ded45/task-runs', { rid: 'gug0fmfpam6l', duration: '883ms' }
+09-19 03:16:35.013 20640 20738 I ReactNativeJS: '[api] ← 200 /api/projects', { rid: 'h8s9m0g3am6x', duration: '876ms' }
+09-19 03:16:35.013 20640 20738 I ReactNativeJS: '[api] ← 200 /api/issues/01a0b3a5-0bf0-7702-b33b-5c38dc6ded45/attachments', { rid: 'v9w1o85sam7s', duration: '845ms' }
+09-19 03:16:35.021 20640 20738 I ReactNativeJS: '[api] ← 200 /api/issues/01a0b3a5-0bf0-7702-b33b-5c38dc6ded45', { rid: 'gbmer68pam8d', duration: '832ms' }
+09-19 03:16:35.025 20640 20738 I ReactNativeJS: '[api] ← 200 /api/issues/01a0b3a5-0bf0-7702-b33b-5c38dc6ded45/timeline', { rid: 'q6011abfam8q', duration: '823ms' }
+09-19 03:16:35.087 20640 20738 I ReactNativeJS: '[api] ← 200 /api/pins', { rid: 'ey94jal8am8v', duration: '880ms' }
+09-19 03:16:37.740 20640 20738 I ReactNativeJS: '[api] → GET /api/config', { rid: 'hdv55afoaoxx' }
+09-19 03:16:38.496 20640 20738 I ReactNativeJS: '[api] ← 200 /api/config', { rid: 'hdv55afoaoxx', duration: '795ms' }
+09-19 03:16:59.272 20640 20738 I ReactNativeJS: '[api] → POST /api/auth/refresh', { rid: '9h0j8maub5l4' }
+09-19 03:16:59.289 20640 20738 W ReactNativeJS: '[api] ← 404 /api/auth/refresh', { rid: '9h0j8maub5l4', duration: '16ms', error: '404 ' }
+09-19 03:16:59.289 20640 20738 I ReactNativeJS: '[auth] session renewal deferred', { [ApiError: 404 ] name: 'ApiError', status: 404, body: undefined }

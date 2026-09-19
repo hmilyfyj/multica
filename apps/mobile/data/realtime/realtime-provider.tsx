@@ -13,9 +13,11 @@
  * Workspace switch → unmount/remount → fresh client with the new slug.
  *
  * Lifecycle signals:
- *   AppState 'background'  → pause socket (iOS will kill it anyway; clean
- *                            close avoids a kernel-level reset on resume)
- *   AppState 'active'      → resume socket
+ *   AppState 'background'  → Android: stay connected (see below).
+ *                            iOS: pause the socket — the OS suspends the app
+ *                            within seconds regardless, and closing cleanly
+ *                            avoids a kernel-level reset on resume.
+ *   AppState 'active'      → resume socket + force-reconnect
  *   AppState 'inactive'    → ignore (transient: app switcher / Control
  *                            Center / incoming call — tearing down here
  *                            causes spurious reconnect storms)
@@ -26,6 +28,15 @@
  * Provider does NOT register business event handlers — those live in
  * per-feature hooks (use-inbox-realtime, etc.) so the realtime layer
  * scales without one giant 700-line file like web's use-realtime-sync.
+ *
+ * Android deliberately does NOT pause in the background: local notifications
+ * (lib/local-notifications.ts, FEATURE-562 plan "A") are produced from
+ * `inbox:new` frames by this process, so closing the socket on background is
+ * exactly the moment the feature stops working — foreground banners worked,
+ * background ones never arrived. The cost is the socket + its 10s heartbeat
+ * running while backgrounded; that is what plan A buys, and the OS may still
+ * freeze or reclaim the process, which ends delivery no matter what happens
+ * here (documented limit, see the spec).
  */
 import {
   createContext,
@@ -34,12 +45,14 @@ import {
   useRef,
   useState,
 } from "react";
-import { AppState, type AppStateStatus } from "react-native";
+import { AppState, Platform, type AppStateStatus } from "react-native";
 import NetInfo from "@react-native-community/netinfo";
 import { useAuthStore } from "@/data/auth-store";
 import { useWorkspaceStore } from "@/data/workspace-store";
 import { getToken } from "@/data/secure-storage";
 import { api } from "@/data/api";
+import { recordRealtimeFrame } from "@/lib/ws-activity";
+import { recordBackgroundFrame } from "@/lib/background-forensics";
 import { WSClient } from "./ws-client";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -82,6 +95,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     let ws: WSClient | null = null;
     let appStateSub: { remove: () => void } | null = null;
     let netInfoUnsub: (() => void) | null = null;
+    let unsubAnyFrame: (() => void) | null = null;
 
     void (async () => {
       const token = await getToken();
@@ -96,23 +110,36 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
         getToken: () => api.getToken(),
         workspaceSlug: wsSlug,
         clientVersion: "0.1.0",
+        // "ios" / "android" on native, which is exactly what the server
+        // records. Sourced here so the transport stays react-native-free.
+        clientOS: Platform.OS,
         logger: console,
       });
       ws.connect();
       setClient(ws);
+      // Every inbound frame, whatever its type. Two readers: the settings screen
+      // shows the newest one (did anything arrive at all?), and the
+      // background-session record counts what arrived while the app was in the
+      // background — together they separate a frozen process from a silent
+      // socket (see lib/background-forensics.ts).
+      unsubAnyFrame = ws.onAny(() => {
+        recordRealtimeFrame();
+        recordBackgroundFrame();
+      });
 
       // ── AppState ────────────────────────────────────────────────
       appStateSub = AppState.addEventListener(
         "change",
         (status: AppStateStatus) => {
           if (status === "active") {
-            // Foreground. The socket may have been paused (we put it
-            // there on background) or it may be a zombie (iOS killed
-            // it silently). Either way: resume / force-reconnect.
             ws?.resume();
             ws?.forceReconnect();
           } else if (status === "background") {
-            ws?.pause();
+            // iOS only — see the lifecycle note at the top of this file. On
+            // Android the socket stays up: it is the delivery channel for
+            // local notifications, and pausing it silently turns background
+            // notifications off.
+            if (Platform.OS !== "android") ws?.pause();
           }
           // 'inactive' (iOS-only, transient) → ignore.
         },
@@ -137,6 +164,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
       appStateSub?.remove();
+      unsubAnyFrame?.();
       netInfoUnsub?.();
       ws?.disconnect();
       setClient(null);

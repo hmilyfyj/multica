@@ -1,0 +1,2 @@
+/Users/fengit/workspace/multica.worktrees/FEATURE-558/.trellis/tasks/09-19-android-final-acceptance/research/run-smoke3/fixture-images/probe558-a.png 9387B
+/Users/fengit/workspace/multica.worktrees/FEATURE-558/.trellis/tasks/09-19-android-final-acceptance/research/run-smoke3/fixture-images/probe558-b.png 9386B

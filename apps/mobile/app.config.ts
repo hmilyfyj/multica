@@ -109,8 +109,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       // Play rejects an upload that reuses a versionCode inside the same
       // package, so this counts store uploads and has to grow monotonically.
       // Left as a literal instead of being derived from `version` so a release
-      // bump cannot silently move it.
-      versionCode: 1,
+      // bump cannot silently move it — it is also the only way to tell on a
+      // device which build is actually installed.
+      // vc6: inbox deep-link landing (FEATURE-571 — land on the comment a
+      // notification is about, its replies included).
+      versionCode: 6,
 
       // Keep the window's soft-input mode on `adjustResize` — this is Expo's
       // default (its plugin writes `adjustResize` when the key is absent), so
@@ -135,9 +138,22 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
     plugins: [
       "expo-router",
+      // Injects the release signingConfig into the generated android/app/build.gradle from a
+      // keystore.properties kept outside the repo (FEATURE-552). Appended at the end of the
+      // file, so it does not depend on the template's own text; with no keystore.properties the
+      // release build keeps the template's debug signing and prebuild logs a warning.
+      // See docs/android-distribution.md.
+      "./plugins/with-android-release-signing",
       "expo-secure-store",
       "@react-native-community/datetimepicker",
       "react-native-enriched-markdown",
+      // Local (not push) notifications on Android — FEATURE-562. With no props
+      // the plugin only clears the notification icon/colour metadata, keeping
+      // the app icon as the banner icon and the channel's own settings as the
+      // presentation. It is declared anyway so prebuild stays the single place
+      // the notification dependency is configured; it pulls in no Firebase
+      // config and no google-services plugin.
+      "expo-notifications",
       // Android previously had no splash config at all, so prebuild wrote its
       // stock fallback: Expo's placeholder graphic on white, with an EMPTY
       // res/values-night — a dark-mode launch flashed a white screen. Naming
@@ -200,6 +216,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           android: {
             compileSdkVersion: 36,
             targetSdkVersion: 36,
+            // 本地/内网验收后端是明文 http（模拟器经 10.0.2.2:8090 访问宿主机），而 Android 9+
+            // 默认禁止明文：Debug 构建靠 `src/debug/AndroidManifest.xml` 放行，Release 构建没有
+            // 这层 —— 2026-09-19 的 staging Release 验收就卡在登录，`/auth/send-code` 根本没到后端。
+            // 非生产构建显式放行，生产包保持平台默认（HTTPS-only）。
+            usesCleartextTraffic: !isProd,
           },
         },
       ],

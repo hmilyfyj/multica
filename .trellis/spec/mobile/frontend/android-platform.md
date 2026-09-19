@@ -244,6 +244,8 @@ E DevLauncherController: Failed to hide splash screen
 # 前置环境：JAVA_HOME 指向 JDK 21、ANDROID_HOME 指向 Android SDK
 pnpm android:mobile:staging          # 默认设备／模拟器，Debug
 pnpm android:mobile:device:staging   # 从设备列表中选择，Debug
+pnpm android:mobile:dist:prod        # 签名 Release APK → apps/mobile/dist/android/（不安装、不需要设备）
+pnpm android:mobile:dist:prod:aab    # 同上，AAB（Play 上传格式）
 ```
 
 - 完整检查（typecheck / lint / test）在编码完成后一次跑完，不在迭代中途反复跑。
@@ -274,6 +276,77 @@ pnpm android:mobile:device:staging   # 从设备列表中选择，Debug
 - **帧率不作验收结论**：同一构建同一协议实测 2.39% / 28.17% / 33.33% janky（p50 16/38/42ms，宿主 load 10–21），
   随宿主负载大幅波动；真机 Release 帧率留给后续阶段。
 
+## 构建、签名与分发（FEATURE-552 实测，基线 commit `5d5219b33`）
+
+产物落在 `apps/mobile/dist/android/multica-mobile-{dev,staging,production}-<version>-vc<versionCode>.{apk,aab}`（`dist/` 已 gitignore）。
+实测（M1 Max）：冷构建 `assembleRelease` 7 分 11 秒 / 1074 个 task，production APK 106MB（四套 ABI）；
+紧随其后的 `bundleRelease` 29 秒（66 executed / 922 up-to-date），AAB 72MB。原始证据见任务 `research/`。
+
+- **签名密钥在仓库之外**：默认 `~/.multica-android/{keystore.properties,multica-release.keystore}`，均 `chmod 600`；
+  `MULTICA_ANDROID_KEYSTORE_PROPERTIES` 指向团队已有密钥。根 `.gitignore` 有 `*.keystore` / `*.jks` /
+  `keystore.properties` 兜底，已跟踪文件里没有任何密钥材料。
+- **签名配置由 config plugin 在 prebuild 时追加**到 `android/app/build.gradle` 末尾，不做模板文本锚点替换：
+  Gradle 的 `android { }` 可以重复打开、后写覆盖，所以模板升级不会让注入静默失配（失配的表现是
+  「release 又用 debug 密钥签名」，最难发现的一类）。追加前会删掉上一次的标记块，重跑 prebuild 只有一块。
+- **plugin 宽容、分发脚本严格**：`expo prebuild` 是变体无关的，plugin 每次 prebuild 都跑（含 Debug），
+  所以缺密钥时只打警告并退回模板的 debug 签名；`scripts/android-release.sh` 是产出分发物的一侧，缺密钥直接退出。
+- **产物名取自 `expo config`**（与 prebuild 写入 Gradle 的是同一份配置），不是 package.json 的字面量，
+  所以文件名不可能与包内实际 package / versionCode 漂移。
+- **三种 APP_ENV 包名互不相同**（`…mall.dev` / `…mall.staging` / `…mall`），可同机共存；
+  production 可用 `EXPO_ANDROID_PACKAGE_PROD` 覆盖，dev / staging 不可覆盖。
+- **`versionCode` 是字面量、不派生自 `version`**：发布新的分发版本时手工 +1；同一包名不能复用已用过的
+  `versionCode`（Play 拒收、侧载拒绝降级）。
+- **Release 保留四套 ABI**（只有 Debug 收敛），所以一个 APK 能装到任何手机／模拟器。
+- 完整流程、密钥归属与备份、EAS / CI 接入结论见 `apps/mobile/docs/android-distribution.md`。
+
+## 客户端身份上报与断网恢复预算（FEATURE-559 实测，基线 commit `e35fb0a5a`）
+
+WS 升级 URL 上的 `client_platform` / `client_os` / `client_version` 是后端排障、统计与灰度的维度，
+**必须来自运行平台，不能写死**：
+
+- `client_os` 的取值集在服务端：`server/internal/handler/client_usage.go` 只认
+  `macos | windows | linux | ios | android | chromeos`，其余归一成 `unknown`。
+  `apps/mobile/data/realtime/ws-client.ts` 曾写死字面量 `"ios"`，于是 Android 设备在后端日志里
+  （`websocket connected … client_platform=mobile client_version=0.1.0 client_os=ios`）全部记成 iOS，
+  平台维度的统计、排障与灰度在 Android 上失真（FEATURE-551 §8.1 实测）。现由 `realtime-provider.tsx`
+  传 `Platform.OS`（原生侧就是 `ios` / `android`）。**新增身份维度一律从平台取，不要写字面量。**
+- 传输层 `data/realtime/ws-client.ts` **不 import `react-native`**：`apps/mobile/vitest.config.ts` 只跑
+  Node 环境，RN 原生模块在该 lane 加载不了。平台相关的值由调用方注入（如 `clientOS`），
+  这样这个文件在单测里可构造。
+
+### 断网 / 切网恢复的实时同步预算（30s）
+
+Android 上断开再恢复网络（飞行模式、Wi-Fi 切换、息屏回前台）后，**当前页面的数据必须在 30s 内自愈**，
+不能靠退出重进。三条恢复路径及各自的时延：
+
+1. NetInfo `offline → online` 边沿 → `ws.forceReconnect()`（最快，取决于系统是否上报连通性变化）；
+2. 应用层心跳发现僵尸连接：最坏时延 = `HEARTBEAT_INTERVAL_MS` + `HEARTBEAT_TIMEOUT_MS`（现为 10s + 8s），
+   之后按 full jitter 重拨（首次上限 2s）；
+3. `onopen` 之后收不到 `auth_ack` 的握手看门狗（`AUTH_TIMEOUT_MS`，10s）。**没有它时「OPEN 但未认证」的连接
+   既无定时器也不会 `onclose`**，客户端永不重连，页面数据只能靠重挂载更新。
+
+重连通知（`ws.onReconnect`）是各 feature 刷新自有缓存的唯一入口（`apps/mobile/AGENTS.md` 禁止全局 refetch sweep），
+所以**任何让连接恢复变慢或不恢复的改动都要重跑断网用例**：复现步骤与判据见
+`apps/mobile/docs/android-regression-checklist.md` §7.1。
+
+## Release 构建与本地验收后端（FEATURE-558 实测，基线 commit `3fd34cc21`）
+
+**Android 9+ 默认禁止明文 HTTP**，而本地验收后端是 `http://10.0.2.2:8090`（模拟器经 `10.0.2.2`
+访问宿主机）：
+
+- `android/app/src/debug/AndroidManifest.xml` 的 `usesCleartextTraffic="true"` **只作用于 debug
+  构建类型**；Release 变体没有这层，应用的 `fetch` 到不了宿主机。
+- 实测症状（2026-09-19，staging Release + 本地后端）：登录页点 `Send code` 后停在原页，
+  `logcat` 只有 `[api] → POST /auth/send-code`、没有响应行，**后端 `auth/send-code` 命中 0 次**；
+  `aapt2 dump xmltree --file AndroidManifest.xml <apk>` 确认 Release APK 的 manifest 里没有
+  `usesCleartextTraffic`（Debug APK 有）。
+- 处理：`app.config.ts` 的 `expo-build-properties` 按变体给值 —— 非生产构建
+  `usesCleartextTraffic: !isProd`，生产包保持平台默认（HTTPS-only）。
+  **新增明文后端、换网络栈或改 targetSdk 时要一并复核这一项。**
+- 纪律：验收跑 Release 包时，构建必须把 API 指到本地
+  （`EXPO_PUBLIC_API_URL=http://10.0.2.2:8090`），并在 `env.txt` 里记录构建类型 ——
+  顺带把「内嵌 JS、不连 Metro」这条也覆盖了。
+
 ## 验收证据要求
 
 平台交互类改动必须同时给出：
@@ -292,3 +365,153 @@ pnpm android:mobile:device:staging   # 从设备列表中选择，Debug
 4. **一轮出结论**：只有「脚本自身缺陷」或「验收项本身写错」才允许重跑，并在结论里写明重跑原因。
 
 新发现的平台约束写回本文件；本文件是 `apps/mobile` 平台差异的唯一权威清单。
+
+#### 跑法分层（FEATURE-558 实测，2026-09-19）
+
+完整矩阵单设备下限 ~40 分钟（实测单条中位 ~40s、单次取树 2.3s、盲等合计 483s），不适合每次
+改动都跑。**因此分成两层，只有 Tier 1 可以随手跑**：
+
+- **Tier 1 冒烟（< 5 分钟）**：8 条，覆盖 Android 差异面与最高风险路径（收件箱、详情+chip、
+  picker→BACK 返回、评论框键盘避让、edge-to-edge、聊天完成、`client_os` 上报、启动屏）。
+  入口 `research/smoke558.sh`；冷态实测 294s，配 AVD 快照（`research/snapshot558.sh save|load`，
+  复用「已装包 + 已登录」态）后省掉 boot 与登录的 1~2 分钟固定开销。
+- **Tier 2 完整矩阵（~40 分钟）**：`research/chunked558.sh`，**须取得用户明确授权才跑**，
+  每阶段一次。
+- **单条重查**：`ACCEPT_GROUPS=c5,c6 …` 只跑指定小节，1~10 分钟。
+
+两条纪律：冒烟集只是 Tier 2 的**子集**（判据实现只有一处，禁止为过而放宽）；能落到库侧 /
+后端日志断言的判据（任务终态、`client_os`、断网恢复时延）一律不点界面 —— 这是冒烟能压进
+5 分钟的根本原因，也让结论更硬。
+
+#### 驱动侧两个必须知道的坑（FEATURE-558 实测）
+
+- **`uiautomator dump` 会在「界面永不 idle」的页面上挂死**：聊天页的 pill 在动画时实测卡住
+  11 分钟，本地 adb 与整轮验收一起僵住。`lib558.sh` 的 `_dump_bounded` 给每次尝试 5s 上限 +
+  重试；上限别调大（动画页会次次等满，反而放大总时长）。
+- **Release 变体默认禁明文 HTTP**：本地验收后端是 `http://10.0.2.2:8090`，Debug 靠
+  `src/debug/AndroidManifest.xml` 放行，Release 没有这层 —— 见上文「Release 构建与本地验收后端」。
+
+## 本机通知（方案 A，FEATURE-562，基线 commit `3fd34cc21`）
+
+Android 的「本机通知」是客户端自产自销：`inbox:new` WS 帧到达后由 App 进程直接弹系统横幅
+（`apps/mobile/lib/local-notifications.ts`），点横幅回到对应 issue 或收件箱条目。**没有推送通道**：
+
+- App 被划掉、被系统回收或长时间后台被清理后，**收不到任何通知**。这不是缺陷，是方案 A 的边界；
+  重新打开 App 后会补拉收件箱列表与未读汇总，所以不会丢数据，只是没有即时提醒。
+- 与「锁屏推送」不是一回事。要让进程死亡后也能收，需要 FCM + 设备 token 注册 + 后端发送侧改造
+  （已评估，暂不做）；现有实现不假装支持。
+
+实现要点（扩展时照此，不要另起一套）：
+
+- 触发点只有一处：`data/realtime/use-inbox-realtime.ts` 的 `inbox:new` 分支，且 `Platform.OS === "android"`
+  才走通知。载荷在 `data/realtime/inbox-notification.ts` + `lib/local-notifications.ts` 里构建，
+  与共享层 `packages/core/platform/system-notification.ts` 的 `slug / itemId / issueId / title / body` 对齐；
+  标题复用 `getInboxDisplayTitle`（收件箱行与详情 sheet 用的同一份文案），不新写文案逻辑。
+- 通知渠道：Android 8+ 必须在 bootstrap 建 channel（`INBOX_NOTIFICATION_CHANNEL_ID = "inbox"`，
+  重要性 HIGH 才有横幅）。渠道缺失时 expo-notifications 会回退到自带 channel，不会丢通知。
+- 前台横幅：`setNotificationHandler` 必须返回 `shouldPlaySound: true`——库文档明确
+  `shouldPlaySound: false` 会让 Android 的 drop-down 横幅不显示，与 channel 重要性无关。
+- 权限（Android 13+ `POST_NOTIFICATIONS`）：**不在冷启动申请**，入口只有
+  `设置 → 通知 → On this device`；被拒后 Android 不再弹窗，该行按钮改为引导到系统设置页。
+  未授权时其它功能照常，只是不弹横幅；也不重复骚扰。
+- 通知标识用收件箱行 id（即 Android 的通知 tag），同一条目重复到达会覆盖而不是堆叠。
+- 单测不得加载 RN 原生模块：被单测覆盖的模块（`lib/local-notifications.ts`、
+  `data/realtime/inbox-notification.ts`）不 import `react-native`，平台判断放在 RN 侧调用点；
+  测试用 `vi.mock("expo-notifications")` 断言真实链路。
+- iOS 完全不参与：Android 之外不注册 handler、不建 channel、不订阅点击，也不新增 iOS 权限文案。
+
+### 真机缺陷与自诊断（FEATURE-562b，小米澎湃 OS 3 实测）
+
+首版（vc1）在小米澎湃 OS 3 上实测「一条通知都没有」。代码链路本身无误——已核对 APK 的 dex 里确实打进了
+`expo-notifications` 原生模块，且 `channelId` 触发在 `ExpoSchedulingDelegate.scheduleNotification` 里就是立即展示路径；
+失败点在手机侧三处**从 App 内部看不见**的状态，所以这一轮补的是自诊断而不是改链路：
+
+- **权限 / 应用级开关**：Android 13+ 未授权时投递会被系统静默丢弃。更隐蔽的是**应用级通知总开关**（澎湃/MIUI 的「通知管理」）关闭时，
+  `expo-notifications` 的 `getPermissionsAsync()` 同样返回 `denied`（`NotificationPermissionsModule.kt`：
+  `!areNotificationsEnabled()` → DENIED），而 `canAskAgain` 仍为 true —— 只按 `canAskAgain` 决定按钮文案，
+  会把用户带进「点了没反应」的死路。按钮映射改为：未授权且还能弹 → Turn on；请求后仍未授权 → 换成 Open settings 并给出说明。
+- **渠道被单独关掉**：用户可以在系统里只关 `inbox` 渠道，之后投递到该渠道的横幅全部被丢弃且无任何提示。
+  设置页用 `getNotificationChannelAsync` 判断 `importance === NONE` 发现它，并引导到系统设置。
+- **进程被冻结**：澎湃/MIUI 对后台缓存进程的冻结比 AOSP 激进，WS 可能在用户没划掉 App 的情况下断开——方案 A 的「App 存活」前提
+  在国产 ROM 上还需要用户允许自启动/后台运行。这是方案 A 的固有边界，不是缺陷，但交付说明里必须写清。
+- **申请时机**：只留设置页入口时，用户装完就可能再也见不到申请入口 → 现在**首次进入收件箱时一次性申请**
+  （`lib/inbox-notification-prompt.ts`，SecureStore 记录「已问过」，已授权则不申请；Android 自身也只会弹一次）。
+- **可观测性（必须保留）**：`lib/local-notifications.ts` 记录最近一次尝试（`shown` / `skipped-permission` /
+  `skipped-muted` / `failed`），设置页把它翻译成人话，并提供「Send a test notification」——与真实事件走完全相同的调用。
+  于是「事件根本没到」「被 gate 拦住」「到了但手机丢掉了」三种情况能当场区分，不用接电脑看 logcat。
+  新增任何「静默不弹」的分支时，都要同时记录一种 outcome，否则又回到无法诊断的状态。
+
+### 后台收不到通知：WS 被主动 pause（FEATURE-562c，真机实测定位）
+
+真机实测「前台正常、后台收不到、App 没有被杀掉」。原因不在通知链路，而在**实时层的生命周期**：
+`data/realtime/realtime-provider.tsx` 在 `AppState === "background"` 时调用 `ws.pause()`
+（`WSClient.pause()` 会 `teardownSocket()` 并清掉心跳）。这段逻辑当年是为 iOS 写的
+（「iOS 反正会杀后台 socket，干净关闭避免 resume 时的内核级 reset」），当时 App 没有通知功能，暂停没有任何代价。
+
+FEATURE-562 让这件事变成缺陷：本机通知的**唯一**事件源就是这条 WS 的 `inbox:new` 帧，
+所以「切后台 → 停 socket」等于「切后台 → 通知功能关闭」。
+
+约定（已落地）：
+
+- **Android 不在后台暂停 socket**；iOS 保持原行为（`Platform.OS !== "android"` 才 pause）。
+  代价是后台仍在跑 socket + 10s 心跳，这是方案 A 换取后台横幅的代价，属于明确接受项。
+- 前台恢复时照旧 `resume()` + `forceReconnect()`：进程若被冻结，socket 可能已死，
+  立刻重建比等心跳超时（最坏 ~18s）更稳。
+- **不要**为了省电在 Android 后台暂停 WS，除非同时把「后台通知」从需求里去掉；
+  这两件事在本架构下互斥。改这一段前后都要真机验证后台横幅（前台正常不能作为通过依据）。
+- 这仍不解决**进程被冻结/回收**的情况：澎湃/MIUI 等 ROM 冻结缓存进程后帧不会到达，
+  那是方案 A 的固有边界（要彻底解决需要 FCM + 后端改造）。
+
+#### 「事件没到」与「手机丢了」必须能分开（FEATURE-562d）
+
+后台问题的排查在真机上反复卡在同一处：用户只能报「没通知」，而这两种原因的处理完全不同 ——
+
+- 事件根本没到（进程被冻结 / socket 断了）：方案 A 的边界，只能靠允许后台运行或上 FCM；
+- 事件到了但手机丢弃（渠道被关 / 应用级开关）：改系统设置即可。
+
+所以设置页「On this device」除了最近一次**通知尝试**，还要显示**最近一次收到实时数据的时间**
+（`lib/ws-activity.ts`，由 `realtime-provider` 用 `ws.onAny` 记录），以及**当前安装的构建号**
+（`Constants.nativeAppVersion` / `nativeBuildVersion`）。判据：
+后台待几分钟再回设置页，若「Last realtime data」停在切后台那一刻之前 → 进程被冻结；
+若刚刚还在更新 → 事件到了，问题在通知侧。
+装包是否真的换新也由构建号一行回答，避免再出现「测的是哪个包」的扯皮。
+
+#### 冻结 vs 静默：后台会话取证（FEATURE-562e）
+
+真机结论（澎湃 OS）：**省电策略设为「无限制」也不会阻止系统冻结后台进程**。Android 冻结的是 *cached* 状态
+的进程（cgroup freezer），这与省电策略、Doze 不是同一个开关；进程被冻结时内存全在、回前台秒恢复，
+所以「App 没有被杀掉」**不能**推出「App 在后台有运行」。这一点在真机排查中被反复误判，写进约定：
+
+- 任何「后台收不到」的排查，先用 `lib/background-forensics.ts` 的三个读数区分机制，不要凭现象猜：
+  - **JS 心跳为 0** → 进程被冻结（方案 A 边界）→ 只能上前台服务或推送通道；
+  - **JS 有心跳、frames 为 0** → 进程在跑但数据没到 → 查连接（socket/服务器）；
+  - **HTTP 探针也全失败** → 后台网络被 ROM 掐断（澎湃的联网限制是独立开关）。
+- 设置页「On this device」直接给出结论行：`Background 12m · JS ran 48× · frames 0 · probe 12/12 ok → …`。
+  新增「后台不弹」相关分支时，必须让这里能区分机制，否则又变成无法定位。
+- 前台/后台的 AppState 边界只在这里记录会话（`setAppBackgrounded`），`_layout.tsx` 负责两个常驻定时器
+  （15s JS 心跳、60s 后台 HTTP 探针），`realtime-provider` 负责帧计数。
+- 已知结论：**普通应用在 Android 上做不到「后台持续收事件」**。要么前台服务（常驻通知换取不被冻结），
+  要么厂商/聚合推送（杀进程也能收，需外部账号），要么接受方案 A 的边界。
+
+## 时间线 deep-link 落点（FEATURE-571，基线 commit `26c8192e3`）
+
+收件箱通知带的是 comment id，点进来必须落到该评论/回复的起始位置。这里有三条容易踩的约束：
+
+- **一行 ≠ 一条评论**：移动端时间线一行是一个线程根，整条回复链内嵌在同一个气泡里
+  （`lib/timeline-thread.ts` 的 `buildTimelineRows`）。所以「回复在屏幕上的位置」**不是行下标能表达的**，
+  也不能照抄 web 的 `#comment-<id>` —— web 是递归树 + 每条评论一个节点。
+- **落点必须两段式**（`lib/comment-landing.ts` 的 `resolveCommentLanding` + `startLanding`）：
+  `scrollToIndex(row, viewPosition: 0)` 只能把「行」放到视口顶（回复可能在这行下方一两屏），
+  再用 `measureInWindow` 量锚点的窗口 y，把残差转成 scroll offset 迭代修正；跳转后 Shiki/图片/
+  markdown 仍在改行高，同一回路负责收敛。iOS/Android 同构，**不做平台分支**。
+- **FlashList v2 的 offset 有两个坐标系**：`scrollToOffset({ skipFirstItemOffset: true })` 的参数
+  == `getAbsoluteLastScrollOffset()` == 原生 contentOffset；**不传 `skipFirstItemOffset` 会再加一次
+  `firstItemOffset`（即 ListHeader 高度）**，两者混用会整天偏一个表头高。落点回路全程用原生偏移。
+
+纪律与边界：
+
+- 落点逻辑**不得 import `react-native`**：`apps/mobile/vitest.config.ts` 的 Node lane 只收 `lib/**`、`data/**`，
+  所以列表与视图以结构化接口（`LandingList` / `Measurable`）注入，`FlashListRef` 与 `View` 天然满足。
+- 锚点始终不可测时（例如折叠的已解决线程）由帧预算兜底停手，不空转；用户一开始拖动立即 cancel。
+- 已知边界：回复位于根评论气泡底部约 7 屏以外时，探测上限内找不到就停在行顶（仍优于旧的「落到底部」）。
+  真机上遇到长线程深度回复需要复核这一条。
