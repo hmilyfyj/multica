@@ -592,3 +592,25 @@ trellis-check ran(clean)：AC 1-5 逐条核验（More 菜单 Runtimes/Squads/Ski
 ### Status
 
 [OK] **Completed**
+
+
+## Session 39: 归档 09-19-inbox-comment-landing（FEATURE-571 收件箱深链落点，重新落地）
+<!-- trellis-session: v=2 fp=b998a223c142a7a1 -->
+
+**Date**: 2026-09-19
+**Task**: 归档 09-19-inbox-comment-landing（FEATURE-571 收件箱深链落点，重新落地）
+**Branch**: `feature/571-inbox-scroll-landing`
+
+### Summary
+
+上一轮归档分支 PR #46 因分支停在旧基线被 main 推进冲成 CONFLICTING 而关闭；本轮把 origin/main 合并进 feature/571-inbox-scroll-landing，业务文件与 spec 取 main 侧、保留本任务已完成的归档移动，消除 tasks/ 与 archive/ 的重名重复后重新推送提 PR。trellis-check ran(clean)：AC 5 项均已勾选（含 APK Release 交付证据），lib/comment-landing.test.ts 9 例通过。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f9751a58d` | fix(mobile): 收件箱深链定位到目标回复的起始位置 (#571) |
+
+### Status
+
+[OK] **Completed**
