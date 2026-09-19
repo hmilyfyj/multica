@@ -16,6 +16,8 @@
 import type {
   Agent,
   AgentTask,
+  ArchivedInboxFacets,
+  ArchivedInboxPage,
   Attachment,
   Autopilot,
   AutopilotQuotaUsage,
@@ -83,6 +85,8 @@ import type {
 } from "@multica/core/types";
 import {
   AppConfigSchema,
+  ArchivedInboxFacetsSchema,
+  ArchivedInboxPageSchema,
   AutopilotQuotaUsageSchema,
   AutopilotRunSchema,
   DashboardAgentRunTimeListSchema,
@@ -189,6 +193,7 @@ import type { ZodType } from "zod";
 import { getCurrentSlug } from "./workspace-store";
 import { parseWithFallback } from "@/lib/parse-response";
 import { createRequestId } from "@/lib/request-id";
+import type { InboxFilters } from "@/lib/inbox-filters";
 import { buildCommentUpdateBody } from "./revision";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -250,6 +255,46 @@ const EMPTY_CHILD_ISSUE_PROGRESS_RESPONSE: {
 /** Web mirrors this from `packages/core/constants/upload.ts`. Mobile keeps
  *  its own copy per the `mirror, don't import` rule in apps/mobile/CLAUDE.md. */
 const MAX_FILE_SIZE = 100 * 1024 * 1024;
+
+/** Archived inbox page size. Web sends the same 50 (packages/core/api/client.ts). */
+const ARCHIVED_INBOX_PAGE_LIMIT = 50;
+
+/** Fallbacks for the archived sub-view — see listArchivedInboxPage. */
+const EMPTY_ARCHIVED_INBOX_PAGE: ArchivedInboxPage = {
+  items: [],
+  nextCursor: null,
+  hasMore: false,
+};
+const EMPTY_ARCHIVED_INBOX_FACETS: ArchivedInboxFacets = {
+  statuses: {},
+  priorities: {},
+  actors: {},
+  unreadCount: 0,
+};
+
+/**
+ * Filter query params for the two archived endpoints, mirroring web's
+ * `archivedInboxParams`: only non-empty dimensions are sent, arrays are
+ * comma-joined and sorted (the server splits on `,`), and `unread_only` is
+ * omitted rather than sent as `false`.
+ *
+ * Sorted because the page cache key is normalized the same way — an unsorted
+ * list would put two identical selections under two cache entries.
+ */
+function archivedInboxParams(filters: InboxFilters): URLSearchParams {
+  const params = new URLSearchParams();
+  if (filters.statuses.length) {
+    params.set("statuses", [...filters.statuses].sort().join(","));
+  }
+  if (filters.priorities.length) {
+    params.set("priorities", [...filters.priorities].sort().join(","));
+  }
+  if (filters.actors.length) {
+    params.set("actors", [...filters.actors].sort().join(","));
+  }
+  if (filters.unreadOnly) params.set("unread_only", "true");
+  return params;
+}
 
 /** Hard ceiling for every HTTP request. Mobile-specific because iOS may
  *  suspend a backgrounded network task without ever resolving/rejecting
@@ -684,6 +729,68 @@ class ApiClient {
 
   async archiveCompletedInbox(): Promise<{ count: number }> {
     return this.fetch<{ count: number }>("/api/inbox/archive-completed", {
+      method: "POST",
+    });
+  }
+
+  /**
+   * Archived notifications, for the inbox's "Archived" sub-view. Cursor
+   * paginated (limit 50) and filtered server-side, exactly like web's
+   * `listArchivedInboxPage` — the archive is unbounded, so the legacy
+   * array endpoint it replaced is not an option.
+   *
+   * Schema-guarded with a fallback empty page: a contract drift renders an
+   * empty archive rather than taking the inbox down with it. The response body
+   * is parsed rather than raw-parsed because this is a read whose shape the UI
+   * depends on field by field (items + cursor contract).
+   */
+  async listArchivedInboxPage(
+    filters: InboxFilters,
+    opts: { cursor?: string | null; signal?: AbortSignal } = {},
+  ): Promise<ArchivedInboxPage> {
+    const params = archivedInboxParams(filters);
+    params.set("limit", String(ARCHIVED_INBOX_PAGE_LIMIT));
+    if (opts.cursor) params.set("cursor", opts.cursor);
+    return this.fetchValidated<ArchivedInboxPage>(
+      `/api/inbox/archived/page?${params.toString()}`,
+      ArchivedInboxPageSchema,
+      EMPTY_ARCHIVED_INBOX_PAGE,
+      { signal: opts.signal, endpoint: "GET /api/inbox/archived/page" },
+    );
+  }
+
+  /**
+   * Faceted counts over the WHOLE archive for the filter sheet.
+   *
+   * The archived list is paginated, so the client cannot count it the way the
+   * main inbox counts its fully-loaded list; the server answers with the same
+   * "other dimensions applied, this one ignored" numbers web's filter menu
+   * shows. Same filters are sent as the page request so the two agree.
+   */
+  async getArchivedInboxFacets(
+    filters: InboxFilters,
+    opts?: { signal?: AbortSignal },
+  ): Promise<ArchivedInboxFacets> {
+    return this.fetchValidated<ArchivedInboxFacets>(
+      `/api/inbox/archived/facets?${archivedInboxParams(filters).toString()}`,
+      ArchivedInboxFacetsSchema,
+      EMPTY_ARCHIVED_INBOX_FACETS,
+      { signal: opts?.signal, endpoint: "GET /api/inbox/archived/facets" },
+    );
+  }
+
+  /** Read/unread are a toggle pair — this is the reverse of markInboxRead. */
+  async markInboxUnread(id: string): Promise<InboxItem> {
+    return this.fetch<InboxItem>(`/api/inbox/${id}/unread`, {
+      method: "POST",
+    });
+  }
+
+  // Restores an archived row to whichever list its issue belongs in. No raw
+  // fallback parsing, same as archiveInbox: a malformed response should surface
+  // so the optimistic patch rolls back.
+  async unarchiveInbox(id: string): Promise<InboxItem> {
+    return this.fetch<InboxItem>(`/api/inbox/${id}/unarchive`, {
       method: "POST",
     });
   }

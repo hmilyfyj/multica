@@ -126,9 +126,34 @@ export function getInboxNavigationTarget(
  *   5. Sort the result newest-first.
  */
 export function deduplicateInboxItems(items: InboxItem[]): InboxItem[] {
-  const active = items.filter((i) => !i.archived);
+  return groupInboxItemsByIssue(items.filter((i) => !i.archived));
+}
+
+/**
+ * The same grouping for the archived sub-view, mirroring
+ * `deduplicateArchivedInboxItems` in packages/core/inbox/queries.ts.
+ *
+ * The `archived` filter is what makes an optimistic unarchive drop the row out
+ * of the archived list immediately — exactly mirroring how
+ * `deduplicateInboxItems` drops an optimistically archived row out of the main
+ * list. Everything else (newest per issue, comment anchor, newest-first order)
+ * is the shared rule below, because both lists render the same row shape.
+ */
+export function deduplicateArchivedInboxItems(
+  items: InboxItem[],
+): InboxItem[] {
+  return groupInboxItemsByIssue(items.filter((i) => i.archived));
+}
+
+/**
+ * Group by `issue_id` (falling back to `id` for items with no issue attached —
+ * e.g. quick_create_failed), keep the newest per group, carry the group's
+ * comment anchor onto it, and sort newest-first. Shared by both dedup entry
+ * points above so the two lists cannot disagree on grouping.
+ */
+function groupInboxItemsByIssue(items: InboxItem[]): InboxItem[] {
   const groups = new Map<string, InboxItem[]>();
-  for (const item of active) {
+  for (const item of items) {
     const key = item.issue_id ?? item.id;
     const group = groups.get(key) ?? [];
     group.push(item);

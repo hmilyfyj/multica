@@ -1,0 +1,2 @@
+{"file": "apps/mobile/AGENTS.md", "reason": "核对行为对齐、缓存/乐观更新约定与 typecheck/lint/test 证据"}
+{"file": ".trellis/spec/mobile/frontend/android-platform.md", "reason": "核对平台约束与真机/静态证据边界"}
