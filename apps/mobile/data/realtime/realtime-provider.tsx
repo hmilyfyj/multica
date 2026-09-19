@@ -34,7 +34,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { AppState, type AppStateStatus } from "react-native";
+import { AppState, Platform, type AppStateStatus } from "react-native";
 import NetInfo from "@react-native-community/netinfo";
 import { useAuthStore } from "@/data/auth-store";
 import { useWorkspaceStore } from "@/data/workspace-store";
@@ -96,6 +96,9 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
         getToken: () => api.getToken(),
         workspaceSlug: wsSlug,
         clientVersion: "0.1.0",
+        // "ios" / "android" on native, which is exactly what the server
+        // records. Sourced here so the transport stays react-native-free.
+        clientOS: Platform.OS,
         logger: console,
       });
       ws.connect();
