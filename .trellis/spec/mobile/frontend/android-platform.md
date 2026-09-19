@@ -329,6 +329,24 @@ Android 上断开再恢复网络（飞行模式、Wi-Fi 切换、息屏回前台
 所以**任何让连接恢复变慢或不恢复的改动都要重跑断网用例**：复现步骤与判据见
 `apps/mobile/docs/android-regression-checklist.md` §7.1。
 
+## Release 构建与本地验收后端（FEATURE-558 实测，基线 commit `3fd34cc21`）
+
+**Android 9+ 默认禁止明文 HTTP**，而本地验收后端是 `http://10.0.2.2:8090`（模拟器经 `10.0.2.2`
+访问宿主机）：
+
+- `android/app/src/debug/AndroidManifest.xml` 的 `usesCleartextTraffic="true"` **只作用于 debug
+  构建类型**；Release 变体没有这层，应用的 `fetch` 到不了宿主机。
+- 实测症状（2026-09-19，staging Release + 本地后端）：登录页点 `Send code` 后停在原页，
+  `logcat` 只有 `[api] → POST /auth/send-code`、没有响应行，**后端 `auth/send-code` 命中 0 次**；
+  `aapt2 dump xmltree --file AndroidManifest.xml <apk>` 确认 Release APK 的 manifest 里没有
+  `usesCleartextTraffic`（Debug APK 有）。
+- 处理：`app.config.ts` 的 `expo-build-properties` 按变体给值 —— 非生产构建
+  `usesCleartextTraffic: !isProd`，生产包保持平台默认（HTTPS-only）。
+  **新增明文后端、换网络栈或改 targetSdk 时要一并复核这一项。**
+- 纪律：验收跑 Release 包时，构建必须把 API 指到本地
+  （`EXPO_PUBLIC_API_URL=http://10.0.2.2:8090`），并在 `env.txt` 里记录构建类型 ——
+  顺带把「内嵌 JS、不连 Metro」这条也覆盖了。
+
 ## 验收证据要求
 
 平台交互类改动必须同时给出：
@@ -347,3 +365,29 @@ Android 上断开再恢复网络（飞行模式、Wi-Fi 切换、息屏回前台
 4. **一轮出结论**：只有「脚本自身缺陷」或「验收项本身写错」才允许重跑，并在结论里写明重跑原因。
 
 新发现的平台约束写回本文件；本文件是 `apps/mobile` 平台差异的唯一权威清单。
+
+
+#### 跑法分层（FEATURE-558 实测，2026-09-19）
+
+完整矩阵单设备下限 ~40 分钟（实测单条中位 ~40s、单次取树 2.3s、盲等合计 483s），不适合每次
+改动都跑。**因此分成两层，只有 Tier 1 可以随手跑**：
+
+- **Tier 1 冒烟（< 5 分钟）**：8 条，覆盖 Android 差异面与最高风险路径（收件箱、详情+chip、
+  picker→BACK 返回、评论框键盘避让、edge-to-edge、聊天完成、`client_os` 上报、启动屏）。
+  入口 `research/smoke558.sh`；冷态实测 294s，配 AVD 快照（`research/snapshot558.sh save|load`，
+  复用「已装包 + 已登录」态）后省掉 boot 与登录的 1~2 分钟固定开销。
+- **Tier 2 完整矩阵（~40 分钟）**：`research/chunked558.sh`，**须取得用户明确授权才跑**，
+  每阶段一次。
+- **单条重查**：`ACCEPT_GROUPS=c5,c6 …` 只跑指定小节，1~10 分钟。
+
+两条纪律：冒烟集只是 Tier 2 的**子集**（判据实现只有一处，禁止为过而放宽）；能落到库侧 /
+后端日志断言的判据（任务终态、`client_os`、断网恢复时延）一律不点界面 —— 这是冒烟能压进
+5 分钟的根本原因，也让结论更硬。
+
+#### 驱动侧两个必须知道的坑（FEATURE-558 实测）
+
+- **`uiautomator dump` 会在「界面永不 idle」的页面上挂死**：聊天页的 pill 在动画时实测卡住
+  11 分钟，本地 adb 与整轮验收一起僵住。`lib558.sh` 的 `_dump_bounded` 给每次尝试 5s 上限 +
+  重试；上限别调大（动画页会次次等满，反而放大总时长）。
+- **Release 变体默认禁明文 HTTP**：本地验收后端是 `http://10.0.2.2:8090`，Debug 靠
+  `src/debug/AndroidManifest.xml` 放行，Release 没有这层 —— 见上文「Release 构建与本地验收后端」。

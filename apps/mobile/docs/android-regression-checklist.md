@@ -1,13 +1,15 @@
 # Android 全量回归清单（核心流程 + 阶段 3 改动面）
 
 > 这份清单是**可复用**的：照步骤勾一遍就能覆盖核心流程与 548 / 549 / 550 / 557 四个任务的改动面。
-> 「本次结果」列是 2026-09-19 那一次验收的实测结论（`FEATURE-551`），证据全部落在
-> `.trellis/tasks/09-19-android-full-regression/research/` 的 `run/`（主跑）、`run-remeasure/`
-> （定向重测）、`run-release/`（Release 核验）三个目录。
+> 「本次结果」列是 **2026-09-19 阶段 5 收尾验收（`FEATURE-558`）** 的实测结论，证据落在
+> `.trellis/tasks/09-19-android-final-acceptance/research/`：`run/`（本轮 Release 跑，含截图、
+> `results.tsv`、逐条耗时 `timings.tsv`、`summary.txt`）与 `run-debug-2026-09-19/`（同日 Debug 轮，
+> 保留作对照：那一轮的失败多数由 dev-client 环境与判据缺陷造成）。
 >
-> 命令与驱动脚本见同目录：`acceptance.sh`（一次跑完全部条目）、`lib551.sh`（观测原语）、
-> `groups-core.sh`（核心流程）、`remeasure.sh`（定向重测）、`release-check.sh`（Release）、
-> `seed-fixtures.sql`（夹具 + 状态复位）。本文结论与原始结果表的差异见 §9.4。
+> 命令与驱动脚本见同目录：`chunked558.sh`（分片入口，一次跑完全部条目）、`lib558.sh`（观测原语）、
+> `groups-core558.sh`（核心流程）、`acceptance558.sh`（分组调度）、`remeasure558.sh`（定向重测）、
+> `release-check558.sh`（生产 Release APK 核验）、`seed-fixtures.sql`（夹具 + 状态复位）。
+> 本文结论与原始结果表的差异见 §9。
 
 ## 0. 本次验收的机器与前置
 
@@ -15,15 +17,29 @@
 |---|---|
 | 设备 | 模拟器 `Medium_Phone_API_35`（**非真机**）· `sdk_gphone64_arm64` |
 | Android | 15（API 35）· 1080×2400 @420dpi · arm64-v8a |
-| 构建 | **Debug**（`pnpm android:mobile:staging`，JS 走 Metro）+ **Release**（FEATURE-552 的签名 APK） |
-| 包名 | Debug：`com.ehaier.zgq.shop.mall.staging`；Release：`com.ehaier.zgq.shop.mall` |
+| 构建 | **Release**（`pnpm android:dist:staging` + `EXPO_PUBLIC_API_URL=http://10.0.2.2:8090`；内嵌 JS、不连 Metro）· sha256 `2d47369724c6b2b1b4d5889a26f254d8d61499dd4bb0c340ee466ef4c93fa261` |
+| 包名 | `com.ehaier.zgq.shop.mall.staging`（staging 变体在 Debug / Release 下同 id、签名不同 —— 覆盖安装前先卸旧包） |
 | 后端 | 本地 compose 栈 `multica-probe542`（`127.0.0.1:8090`，模拟器经 `10.0.2.2:8090`） |
 | 登录 | `probe551@example.com` + 开发验证码 `888888` |
-| 一次构建安装 | 仓库根 `pnpm android:mobile:staging`，2026-09-19 一次（`BUILD SUCCESSFUL in 1m 21s`），全程未重启模拟器 |
-| Release 安装 | 会话内第二次安装（issue 允许的上限），`adb install -r` 一次 |
+| 一次构建安装 | 会话内一次构建（`assembleRelease`）+ 一次覆盖安装；全程未重启模拟器 |
+| 平台约束 | Release 变体默认禁明文 HTTP，而本地后端是 http → 由 `app.config.ts` 的非生产 `usesCleartextTraffic` 放行（2026-09-19 实测，已写回 `.trellis/spec/mobile/frontend/android-platform.md`） |
 
 **为什么是模拟器**：本机没有真机接入（`adb devices` 只有 `emulator-5554`）。以下结论一律为
 **模拟器结论**，真机结论仍需后续阶段补。
+
+### 跑法分层（2026-09-19 定，用户要求「每次改动 5 分钟内出结论」）
+
+| 层 | 覆盖 | 入口 | 时长 | 何时跑 |
+|---|---|---|---|---|
+| **Tier 1 冒烟** | 8 条（S1–S8） | `bash .trellis/tasks/09-19-android-final-acceptance/research/smoke558.sh` | 实测 294s（冷态）→ 修完 ~3~4 分钟 | 每次改动；这是唯一可以随手跑的档 |
+| **Tier 2 完整矩阵** | 本清单全部行（68 条判据） | `bash …/chunked558.sh` | ~40 分钟（单设备下限） | 每阶段一次，**须先取得明确授权** |
+| 单条重查 | 指定编号 | `ACCEPT_GROUPS=c5,c6 bash …/chunked558.sh` | 1~10 分钟 | 判定源修好后复查那几条 |
+
+冒烟集与清单行的对应：**S1→C4** · **S2→C5/C5b** · **S3→B1/B2 的 picker 返回路径** ·
+**S4→K2** · **S5→E1** · **S6→C8b–C8d** · **S7→D4** · **S8→V2**。
+冒烟**不得**为了通过而放宽判据 —— 它只是从 Tier 2 里挑出来的子集，判据实现只有一处
+（`groups-core558.sh` 的 `smoke_set()`）。模拟器可用 `snapshot558.sh save|load` 复用
+「已装包 + 已登录」的快照，省掉 boot 与登录那 1~2 分钟固定开销。
 
 ## 1. 核心流程
 

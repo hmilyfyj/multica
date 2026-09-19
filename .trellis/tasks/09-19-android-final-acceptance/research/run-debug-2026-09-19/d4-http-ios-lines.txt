@@ -1,0 +1,2 @@
+00:19:29.474 INF http request method=GET path=/api/issues/01a0b3a5-0bf0-7702-b33b-5c38dc6ded45/timeline status=200 duration=5.8ms request_id=ysol36lw4690 user_id=2f9cf0e9-992b-4cbc-bbfd-00a8cea18f1e client_platform=mobile client_version=0.1.0 client_os=ios
+00:19:54.103 INF http request method=GET path=/api/issues/01a0b3a5-0bf0-7702-b33b-5c38dc6ded45 status=200 duration=2.219ms request_id=rx9y48c24p8p user_id=2f9cf0e9-992b-4cbc-bbfd-00a8cea18f1e client_platform=mobile client_version=0.1.0 client_os=ios

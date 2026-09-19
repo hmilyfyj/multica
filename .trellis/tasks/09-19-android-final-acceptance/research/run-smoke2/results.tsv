@@ -1,0 +1,8 @@
+S1	pass	收件箱渲染出夹具条目（见 smoke-01-inbox.png）
+S2	pass	深链打开 issue 详情，属性 chip 渲染（见 smoke-02-issue.png）
+S3	pass	picker 打开后 BACK 只关 picker，回到 issue 详情
+S4	fail	评论框被键盘遮挡或键盘未弹起（verdict=no-ime，见 smoke-k2-ime.png）
+S5	pass	edge-to-edge：tab bar 底边 y=2334 ≤ 系统导航条上沿 y=2337
+S6	fail	40s 内库侧任务未 completed（末次 status=running，见 c8-task-snapshot.txt）
+S7	pass	Android 设备的 WS 握手在后端日志里上报 client_os=android（30 分钟内 112 条）
+S8	fail	冷启动帧未取到 #111827（采样=255 255 255，见 smoke-08-splash-*.png）

@@ -1,0 +1,30 @@
+device=sdk_gphone64_arm64
+android=15 (API 35)
+package=com.ehaier.zgq.shop.mall.staging
+build_variant=Release (assembleRelease，内嵌 JS，不连 Metro)
+real_device_count=0
+--- results.tsv ---
+S1	pass	收件箱渲染出夹具条目（见 smoke-01-inbox.png）
+S2	pass	深链打开 issue 详情，属性 chip 渲染（见 smoke-02-issue.png）
+S3	pass	picker 打开后 BACK 只关 picker，回到 issue 详情
+S4	fail	评论框被键盘遮挡或键盘未弹起（verdict=no-ime，见 smoke-k2-ime.png）
+S5	pass	edge-to-edge：tab bar 底边 y=2334 ≤ 系统导航条上沿 y=2337
+S6	fail	40s 内库侧任务未 completed（末次 status=running，见 c8-task-snapshot.txt）
+S7	pass	Android 设备的 WS 握手在后端日志里上报 client_os=android（30 分钟内 112 条）
+S8	fail	冷启动帧未取到 #111827（采样=255 255 255，见 smoke-08-splash-*.png）
+--- 判定计数 ---
+fail=3 pass=5 
+--- 最慢 10 条（timings.tsv：相邻两次判定之间的秒数）---
+S4	fail	91s
+S6	fail	74s
+S1	pass	24s
+S3	pass	23s
+S5	pass	22s
+S2	pass	15s
+S8	fail	5s
+S7	pass	0s
+合计 8 条 / 4 分钟
+--- dump 开销（无障碍树取数）---
+真实 dump 次数=62 跨度=203s 平均每次=3.33s
+--- 被抢前台的插曲 ---
+无
