@@ -695,3 +695,26 @@ Session summary was not supplied.
 ### Status
 
 [OK] **Completed**
+
+
+## Session 44: FEATURE-578 issue 详情关联 PR 列表（只读）
+<!-- trellis-session: v=2 fp=bcf816cde1c4db09 -->
+
+**Date**: 2026-09-19
+**Task**: FEATURE-578 issue 详情关联 PR 列表（只读）
+**Branch**: `feature/578-issue-pull-requests`
+
+### Summary
+
+移动端补 web 的「关联 PR 列表」只读区块：状态文案/色调/副行拼装/折叠切分为纯函数（lib/pull-requests.ts + 13 例单测，含未知状态回退与折叠边界的变异 RED 证据）；区块门禁走 deriveGitHubSettings(workspace).prSidebar（为绕开 core 的 barrel 白名单，core exports 只加一条 ./github/settings 子路径）；数据层只追加 listIssuePullRequests + pullRequests key + issuePullRequestsOptions。合并时 main 已前进（577/579），versionCode 冲突解为 vc12 并重打 APK，走 GitHub Release android-v0.1.1-vc12-pull-requests 交真机自测。合并后启动第 3 波 FEATURE-580 / FEATURE-582。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `802124561` | feat(mobile): issue 详情关联 PR 列表（只读）(#578) |
+| `103a68e39` | Merge remote-tracking branch 'origin/main' into feature/578-issue-pull-requests |
+
+### Status
+
+[OK] **Completed**
