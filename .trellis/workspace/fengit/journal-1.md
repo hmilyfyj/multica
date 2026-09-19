@@ -361,3 +361,26 @@ Trellis 归档清尾：09-19-android-full-regression 任务归档到 archive/202
 ### Status
 
 [OK] **Completed**
+
+
+## Session 28: 归档 FEATURE-552 Android 构建、签名与分发链路
+<!-- trellis-session: v=2 fp=efad9f6f97238d56 -->
+
+**Date**: 2026-09-19
+**Task**: 归档 FEATURE-552 Android 构建、签名与分发链路
+**Package**: mobile
+**Branch**: `feature/552-android-distribution`
+
+### Summary
+
+Trellis 归档清尾：09-18-android-distribution 任务归档到 archive/2026-09；业务改动（Release 签名、产物构建与分发文档）已由 #14 合入 main；6 项 AC 全部勾选。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `28f025e22` | feat(mobile): Android Release 签名、产物构建与分发文档 (#14) |
+
+### Status
+
+[OK] **Completed**
