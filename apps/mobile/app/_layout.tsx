@@ -1,7 +1,7 @@
 import "../global.css";
 
 import { useEffect, useRef } from "react";
-import { AppState, type AppStateStatus } from "react-native";
+import { AppState, Platform, type AppStateStatus } from "react-native";
 import { Stack, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -17,6 +17,17 @@ import { useAuthStore } from "@/data/auth-store";
 import { useWorkspaceStore } from "@/data/workspace-store";
 import { SessionActivityBoundary } from "@/components/auth/session-activity-boundary";
 import { ActionSheetHost } from "@/components/ui/action-sheet";
+import {
+  isAppBackgrounded,
+  probeApiReachable,
+  recordJsTick,
+  setAppBackgrounded,
+} from "@/lib/background-forensics";
+import { subscribeToInboxNotificationResponses } from "@/lib/inbox-notification-response";
+import {
+  configureLocalNotificationHandler,
+  ensureInboxNotificationChannel,
+} from "@/lib/local-notifications";
 import { LightboxProvider, prewarmHighlighter } from "@/lib/markdown";
 import { NAV_THEME } from "@/lib/theme";
 import { useColorScheme } from "@/lib/use-color-scheme";
@@ -26,6 +37,17 @@ import { useColorScheme } from "@/lib/use-color-scheme";
 // init fails (engine unavailable) the highlighter falls back to plain
 // text; nothing here is allowed to throw.
 prewarmHighlighter();
+
+// Android local notifications — plan "A" (FEATURE-562). The behavior handler is
+// the one piece that must be armed before any banner can arrive; the channel
+// and the tap listener are wired in RootLayout, and the feature itself lives in
+// lib/local-notifications.ts + data/realtime/inbox-notification.ts.
+if (Platform.OS === "android") {
+  // Foreground banners are on. This is a JS-side switch with no native call, so
+  // it can be armed here — before any screen, and before the socket that
+  // produces the first banner can connect.
+  configureLocalNotificationHandler();
+}
 
 function AuthInitializer({ children }: { children: React.ReactNode }) {
   const initialize = useAuthStore((s) => s.initialize);
@@ -78,6 +100,64 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
 
 export default function RootLayout() {
   const { colorScheme, isDarkColorScheme } = useColorScheme();
+  const authLoading = useAuthStore((s) => s.isLoading);
+
+  // Android local notifications — plan "A" (FEATURE-562): the channel the
+  // banners are posted to, and the taps that come back. Deferred to an effect
+  // because both reach native modules (a module-scope call runs before the
+  // registry is guaranteed up), and held until auth hydration finishes so a
+  // tap that launched the app deep-links into a restored workspace instead of
+  // racing the entry redirect.
+  //
+  // Android only, deliberately: the banner, its permission prompt and its tap
+  // handling are behaviour iOS must not acquire from this change. A killed or
+  // reclaimed app cannot be notified at all — the banner is produced by this
+  // process from an already-open WebSocket, so there is no push channel behind
+  // it (see lib/local-notifications.ts for why that is the accepted limit).
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    // Android 8+ drops a notification that names an unknown channel. A failure
+    // here is not fatal — the library falls back to its own channel rather than
+    // losing the banner.
+    ensureInboxNotificationChannel().catch((err) =>
+      console.warn("[notifications] failed to create inbox channel", err),
+    );
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS !== "android" || authLoading) return;
+    return subscribeToInboxNotificationResponses();
+  }, [authLoading]);
+
+  // Background forensics (lib/background-forensics.ts). Three writers, all
+  // armed for the app's whole lifetime: a JS ticker (did the process get CPU at
+  // all?), the WS frame counter in the realtime provider (did data arrive?), and
+  // a plain HTTP probe while backgrounded (could anything leave the process?).
+  // The settings screen reads them back, which is how "the phone froze us" gets
+  // told apart from "the socket went quiet" without a computer and logcat.
+  //
+  // The probe interval runs always but does nothing outside a background
+  // session, so a foregrounded app issues no extra requests.
+  useEffect(() => {
+    const ticker = setInterval(() => recordJsTick(), 15_000);
+    const probe = setInterval(() => {
+      if (isAppBackgrounded()) void probeApiReachable();
+    }, 60_000);
+    return () => {
+      clearInterval(ticker);
+      clearInterval(probe);
+    };
+  }, []);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (status: AppStateStatus) => {
+      // 'inactive' is iOS-only and transient — it must not close a session.
+      if (status !== "active" && status !== "background") return;
+      setAppBackgrounded(status === "background");
+    });
+    return () => sub.remove();
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
