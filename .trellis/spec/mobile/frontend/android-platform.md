@@ -579,6 +579,63 @@ iOS 走 `js/SegmentedControl.ios.js`（原生 `UISegmentedControl`），Android 
 验收证据（本轮）：`lib/thread-nav.test.ts` 18 例（activity 行与 unread 分隔行不计入、嵌套回复计入根、
 已删除回复不计入回复数、根与回复两种已解决判定、行下标 → 当前线程）；APK 走 GitHub Release 交真机自测。
 
+## 收件箱筛选与归档视图（FEATURE-577，基线 commit `33c94d098`）
+
+页面语义与网络口径对齐 web（`packages/views/inbox/**` + `packages/core/inbox/**`），这里只记
+**平台行为**上踩到或必须固化的几点。
+
+### 长按与滑动可以共存，但要用「先关再执行」的次序
+
+行同时有两条手势路径：横向 pan 由 `ReanimatedSwipeable` 接管（露出动作按钮），
+按住不动由行内 `Pressable` 的 `onLongPress` 接管（打开动作菜单）。二者不冲突——
+移动超过 pan 阈值会取消长按。**但触发动作前必须先 `swipeable.close()`**：行会在下一次渲染
+因为乐观补丁（`archived` 翻转 → 去重过滤）被移出列表，不先关会和回弹动画抢同一批渲染。
+
+### 没有 hover / 右键，动作只能靠长按发现
+
+web 的「标记已读/未读、归档、取消归档」走右键菜单 + 悬浮按钮；Android 没有这两个输入。
+本任务把它们放进**长按动作面板**（`showActionSheet`），并把真机自测步骤写进 Release 说明——
+长按是唯一入口，不能只在代码里存在。
+
+### 归档视图是**数据源切换**，不是列表上的过滤
+
+两个列表互斥（服务端决定某 issue 属于哪个），因此：
+
+- 归档列表走游标分页（`/api/inbox/archived/page`，limit 50），筛选参数**进查询键**（归一化后），
+  换筛选 = 从第一页重新读，与 web 一致；
+- 归档视图**不提供批量归档**（每个批量入口都是从主收件箱归档，放在归档列表里会读成
+  「归档这些」却做反操作）；
+- 归档行**不渲染未读标记**（归档保留真实 `read`，未读计数也不含归档行），
+  与 web 的 `showUnread = read !== true && !isArchivedView` 同一口径。
+
+### 归档筛选计数只能来自服务端
+
+主视图的筛选计数在客户端按「其它维度生效、忽略本维度」的分面规则算（列表已全量加载）；
+归档列表是分页的，客户端没有全量视图，因此归档视图读 `/api/inbox/archived/facets`，
+且只在筛选面板打开时请求。
+
+### 缓存层面：一次刷新覆盖两个列表
+
+`refreshInboxList` 从 `["inbox", wsId, "list"]` 放宽到 `["inbox", wsId]` 前缀——
+归档分页与 facets 都挂在这个前缀下，而一个 inbox 事件可能同时改变两个列表
+（归档 issue 上的新通知会把它放回主收件箱，同时离开归档）。`issue:updated` / `issue:deleted`
+的补丁同样要覆盖归档分页缓存（web 的 `patchInboxLists` 同）。
+
+### 乐观补丁的形态判别与一个测试陷阱
+
+`inboxKeys.archived(wsId)` 前缀下住着**两种形状**：分页缓存的 `InfiniteData<{items}>` 与
+facets 的计数对象。补丁函数必须先判别形状（`isArchivedPagesCache`）再改，
+否则会往计数对象上写 items。
+
+unarchive 的乐观补丁是**把行留在缓存里、只翻 `archived`**，「行从归档列表消失」是渲染侧
+`deduplicateArchivedInboxItems` 的过滤结果；测试里直接断言缓存中的行数会误判为「补丁没生效」，
+要断言 `archived` 标记或经过去重后的可见列表。
+
+验收证据（本轮）：`lib/inbox-filters.test.ts`（分面过滤、actor key、优先级能力）、
+`lib/inbox-display.test.ts`（归档去重）、`data/mutations/inbox.test.ts`（标记未读 / 取消归档的
+乐观补丁与回滚）、`data/stores/inbox-view-store.test.ts`、
+`data/realtime/inbox-ws-updaters.test.ts`（归档缓存补丁）；APK 走 GitHub Release 交真机自测。
+
 ## issue 详情子 issue 区块（FEATURE-576，基线 commit `33c94d098`）
 
 issue 详情要补 web 的「Sub-issues」区块（列表 / 新建 / 折叠 / 父 issue 跳转）。口径与踩点如下，
@@ -661,3 +718,56 @@ schema `IssuePullRequestsResponseSchema` / 哨兵 `EMPTY_ISSUE_PULL_REQUESTS_RES
 
 验收：状态映射（含未知回退）、折叠边界（3 / 4 / 5 条与展开后）、副行拼装（作者为 null）的单测在
 `apps/mobile/lib/pull-requests.test.ts`。
+
+## 聊天停止任务与会话重命名（FEATURE-579，基线 commit `4e2d1c325`）
+
+聊天补齐 web 的「停止运行中的任务」与「会话重命名」。两条都有**容易踩错且看不出来**的地方。
+
+### 停止任务：能力头与 durable 回填是一对，不能只带一半
+
+- 入口位置与 web 一致：输入框操作位（`components/chat/chat-composer.tsx` 的 `renderStop` →
+  `StopButton`，`chat.tsx` 的 `sending = !!pendingTask?.task_id`）。`queued` 的后续任务**不给停止键**：
+  web 走队列 UI（带 queued action 的草稿回填），移动端没有队列 UI，停掉等于丢掉用户输入。
+- 取消接口是 `POST /api/tasks/:taskId/cancel`。服务端按**请求头**分两条路
+  （`server/internal/handler/chat.go` 读 `X-Client-Capabilities` →
+  `service/task.go` 的 `ClientSupportsDraftRestore`）：
+  - **不带 `chat-draft-restore-v1`**（mobile 的取值）：取消时 transcript 为空 → 删掉那条用户消息，
+    并在**响应体**里同步回 `cancelled_chat_message{content, restore_to_input}`；非空 → 落 `Stopped.`。
+  - **带该头**：**已启动**的任务不再同步回填，改 `MarkChatFinalizeDeferred`，输入改由 durable 行 +
+    `GET /api/chat/sessions/:id/draft-restores` + `DELETE` 取回，触发信号是
+    `chat:cancel_finalized(outcome="restored")`。
+  - 结论：**读不了 draft-restores 的客户端不要带这个头**。只带头不实现取回，服务端会把用户输入
+    从会话里删掉、交给一个本客户端永远不读的地方 —— 静默丢输入，比不做更糟。服务端注释同样认可
+    这条退路（legacy 同步分支「strictly better than dropping the input」）。
+- 回填语义（对齐 web）：
+  - 被取消的消息要从消息缓存里删掉（服务端已删，等 invalidate 回来会闪回一帧）；
+  - **只回填到空草稿**：用户在取消往返期间可能又开始打字，web 把回填当「offer」，草稿非空就不采纳；
+  - 取消失败要**回滚 pendingTask 快照**再 invalidate（服务端说任务还在，就必须还显示着）。
+- mobile 不落 durable 回填还因为 `GET/DELETE draft-restores` 的查询与 `chat:cancel_finalized`
+  的 `restored` 分支分别属于 `data/queries/chat.ts`、`data/realtime/use-chat-session-realtime.ts`
+  （FEATURE-579 的文件边界之外），要接就得连实时层一起改。
+
+### 会话重命名：Android 上不要用 `Alert.prompt`
+
+- `Alert.prompt` **是 iOS 专有**：RN 的 `Alert.android.js` 里没有该实现，Android 上调它会直接抛错。
+  `apps/mobile/AGENTS.md` 的容器表把「文本提示」写成 native alert/prompt，落地时 Android 侧必须
+  换成**行内 `TextInput`**（本仓用 `components/ui/text-field.tsx`，它已处理 iOS `lineHeight`
+  截断与 Android `includeFontPadding`）。同类「改个名字」需求（如 labels 的 formSheet 表单）在
+  Android 上同理不能靠 prompt。
+- 接口：`PATCH /api/chat/sessions/:id` body `{title}`，**响应体不用**（乐观改标题 + settle invalidate
+  即可让列表行与聊天头部同源更新）。空值 / 只输空格 / 与旧标题相同**不发请求**（no-op PATCH 也会
+  顶 `updated_at`，列表会在手指底下重排）；上限 200（web 的 `maxLength`）。
+- **键盘会挡住输入框**：会话列表 sheet 是 `SHEET_OPTIONS`（detents `[0.6, 0.95]`），而应用是强制
+  edge-to-edge（targetSdk 36，`windowSoftInputMode=adjustResize` 在边到边下不压缩窗口），Android
+  不会再自动把聚焦的输入框滚进可视区。做法两条并用：sheet body 套共享
+  `components/ui/keyboard-avoiding-view.tsx`，并在进入编辑时用行 `onLayout` 记下的 y
+  把该行滚到列表顶部（确定性，不依赖键盘高度读数）。
+- `ScrollView` 需 `keyboardShouldPersistTaps="handled"`，否则「点另一行先提交本次编辑」的点击会被
+  键盘收起吞掉。
+
+### 验证
+
+`lib/chat-session-rename.ts`（trim / 空值 / 同值 / 200 截断）与 `data/mutations/chat.test.ts`
+（取消：乐观清 pendingTask、回填响应、按 `message_id` 清理消息缓存、失败回滚；改名：乐观改标题、
+失败回滚、不凭空造列表）—— vite Node lane 只收 `lib/**`、`data/**`，判断逻辑与 mutation 必须放这两处。
+真机验收（发消息 → 运行中停止；会话标题改名）由用户在 Release APK 上执行。

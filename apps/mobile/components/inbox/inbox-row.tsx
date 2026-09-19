@@ -27,17 +27,38 @@ import { cn } from "@/lib/utils";
 interface Props {
   item: InboxItem;
   onPress: () => void;
+  /**
+   * Opens the row's action sheet (mark read/unread, archive or unarchive —
+   * the same action set web's right-click menu and hover button offer). A
+   * touch pointer has neither hover nor right-click, so long-press is the
+   * entry point here.
+   */
+  onLongPress?: () => void;
+  /**
+   * Render this row inside the archived sub-view.
+   *
+   * Archived rows deliberately render as read: archiving preserves `read` so a
+   * restore can bring the real state back, and the unread count excludes
+   * archived items — an unread marker here would point at a number the user
+   * cannot find. Mirrors `showUnread = read !== true && !isArchivedView` in
+   * packages/views/inbox/components/inbox-list-item.tsx.
+   */
+  archived?: boolean;
 }
 
-export function InboxRow({ item, onPress }: Props) {
-  const isUnread = !item.read;
+export function InboxRow({ item, onPress, onLongPress, archived }: Props) {
+  const isUnread = !item.read && !archived;
   const { categoryOf, colorOf, iconOf } = useIssueStatuses();
   const displayTitle = getInboxDisplayTitle(item);
   const actorType = item.actor_type ?? item.recipient_type;
   const actorId = item.actor_id ?? item.recipient_id;
 
   return (
-    <Pressable onPress={onPress} className="bg-background active:bg-secondary px-4 py-3">
+    <Pressable
+      onPress={onPress}
+      onLongPress={onLongPress}
+      className="bg-background active:bg-secondary px-4 py-3"
+    >
       <View className="flex-row gap-3">
         <ActorAvatar type={actorType} id={actorId} size={36} showPresence />
         <View className="flex-1 min-w-0">

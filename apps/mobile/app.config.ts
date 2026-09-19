@@ -116,9 +116,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       // vc8: 0.1.1 release (distribution bump after the 0.1.0 series).
       // vc9: issue-detail sub-issues block (FEATURE-576 — list, create, collapse
       // and the parent-issue link).
-      // vc10: issue-detail linked-PR block (FEATURE-578 — read-only list that
+      // vc10: inbox filters + mark-unread + archived view (FEATURE-577).
+      // vc11: chat stop-a-running-task + session rename (FEATURE-579).
+      // vc12: issue-detail linked-PR block (FEATURE-578 — read-only list that
       // opens each PR in the system browser).
-      versionCode: 10,
+      versionCode: 12,
 
       // Keep the window's soft-input mode on `adjustResize` — this is Expo's
       // default (its plugin writes `adjustResize` when the key is absent), so

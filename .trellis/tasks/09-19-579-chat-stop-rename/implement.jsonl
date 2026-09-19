@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/mobile/frontend/android-platform.md", "reason": "Android 平台约定（iOS 专有点位、行内输入、构建与真机验收要求）"}
+{"file": "apps/mobile/AGENTS.md", "reason": "移动端数据层、UI 组件、乐观更新与验证口径的唯一权威规范"}
+{"file": "AGENTS.md", "reason": "仓库根规范：提交形态、校验命令、移动端额外要求"}

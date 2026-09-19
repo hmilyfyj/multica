@@ -1,0 +1,2 @@
+{"file": "apps/mobile/AGENTS.md", "reason": "行为对齐（web 口径）、数据层约定（query key / 乐观更新例外 / schemas 复用）、UI 容器选择（formSheet）与验证命令"}
+{"file": ".trellis/spec/mobile/frontend/android-platform.md", "reason": "平台差异原则、Android 手势/容器约束与验收证据要求（本任务不做设备验收，需在交付里写明未覆盖）"}

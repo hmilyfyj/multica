@@ -62,6 +62,7 @@ import {
   taskMessagesOptions,
 } from "@/data/queries/chat";
 import {
+  useCancelChatTask,
   useCreateChatSession,
   useDeleteChatSession,
   useMarkChatSessionRead,
@@ -72,10 +73,7 @@ import {
 } from "@/data/stores/chat-drafts-store";
 import { useChatSessionPickerStore } from "@/data/stores/chat-session-picker-store";
 import { useChatSessionRealtime } from "@/data/realtime/use-chat-session-realtime";
-import {
-  invalidatePendingTask,
-  seedAcceptedPendingTask,
-} from "@/data/realtime/chat-ws-updaters";
+import { seedAcceptedPendingTask } from "@/data/realtime/chat-ws-updaters";
 import { useWorkspaceAgentAvailability } from "@/lib/workspace-agent-availability";
 import { sendFailureMessage } from "@/lib/dispatch-reason";
 import { useAgentPresence } from "@/lib/use-agent-presence";
@@ -407,20 +405,42 @@ export default function ChatTab() {
   );
 
   // ── Cancel in-flight ───────────────────────────────────────────────────
+  // The optimistic removal, the response's draft-restore payload and the
+  // failure rollback all live in useCancelChatTask; what stays here is the
+  // one thing the data layer cannot own — writing the restored prompt back
+  // into this session's composer draft.
+  const cancelTask = useCancelChatTask();
   const handleStop = useCallback(() => {
     if (!pendingTask?.task_id || !activeSessionId) return;
+    // A queued follow-up is not the running turn: web cancels those from its
+    // queue UI (with the draft restore the queue action implies), and mobile
+    // has no queue UI — Stop stays hidden for them (see `allowStop` below).
     if (pendingTask.status === "queued") return;
-    const taskId = pendingTask.task_id;
     const sessionId = activeSessionId;
-    qc.setQueryData<ChatPendingTask>(chatKeys.pendingTask(sessionId), (old) =>
-      removePendingChatTask(old, taskId),
-    );
-    void api.cancelTaskById(taskId)
-      .catch(() => {
-        // Silent — task may have already terminated server-side.
+    void cancelTask
+      .mutateAsync({ taskId: pendingTask.task_id, sessionId })
+      .then((result) => {
+        const restored = result.cancelled_chat_message;
+        if (!restored?.restore_to_input) return;
+        if (restored.chat_session_id !== sessionId) return;
+        // Only into an empty draft, matching web: a restore is an offer the
+        // composer takes when it has nothing of the user's own to protect,
+        // and the user may well have started typing again during the round
+        // trip.
+        if (useChatDraftsStore.getState().drafts[sessionId]) return;
+        setDraft(sessionId, restored.content);
       })
-      .finally(() => invalidatePendingTask(qc, sessionId));
-  }, [pendingTask?.task_id, pendingTask?.status, activeSessionId, qc]);
+      .catch(() => {
+        // Silent — the task may have already finished server-side. The
+        // mutation has already rolled the pending task back.
+      });
+  }, [
+    pendingTask?.task_id,
+    pendingTask?.status,
+    activeSessionId,
+    cancelTask,
+    setDraft,
+  ]);
 
   // ── Header / sheet actions ─────────────────────────────────────────────
   const handleNewChat = useCallback(() => {

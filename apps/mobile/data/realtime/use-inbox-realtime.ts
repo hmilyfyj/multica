@@ -3,9 +3,12 @@
  *
  * Three subscription groups:
  *
- * 1. `inbox:*` events → invalidate the inbox list AND the cross-workspace
- *    unread summary that backs the tab badge (the summary lives under its
- *    own account-level key, so the list invalidation does not reach it).
+ * 1. `inbox:*` events → invalidate the inbox list, every archived page and
+ *    the cross-workspace unread summary that backs the tab badge (the summary
+ *    lives under its own account-level key, so the list invalidation does not
+ *    reach it). Both lists go together because the server decides which one an
+ *    issue belongs to: a new notification on an archived issue puts it back in
+ *    the main inbox AND takes it out of the archive.
  *    inbox payloads are small and (apart from inbox:new) rare, so refetching
  *    is cheaper than maintaining per-event patchers. Multi-device parity:
  *    subscribing to inbox:read / inbox:archived means a read/archive on web
@@ -82,15 +85,14 @@ export function useInboxRealtime() {
           }
         }),
         ws.on("inbox:read", invalidate),
-        // Mobile has no mark-unread affordance yet (web/desktop right-click
-        // only), but a mark-unread there must un-read the row here too —
-        // otherwise the phone keeps showing it read and the unread dots
-        // disagree across clients.
+        // Mark-unread is a row action on mobile too (long press), so this
+        // event usually answers our own write; it still matters for the same
+        // action taken on web/desktop.
         ws.on("inbox:unread", invalidate),
         ws.on("inbox:archived", invalidate),
-        // Mobile has no archived view yet (web/desktop only, MUL-3736), but an
-        // unarchive there restores the item to THIS list — without refetching,
-        // mobile keeps showing the pre-restore list.
+        // Unarchive is reachable on mobile from the archived sub-view, so this
+        // event usually answers our own write — and it has to reach the main
+        // list too, because a restored issue moves back into it.
         ws.on("inbox:unarchived", invalidate),
         ws.on("inbox:batch-read", invalidate),
         ws.on("inbox:batch-archived", invalidate),

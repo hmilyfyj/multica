@@ -344,6 +344,9 @@ export default function WorkspaceLayout() {
         {/* Shared filter sheet for My Issues and the workspace Issues page —
             chooses the right view-store via `?scope=my|all` URL param. */}
         <Stack.Screen name="issues-filter" options={SHEET_OPTIONS} />
+        {/* Inbox filter sheet — same container as issues-filter. It reads and
+            writes the inbox view store itself, so it needs no URL param. */}
+        <Stack.Screen name="inbox-filter" options={SHEET_OPTIONS} />
         {/* Chat session-switch sheet. */}
         <Stack.Screen name="chat-sessions" options={SHEET_OPTIONS} />
         {/* Workspace switcher — reached from the More popover's collapsed
