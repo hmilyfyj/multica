@@ -78,6 +78,8 @@ import type { Issue, TimelineEntry } from "@multica/core/types";
 import { Text } from "@/components/ui/text";
 import { IssueHeaderCard } from "./issue-header-card";
 import { IssueDescription } from "./issue-description";
+import { ParentIssueRow } from "./parent-issue-row";
+import { SubIssuesSection } from "./sub-issues-section";
 import { IssueReactionRow } from "./issue-reaction-row";
 import { ActivityRow } from "./activity-row";
 import { CommentCard } from "./comment-card";
@@ -453,8 +455,15 @@ export function TimelineList({
   const ListHeader = (
     <View>
       <IssueHeaderCard issue={issue} />
+      {/* Parent link sits directly under the property block (header card) —
+          the position it holds in web's detail sidebar. */}
+      {issue.parent_issue_id ? (
+        <ParentIssueRow parentIssueId={issue.parent_issue_id} />
+      ) : null}
       <IssueDescription issueId={issue.id} description={issue.description} />
       <IssueReactionRow issue={issue} />
+      {/* Sub-issues render between the reactions and the timeline, as on web. */}
+      <SubIssuesSection issue={issue} />
       <View className="px-4 pt-4 pb-2 border-t border-border">
         <Text className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
           Activity

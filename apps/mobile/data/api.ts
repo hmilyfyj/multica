@@ -103,6 +103,8 @@ import {
   EMPTY_ISSUE_STATUS_ENTRY,
   EMPTY_LIST_ISSUES_RESPONSE,
   EMPTY_TIMELINE_ENTRIES,
+  ChildIssueProgressResponseSchema,
+  ChildIssuesResponseSchema,
   IssueSchema,
   IssueStatusEntrySchema,
   ListIssuesResponseSchema,
@@ -225,6 +227,25 @@ export interface UpdateWorkspaceRequest {
   issue_prefix?: string;
   avatar_url?: string;
 }
+
+/** One parent's child counts, from `GET /api/issues/child-progress`. The
+ *  endpoint answers for every parent in the workspace at once, so a
+ *  sub-issue row can show its own done/total without a request of its
+ *  own. */
+export interface ChildIssueProgressEntry {
+  parent_issue_id: string;
+  total: number;
+  done: number;
+}
+
+/** Empty sentinels for the two sub-issue reads. The schemas live in core (they
+ *  are platform-independent data), so they have no EMPTY_ constant there;
+ *  `parseWithFallback` needs a value of the SUCCESS type, and both endpoints
+ *  describe "nothing yet" as an empty array. */
+const EMPTY_CHILD_ISSUES_RESPONSE: { issues: Issue[] } = { issues: [] };
+const EMPTY_CHILD_ISSUE_PROGRESS_RESPONSE: {
+  progress: ChildIssueProgressEntry[];
+} = { progress: [] };
 
 /** Web mirrors this from `packages/core/constants/upload.ts`. Mobile keeps
  *  its own copy per the `mirror, don't import` rule in apps/mobile/CLAUDE.md. */
@@ -985,6 +1006,40 @@ class ApiClient {
       method: "POST",
       body: JSON.stringify(body),
     });
+  }
+
+  // Direct children of one issue (GET /api/issues/:id/children). Returns the
+  // inner array: the handler wraps it in `{ issues: [] }` so the response
+  // object can grow without changing this cache shape (same rationale as
+  // listActiveTasksForIssue). Web reads the same endpoint through
+  // `childIssuesOptions`.
+  async listChildIssues(
+    issueId: string,
+    opts?: { signal?: AbortSignal },
+  ): Promise<Issue[]> {
+    const parsed = await this.fetchValidated(
+      `/api/issues/${issueId}/children`,
+      ChildIssuesResponseSchema,
+      EMPTY_CHILD_ISSUES_RESPONSE,
+      { ...opts, endpoint: "GET /api/issues/:id/children" },
+    );
+    return parsed.issues;
+  }
+
+  // Workspace-wide parent→(done/total) map (GET /api/issues/child-progress).
+  // One request answers "does this sub-issue have children of its own, and how
+  // many are done" for EVERY row on the screen, instead of one request per
+  // row. Same endpoint and shape as web's `getChildIssueProgress`.
+  async getChildIssueProgress(
+    opts?: { signal?: AbortSignal },
+  ): Promise<ChildIssueProgressEntry[]> {
+    const parsed = await this.fetchValidated(
+      "/api/issues/child-progress",
+      ChildIssueProgressResponseSchema,
+      EMPTY_CHILD_ISSUE_PROGRESS_RESPONSE,
+      { ...opts, endpoint: "GET /api/issues/child-progress" },
+    );
+    return parsed.progress;
   }
 
   // Timeline returns the full ASC entry list in one shot — server-side

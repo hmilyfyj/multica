@@ -20,18 +20,28 @@ import {
   ScrollView,
   TextInput,
 } from "react-native";
-import { Stack, router } from "expo-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { Stack, router, useLocalSearchParams } from "expo-router";
 import { SubmitIssueButton } from "@/components/issue/submit-issue-button";
 import { CreateFormAttributeRow } from "@/components/issue/create-form-attribute-row";
 import { MentionSuggestionBar } from "@/components/issue/mention-suggestion-bar";
 import { DescriptionField } from "@/components/issue/description-field";
 import { MOBILE_PLACEHOLDER_COLOR } from "@/components/ui/input-tokens";
 import { KeyboardAvoidingView } from "@/components/ui/keyboard-avoiding-view";
+import { issueKeys } from "@/data/queries/issues";
+import { useWorkspaceStore } from "@/data/workspace-store";
 import { useCreateIssue } from "@/data/mutations/issues";
 import { useNewIssueDraftStore } from "@/data/stores/new-issue-draft-store";
 import { useMentionInput } from "@/lib/use-mention-input";
 
 export default function NewIssueModal() {
+  // Sub-issue creation reuses this form: `parent` is the parent issue's UUID,
+  // set by the sub-issues block on issue detail. Absent for a plain create, so
+  // every branch below is a no-op in that case.
+  const { parent } = useLocalSearchParams<{ parent?: string }>();
+  const parentIssueId = parent && parent.length > 0 ? parent : null;
+  const qc = useQueryClient();
+  const wsId = useWorkspaceStore((s) => s.currentWorkspaceId);
   const [title, setTitle] = useState("");
   const description = useMentionInput();
   // Attribute chips (status / priority / assignee / due date / project)
@@ -73,7 +83,17 @@ export default function NewIssueModal() {
           : {}),
         ...(dueDate ? { due_date: dueDate } : {}),
         ...(project ? { project_id: project.id } : {}),
+        ...(parentIssueId ? { parent_issue_id: parentIssueId } : {}),
       });
+      if (parentIssueId) {
+        // The sub-issues block stays mounted behind this modal, so its
+        // `refetchOnMount: "always"` never fires — invalidate explicitly, or
+        // the new child is missing from the list the user returns to.
+        qc.invalidateQueries({
+          queryKey: issueKeys.children(wsId, parentIssueId),
+        });
+        qc.invalidateQueries({ queryKey: issueKeys.childProgress(wsId) });
+      }
       router.back();
     } catch (err) {
       Alert.alert(
@@ -90,6 +110,9 @@ export default function NewIssueModal() {
     dueDate,
     project,
     createIssue,
+    parentIssueId,
+    qc,
+    wsId,
   ]);
 
   const headerRight = useCallback(
@@ -105,7 +128,15 @@ export default function NewIssueModal() {
 
   return (
     <>
-      <Stack.Screen options={{ headerRight }} />
+      <Stack.Screen
+        options={{
+          headerRight,
+          // The shared create form doubles as the sub-issue form; name what it
+          // is creating. The parent itself travels in the request, not as a
+          // visible field (web seeds its modal the same way).
+          ...(parentIssueId ? { title: "New sub-issue" } : {}),
+        }}
+      />
       <KeyboardAvoidingView
         className="flex-1 bg-background"
       >
