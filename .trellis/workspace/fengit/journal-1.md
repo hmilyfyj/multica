@@ -27,3 +27,25 @@ Android 视觉校准交付：新增 components/ui/nav-icon.tsx 收敛 sf: SF Sym
 ### Status
 
 [OK] **Completed**
+
+
+## Session 2: FEATURE-546 归档：七个搜索栏选择器 Android 替代实现
+<!-- trellis-session: v=2 fp=6c6da3b93030827c -->
+
+**Date**: 2026-09-19
+**Task**: FEATURE-546 归档：七个搜索栏选择器 Android 替代实现
+**Branch**: `feature/546-android-search-bar`
+
+### Summary
+
+每日归档：picker-search 任务归档。issue FEATURE-546 done；PR #6 已 squash 合并进 main；prd.md 6 项 AC 全部勾选；trellis-check ran(clean)。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a00c1bb62` | feat(mobile): 七个搜索型 picker 路由补 Android 搜索框 |
+
+### Status
+
+[OK] **Completed**
