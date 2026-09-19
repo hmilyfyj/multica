@@ -19,6 +19,7 @@ import {
   ScrollView,
   View,
 } from "react-native";
+import Constants from "expo-constants";
 import { useQuery } from "@tanstack/react-query";
 import type {
   NotificationGroupKey,
@@ -29,6 +30,7 @@ import { Text } from "@/components/ui/text";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { useWorkspaceStore } from "@/data/workspace-store";
+import { timeAgo } from "@/lib/time-ago";
 import { notificationPreferenceOptions } from "@/data/queries/notification-preferences";
 import { useUpdateNotificationPreferences } from "@/data/mutations/notification-preferences";
 import {
@@ -41,6 +43,7 @@ import {
   type InboxNotificationChannelState,
   type LocalNotificationPermission,
 } from "@/lib/local-notifications";
+import { getLastRealtimeFrameAt } from "@/lib/ws-activity";
 
 const INBOX_GROUPS: {
   key: Exclude<NotificationGroupKey, "system_notifications">;
@@ -235,6 +238,7 @@ function DeviceNotificationSection() {
     null,
   );
   const [attempt, setAttempt] = useState<InboxNotificationAttempt | null>(null);
+  const [lastFrameAt, setLastFrameAt] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   // Set once an ask came back unresolved: from then on the only route left is
   // the system settings app, so the button stops offering a dialog that will
@@ -253,6 +257,7 @@ function DeviceNotificationSection() {
         console.warn("[notifications] failed to read channel", err),
       );
     setAttempt(getLastInboxNotificationAttempt());
+    setLastFrameAt(getLastRealtimeFrameAt());
   }, []);
 
   useEffect(() => {
@@ -380,6 +385,10 @@ function DeviceNotificationSection() {
         <Text className="text-xs text-muted-foreground">
           {describeAttempt(attempt)}
         </Text>
+        <Text className="text-xs text-muted-foreground">
+          {describeFrames(lastFrameAt)}
+        </Text>
+        <Text className="text-xs text-muted-foreground">{describeBuild()}</Text>
         <Button
           variant="outline"
           size="sm"
@@ -410,4 +419,30 @@ function describeAttempt(attempt: InboxNotificationAttempt | null): string {
     case "failed":
       return `${at} · failed: ${attempt.detail ?? "unknown error"}`;
   }
+}
+
+/**
+ * Whether realtime data is still arriving. This is the datum that separates the
+ * two causes of "no notification in the background": if the newest frame is old,
+ * nothing reached the app (the process was frozen — plan A's limit); if it is
+ * seconds old, the event arrived and the phone dropped the banner, which is on
+ * the notification side.
+ */
+function describeFrames(lastFrameAt: number | null): string {
+  if (lastFrameAt === null) {
+    return "No realtime data since the app started.";
+  }
+  return `Last realtime data ${timeAgo(new Date(lastFrameAt).toISOString())}`;
+}
+
+/**
+ * Which build is installed. Sideloaded APKs get reinstalled repeatedly during
+ * a device round-trip, and "did the new one actually land?" was otherwise
+ * unanswerable from inside the app. Native values rather than `expoConfig`: a
+ * bare release build resolves those from the installed package.
+ */
+function describeBuild(): string {
+  const version = Constants.nativeAppVersion ?? "?";
+  const build = Constants.nativeBuildVersion ?? "?";
+  return `App build ${version} (vc${build})`;
 }

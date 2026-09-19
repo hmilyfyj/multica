@@ -51,6 +51,7 @@ import { useAuthStore } from "@/data/auth-store";
 import { useWorkspaceStore } from "@/data/workspace-store";
 import { getToken } from "@/data/secure-storage";
 import { api } from "@/data/api";
+import { recordRealtimeFrame } from "@/lib/ws-activity";
 import { WSClient } from "./ws-client";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -93,6 +94,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     let ws: WSClient | null = null;
     let appStateSub: { remove: () => void } | null = null;
     let netInfoUnsub: (() => void) | null = null;
+    let unsubAnyFrame: (() => void) | null = null;
 
     void (async () => {
       const token = await getToken();
@@ -114,6 +116,10 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       });
       ws.connect();
       setClient(ws);
+      // Every inbound frame, whatever its type: the settings screen reports the
+      // newest one so "nothing arrived while I was in the background" can be
+      // told apart from "it arrived and the phone dropped the banner".
+      unsubAnyFrame = ws.onAny(() => recordRealtimeFrame());
 
       // ── AppState ────────────────────────────────────────────────
       appStateSub = AppState.addEventListener(
@@ -156,6 +162,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
       appStateSub?.remove();
+      unsubAnyFrame?.();
       netInfoUnsub?.();
       ws?.disconnect();
       setClient(null);
