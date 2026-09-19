@@ -730,3 +730,41 @@ Session summary was not supplied.
 ### Status
 
 [OK] **Completed**
+
+
+## Session 45: 581 运行详情（run transcript）落地并归档
+<!-- trellis-session: v=2 fp=b39a972c3f5285f8 -->
+
+**Date**: 2026-09-19
+**Task**: 581 运行详情（run transcript）落地并归档
+**Package**: mobile
+**Branch**: `chore/581-trellis-archive`
+
+### Summary
+
+从 Runs 列表点历史 run 打开运行详情：完整时间线条目映射、客户端开窗「Show N earlier steps」、WS task:message 实时追加；业务 PR #73 已 squash 合并，本轮归档 trellis 任务。
+
+### Main Changes
+
+- 新增 issue/[id]/runs/[taskId] 运行详情（formSheet 单挡 0.95）与 run-row 整行入口 + 惰性 Steps 折叠
+- lib/run-transcript.ts：seq 排序 / 相邻 text-thinking 合并 / 合并后脱敏 / 工具摘要 / 截断三态；25 例单测
+- use-run-transcript.ts 按 task_id 记录级订阅 task:message，重连补拉；chat.ts 追加 unionTaskMessagesBySeq structuralSharing
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `33631ea4f` | feat(mobile): 运行详情 transcript：从 Runs 列表进入 + 实时追加 (#581) (#73) |
+
+### Testing
+
+- [OK] mobile typecheck + lint 0 error；vitest 63 文件 568 例；4 个 android shell 套件
+- [OK] APK vc13 走 GitHub Release 交真机自测（未启模拟器）
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 用户在 Release APK 上执行真机验收：Runs 列表点历史 run → 步骤与消息 → Show earlier steps → 运行中实时追加
