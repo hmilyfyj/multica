@@ -338,3 +338,26 @@ Trellis 归档清尾：09-18-android-build-abi 任务归档到 archive/2026-09�
 ### Status
 
 [OK] **Completed**
+
+
+## Session 27: 归档 FEATURE-551 核心流程 Android 全量回归验收
+<!-- trellis-session: v=2 fp=6c4c8d73305ac1a4 -->
+
+**Date**: 2026-09-19
+**Task**: 归档 FEATURE-551 核心流程 Android 全量回归验收
+**Package**: mobile
+**Branch**: `feature/551-android-full-regression`
+
+### Summary
+
+Trellis 归档清尾：09-19-android-full-regression 任务归档到 archive/2026-09；业务改动（全量回归清单与验收证据）已由 #15 合入 main；6 项 AC 全部勾选。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e35fb0a5a` | docs(mobile): Android 全量回归清单与验收证据 (#15) |
+
+### Status
+
+[OK] **Completed**
