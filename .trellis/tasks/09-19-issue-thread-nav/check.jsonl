@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/mobile/frontend/quality-guidelines.md", "reason": "核对验证命令与单测判据"}
+{"file": ".trellis/spec/mobile/frontend/android-platform.md", "reason": "核对是否守住平台差异原则与证据要求"}

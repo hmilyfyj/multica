@@ -72,6 +72,7 @@ import {
 } from "react-native";
 import { FlashList, type FlashListRef } from "@shopify/flash-list";
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import type { Issue, TimelineEntry } from "@multica/core/types";
 import { Text } from "@/components/ui/text";
@@ -80,10 +81,17 @@ import { IssueDescription } from "./issue-description";
 import { IssueReactionRow } from "./issue-reaction-row";
 import { ActivityRow } from "./activity-row";
 import { CommentCard } from "./comment-card";
+import { ThreadNavFab } from "./thread-nav-fab";
 import { useLastViewedStore } from "@/data/stores/last-viewed-store";
+import { useThreadNavStore } from "@/data/stores/thread-nav-store";
 import { coalesceTimeline } from "@/lib/timeline-coalesce";
 import { buildTimelineRows, type TimelineRow } from "@/lib/timeline-thread";
 import { resolveCommentLanding, startLanding } from "@/lib/comment-landing";
+import {
+  buildThreadNav,
+  threadIndexAtRow,
+  MIN_THREADS,
+} from "@/lib/thread-nav";
 import { ImageSequenceProvider } from "@/lib/markdown/image-sequence";
 import { issueAttachmentsOptions } from "@/data/queries/issues";
 import { useWorkspaceStore } from "@/data/workspace-store";
@@ -182,6 +190,24 @@ export function TimelineList({
   const lastStampRef = useRef<string | null>(null);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
 
+  // Thread-outline jump target — set by the floating stepper, and by the
+  // outline sheet through the store. Shares the landing driver below with an
+  // inbox deep link, but parks the row without flashing it.
+  const [navJump, setNavJump] = useState<{
+    rootId: string;
+    nonce: number;
+  } | null>(null);
+  const jumpNonceRef = useRef(0);
+  const onJumpToThread = useCallback((rootId: string) => {
+    setNavJump({ rootId, nonce: (jumpNonceRef.current += 1) });
+  }, []);
+
+  // The comment the current landing parks on — what CommentCard registers as
+  // the measurable anchor. Set where each landing starts rather than read off
+  // `navJump`, so a deep link can never anchor on the thread a previous
+  // outline jump left behind.
+  const [landingAnchorId, setLandingAnchorId] = useState<string | null>(null);
+
   // Landing plumbing. `viewportRef` is the window-space origin the correction
   // loop measures against; `anchorRef` is the row/reply view a deep link must
   // bring to the top, registered by whichever CommentCard owns it.
@@ -276,22 +302,57 @@ export function TimelineList({
     return [...data.slice(0, anchorIdx), divider, ...data.slice(anchorIdx)];
   }, [data, dividerAnchorId]);
 
-  // ── Inbox deep-link landing ────────────────────────────────────────────
+  // ── Thread outline index ──────────────────────────────────────────────
+  // Derived from the rendered array (divider row included) so an outline row
+  // and its jump target are the same row by construction. Feeds the floating
+  // stepper's prev/next and, through the store, the outline sheet.
+  const threadNav = useMemo(
+    () => buildThreadNav(dataWithDivider),
+    [dataWithDivider],
+  );
+  const wsSlug = useWorkspaceStore((s) => s.currentWorkspaceSlug);
+
+  // The sheet hands a picked thread back through the store — mirror it into
+  // state (the landing effect re-arms per nonce) and clear the request.
+  const jumpRequest = useThreadNavStore((s) => s.jumpRequest);
+  const consumeJump = useThreadNavStore((s) => s.consumeJump);
+  useEffect(() => {
+    if (!jumpRequest) return;
+    setNavJump(jumpRequest);
+    consumeJump();
+  }, [jumpRequest, consumeJump]);
+
+  // Literal href, like the Agent Runs sheet: the params come from the route we
+  // are already on, so the workspace has to be resolved from the store.
+  const onOpenThreadOutline = useCallback(() => {
+    if (!wsSlug) return;
+    router.push({
+      pathname: "/[workspace]/issue/[id]/threads",
+      params: { workspace: wsSlug, id: issue.id },
+    });
+  }, [wsSlug, issue.id]);
+
+  // ── Landing: inbox deep link + thread-outline jump ─────────────────────
   // One landing per (comment id, nonce) pair: the nonce is what re-arms a
   // re-tap of the same inbox row, and the stamp is what stops a WS append
   // (fresh `dataWithDivider`) from replaying the jump under the user.
   useEffect(() => {
-    if (!highlightCommentId) return;
+    // Two entry points share this driver: an inbox deep link (which also
+    // flashes the comment) and a thread-outline jump (which only parks it).
+    const targetId = navJump?.rootId ?? highlightCommentId;
+    const targetNonce = navJump ? String(navJump.nonce) : highlightNonce;
+    if (!targetId) return;
     const list = listRef.current;
     const landing = list
-      ? resolveCommentLanding(dataWithDivider, highlightCommentId)
+      ? resolveCommentLanding(dataWithDivider, targetId)
       : null;
     if (!list || !landing) return;
-    const stamp = `${highlightCommentId}:${highlightNonce ?? ""}`;
+    const stamp = `${targetId}:${targetNonce ?? ""}`;
     if (lastStampRef.current === stamp) return;
     lastStampRef.current = stamp;
 
-    setHighlightedId(highlightCommentId);
+    if (!navJump) setHighlightedId(targetId);
+    setLandingAnchorId(targetId);
 
     const cancelLanding = startLanding({
       list,
@@ -303,12 +364,16 @@ export function TimelineList({
     });
     cancelLandingRef.current = cancelLanding;
 
-    const fade = setTimeout(() => setHighlightedId(null), HIGHLIGHT_HOLD_MS);
+    // A jump parks the row and stops there; only a deep link claims the
+    // highlight — and with it, the resolved thread's automatic expansion.
+    const fade = navJump
+      ? null
+      : setTimeout(() => setHighlightedId(null), HIGHLIGHT_HOLD_MS);
     return () => {
-      clearTimeout(fade);
+      if (fade) clearTimeout(fade);
       cancelLanding();
     };
-  }, [highlightCommentId, highlightNonce, dataWithDivider]);
+  }, [navJump, highlightCommentId, highlightNonce, dataWithDivider]);
 
   // Mark "scrolled past" once the divider row leaves the viewport — used
   // by the unmount effect below to decide whether to bump last-viewed.
@@ -318,21 +383,33 @@ export function TimelineList({
   );
   const handleViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      const minVisibleIdx = viewableItems.reduce(
+        (acc, v) => (v.index != null && v.index < acc ? v.index : acc),
+        Number.POSITIVE_INFINITY,
+      );
+      // Which thread the viewport top is inside — the stepper's prev/next
+      // origin, and the outline's "you are here". Published to the store
+      // rather than to state: this fires on every scroll, and a re-render
+      // here would rebuild `renderItem` under the visible cells.
+      if (Number.isFinite(minVisibleIdx)) {
+        const threadIdx = threadIndexAtRow(threadNav, minVisibleIdx);
+        useThreadNavStore
+          .getState()
+          .setCurrentThreadId(
+            threadIdx >= 0 ? threadNav[threadIdx]!.rootId : null,
+          );
+      }
       if (!dividerAnchorId) return;
       if (dividerScrolledPastRef.current) return;
       const dividerIdx = dataWithDivider.findIndex(
         (r) => r.entry.id === DIVIDER_ID,
       );
       if (dividerIdx < 0) return;
-      const minVisibleIdx = viewableItems.reduce(
-        (acc, v) => (v.index != null && v.index < acc ? v.index : acc),
-        Number.POSITIVE_INFINITY,
-      );
       if (minVisibleIdx > dividerIdx) {
         dividerScrolledPastRef.current = true;
       }
     },
-    [dividerAnchorId, dataWithDivider],
+    [dividerAnchorId, dataWithDivider, threadNav],
   );
   // FlashList v2 captures `viewabilityConfigCallbackPairs` at mount —
   // "Changing viewabilityConfig on the fly is not supported." So we wrap
@@ -451,6 +528,7 @@ export function TimelineList({
               issueIdentifier={issue.identifier}
               highlightedCommentId={highlightedId}
               landingViewRef={setAnchorView}
+              anchorCommentId={landingAnchorId ?? undefined}
             />
           ) : (
             <ActivityRow entry={item.entry} />
@@ -478,6 +556,13 @@ export function TimelineList({
       </Pressable>
       {newCount > 0 ? (
         <NewCommentChip count={newCount} onPress={onJumpToNew} />
+      ) : null}
+      {threadNav.length >= MIN_THREADS ? (
+        <ThreadNavFab
+          threads={threadNav}
+          onJump={onJumpToThread}
+          onOpen={onOpenThreadOutline}
+        />
       ) : null}
     </View>
     </ImageSequenceProvider>
