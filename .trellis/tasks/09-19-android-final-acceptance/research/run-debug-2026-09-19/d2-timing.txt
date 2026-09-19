@@ -1,0 +1,2 @@
+reconnect_elapsed_seconds=0
+post_reconnect_total_seconds=240
