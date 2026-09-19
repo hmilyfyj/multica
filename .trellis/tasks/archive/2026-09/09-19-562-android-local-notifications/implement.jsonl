@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/mobile/frontend/android-platform.md", "reason": "Android 平台差异权威清单：不改 iOS 行为、证据要求、新约束写回本文件"}
+{"file": "apps/mobile/AGENTS.md", "reason": "mobile 包约定：共享边界、实时层订阅、验证命令"}

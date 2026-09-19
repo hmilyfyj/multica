@@ -1,0 +1,2 @@
+{"file": "apps/mobile/AGENTS.md", "reason": "检查口径：Verification 命令、realtime 约定（无消费方不订阅、不做全局 sweep）"}
+{"file": ".trellis/tasks/09-19-ws-event-coverage/design.md", "reason": "核对补齐事件与 invalidate key 是否与对照表一致、是否有多刷"}

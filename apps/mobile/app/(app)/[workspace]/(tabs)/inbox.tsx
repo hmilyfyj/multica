@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import {
   Alert,
   FlatList,
@@ -28,6 +28,7 @@ import {
 import { useWorkspaceStore } from "@/data/workspace-store";
 import { useColorScheme } from "@/lib/use-color-scheme";
 import { THEME } from "@/lib/theme";
+import { maybePromptForNotificationPermission } from "@/lib/inbox-notification-prompt";
 import {
   deduplicateInboxItems,
   getInboxNavigationTarget,
@@ -36,6 +37,14 @@ import {
 export default function Inbox() {
   const wsId = useWorkspaceStore((s) => s.currentWorkspaceId);
   const wsSlug = useWorkspaceStore((s) => s.currentWorkspaceSlug);
+
+  // Ask for Android's notification permission the first time the user lands
+  // here — at most once per install, and never when it is already granted. The
+  // settings row alone left it too easy to install the app and never learn that
+  // banners need a grant. See lib/inbox-notification-prompt.ts.
+  useEffect(() => {
+    void maybePromptForNotificationPermission();
+  }, []);
   const { colorScheme } = useColorScheme();
   const { data: rawItems, isLoading, error, refetch, isRefetching } = useQuery(
     inboxListOptions(wsId),
