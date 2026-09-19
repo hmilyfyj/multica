@@ -380,6 +380,35 @@ export default function WorkspaceLayout() {
           options={{ title: "Autopilot", headerBackTitle: "Autopilots" }}
         />
         <Stack.Screen
+          name="more/runtimes"
+          options={{ title: "Runtimes", headerBackTitle: "Back" }}
+        />
+        {/* Runtime detail. The title is overridden in-screen with the runtime's
+            own name once the roster resolves; this is the cold-start /
+            deep-link fallback. */}
+        <Stack.Screen
+          name="more/runtimes/[id]"
+          options={{ title: "Runtime", headerBackTitle: "Runtimes" }}
+        />
+        <Stack.Screen
+          name="more/squads"
+          options={{ title: "Squads", headerBackTitle: "Back" }}
+        />
+        {/* Squad detail. Same in-screen title override as the two above. */}
+        <Stack.Screen
+          name="more/squads/[id]"
+          options={{ title: "Squad", headerBackTitle: "Squads" }}
+        />
+        <Stack.Screen
+          name="more/skills"
+          options={{ title: "Skills", headerBackTitle: "Back" }}
+        />
+        {/* Skill detail. Same in-screen title override as the two above. */}
+        <Stack.Screen
+          name="more/skills/[id]"
+          options={{ title: "Skill", headerBackTitle: "Skills" }}
+        />
+        <Stack.Screen
           name="more/pins"
           options={{ title: "Pinned", headerBackTitle: "Back" }}
         />
@@ -394,6 +423,18 @@ export default function WorkspaceLayout() {
         <Stack.Screen
           name="more/settings/notifications"
           options={{ title: "Notifications", headerBackTitle: "Settings" }}
+        />
+        {/* Read-only workspace reporting, both reached from the More popover:
+            usage trends + failure breakdown, and the current subscription.
+            They carry no writes, so they need nothing from the realtime
+            layer — the rollups refresh on their own cadence and on pull. */}
+        <Stack.Screen
+          name="more/usage"
+          options={{ title: "Usage", headerBackTitle: "Back" }}
+        />
+        <Stack.Screen
+          name="more/billing"
+          options={{ title: "Billing", headerBackTitle: "Back" }}
         />
         <Stack.Screen
           name="more/settings/workspace"

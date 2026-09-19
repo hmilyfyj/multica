@@ -318,6 +318,16 @@ Android 收件箱本机通知落地并合入 main@0698402c8：expo-notifications
 [OK] **Completed**
 
 
+## Session 29: FEATURE-571 收件箱深链落点
+<!-- trellis-session: v=2 fp=6f75bf61779a62b6 -->
+
+**Date**: 2026-09-19
+**Task**: FEATURE-571 收件箱深链落点
+**Branch**: `feature/571-inbox-scroll-landing`
+
+### Summary
+
+把收件箱深链从「落到底部」改成「落到目标评论/回复起始位置」：新增 lib/comment-landing.ts（resolveCommentLanding 行内锚点解析 + startLanding 视口坐标测量-修正回路），timeline-list 删除 startRenderingFromBottom 与重挂列表，comment-card 暴露 landingViewRef；9 例单测；versionCode 5→6 并出 vc6 Release APK；平台约束写回 spec。
 ## Session 24: 归档 FEATURE-548 Android 输入、键盘与系统导航行为校准
 <!-- trellis-session: v=2 fp=b5276fcb125121cb -->
 
@@ -334,6 +344,8 @@ Trellis 归档清尾：FEATURE-548 任务归档到 archive/2026-09，业务改�
 
 | Hash | Message |
 |------|---------|
+| `f9751a58d` | fix(mobile): 收件箱深链定位到目标回复的起始位置 (#571) |
+| `9d98ef013` | chore(task): 标记 FEATURE-571 验收项完成情况 |
 | `805a69427` | feat(mobile): Android 输入/键盘/返回键校准 |
 
 ### Status
@@ -497,6 +509,107 @@ Trellis 归档清尾：09-19-android-final-acceptance 任务归档到 archive/20
 |------|---------|
 | `0759aac3c` | feat(mobile): 设置面板补齐工作区 / 标签 / issue 状态管理 (#566) |
 | `446919803` | Merge remote-tracking branch 'origin/main' into feature/566-settings-workspace-labels-statuses |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 35: FEATURE-568 Usage / Billing 只读查看（含归档）
+<!-- trellis-session: v=2 fp=5259c07f2701c077 -->
+
+**Date**: 2026-09-19
+**Task**: FEATURE-568 Usage / Billing 只读查看（含归档）
+**Branch**: `chore/568-task-journal`
+
+### Summary
+
+给 apps/mobile 补上 Usage（用量趋势 + 失败概览）与 Billing（订阅/席位/配额/账单入口）两块只读页面；新增 6 个 dashboard rollup + 2 个配额端点的移动端方法与 query options、lib/usage-stats.ts 与 lib/billing-display.ts 两组纯函数（带单测）；More 菜单新增两个入口。已与 main 合并（冲突仅在 api.ts import 区与 More 菜单项），PR #54 squash 合并，随后归档本任务的 Trellis 记录。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `037f13251` | feat(mobile): Usage / Billing 只读查看 |
+| `85993fc86` | feat(mobile): Usage / Billing 只读查看 (#54) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 37: 归档 09-19-567-autopilots-readonly（FEATURE-567 Autopilots 只读视图）
+<!-- trellis-session: v=2 fp=cc565166bcfc8490 -->
+
+**Date**: 2026-09-19
+**Task**: 归档 09-19-567-autopilots-readonly（FEATURE-567 Autopilots 只读视图）
+**Branch**: `feature/567-autopilots-readonly`
+
+### Summary
+
+trellis-check ran(clean)：AC 1-7 逐条核验（More 菜单 Autopilots 入口、列表页/详情页路由与域组件齐备、Run now 白名单分类、autopilot 纯函数单测 22 例通过、mobile typecheck/lint/vitest 476 例通过；AC7 第 4 波 FEATURE-569 已于本轮合并）。finish-work 四步完成，task 目录移入 .trellis/tasks/archive/2026-09/。
+## Session 36: 归档 09-19-ws-event-coverage（FEATURE-564 WS 事件订阅补齐）
+<!-- trellis-session: v=2 fp=cbffc99ca294680e -->
+
+**Date**: 2026-09-19
+**Task**: 归档 09-19-ws-event-coverage（FEATURE-564 WS 事件订阅补齐）
+**Branch**: `feature/564-ws-event-subscriptions`
+
+### Summary
+
+trellis-check ran(clean)：AC 6 项逐条核验（对照表 34 行=13 补齐+2 已由 563 覆盖+19 不补；覆盖率 47→60/79；RealtimeSubscriptions 挂载 useWorkspaceRealtime/useCatalogsRealtime 且含 onReconnect；realtime 13 例测试通过；mobile typecheck/lint/vitest 476 例通过）。finish-work 四步完成，task 目录移入 .trellis/tasks/archive/2026-09/。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `de4e19c2f` | feat(mobile): Autopilots 只读视图（列表 + 详情 / 立即运行） |
+| `cd760e71b` | feat(mobile): 补齐 WS 事件订阅（workspace/member/squad/label/issue_status/chat） |
+| `9508a29cd` | feat(mobile): 补齐 WS 事件订阅（workspace/member/squad/label/issue_status/task/chat） |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 38: 归档 09-19-569-runtimes-squads-skills-readonly（FEATURE-569 Runtimes / Squads / Skills 只读视图）
+<!-- trellis-session: v=2 fp=990cc2e3f878ee5d -->
+
+**Date**: 2026-09-19
+**Task**: 归档 09-19-569-runtimes-squads-skills-readonly（FEATURE-569 Runtimes / Squads / Skills 只读视图）
+**Branch**: `feature/569-runtimes-squads-skills-readonly`
+
+### Summary
+
+trellis-check ran(clean)：AC 1-5 逐条核验（More 菜单 Runtimes/Squads/Skills 三项与 3 组列表+详情路由齐备、runtime 用量与 squad 成员/skill 文件清单分区齐备、not-found 态存在、6 个域测试文件 70 例通过、mobile typecheck/lint/vitest 476 例通过；AC5 设备验收交用户）。finish-work 四步完成，task 目录移入 .trellis/tasks/archive/2026-09/。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `1651f9c4c` | feat(mobile): Runtimes / Squads / Skills 只读视图（列表 + 详情） |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 39: 归档 09-19-inbox-comment-landing（FEATURE-571 收件箱深链落点，重新落地）
+<!-- trellis-session: v=2 fp=b998a223c142a7a1 -->
+
+**Date**: 2026-09-19
+**Task**: 归档 09-19-inbox-comment-landing（FEATURE-571 收件箱深链落点，重新落地）
+**Branch**: `feature/571-inbox-scroll-landing`
+
+### Summary
+
+上一轮归档分支 PR #46 因分支停在旧基线被 main 推进冲成 CONFLICTING 而关闭；本轮把 origin/main 合并进 feature/571-inbox-scroll-landing，业务文件与 spec 取 main 侧、保留本任务已完成的归档移动，消除 tasks/ 与 archive/ 的重名重复后重新推送提 PR。trellis-check ran(clean)：AC 5 项均已勾选（含 APK Release 交付证据），lib/comment-landing.test.ts 9 例通过。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f9751a58d` | fix(mobile): 收件箱深链定位到目标回复的起始位置 (#571) |
 
 ### Status
 

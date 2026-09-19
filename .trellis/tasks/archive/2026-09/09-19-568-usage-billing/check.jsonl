@@ -1,0 +1,2 @@
+{"file": "apps/mobile/AGENTS.md", "reason": "收尾检查范围：mobile 的 typecheck / lint / test 与设备验收边界"}
+{"file": ".trellis/spec/mobile/frontend/android-platform.md", "reason": "验收证据要求：静态验证与真机验收必须分开说明"}
