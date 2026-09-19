@@ -635,3 +635,48 @@ unarchive 的乐观补丁是**把行留在缓存里、只翻 `archived`**，「�
 `lib/inbox-display.test.ts`（归档去重）、`data/mutations/inbox.test.ts`（标记未读 / 取消归档的
 乐观补丁与回滚）、`data/stores/inbox-view-store.test.ts`、
 `data/realtime/inbox-ws-updaters.test.ts`（归档缓存补丁）；APK 走 GitHub Release 交真机自测。
+
+## issue 详情子 issue 区块（FEATURE-576，基线 commit `33c94d098`）
+
+issue 详情要补 web 的「Sub-issues」区块（列表 / 新建 / 折叠 / 父 issue 跳转）。口径与踩点如下，
+新增同类区块（例如关联 PR 列表、引用列表）照此执行。
+
+**唯一口径是 web**：`packages/views/issues/components/issue-detail.tsx` 的
+`Sub-issues — Linear-style` 段 + `groupSubIssuesByStage`，折叠状态照
+`packages/core/issues/stores/sub-issues-collapse-store.ts`。四条容易走偏的语义：
+
+- **出现条件两态**：一个子 issue 都没有时**不渲染区块**，只给一个 `+ Add sub-issues` 文字入口；
+  有子 issue 才渲染 header（折叠开关 + 标题 + `done/total` + 新建入口）+ 列表。
+- **完成数按生命周期类别**（`issueBehavesAs(child, "done")`），不是 `status === "done"` 字面比较：
+  自定义 done 类状态要计入，cancelled/closed 不计入（MUL-6243 同源规则）。
+- **折叠状态刻意不持久化**：只记「已折叠的 issue id」，展开是默认值；放 store 而不是组件 state，
+  是为了离开 issue 再进来保持原样，但重启回到默认。要持久化属于新需求，先给方案。
+- **stage 分组**：stage 升序、无 stage 的组排最后；**只有集合里真的存在 stage 时才画分组头**
+  （全无 stage 的父 issue 保持无分组标题），文案 `No stage` / `Stage N`。
+
+**两个接口，别自己造**：
+
+- `GET /api/issues/:id/children` → 单个父的子 issue 列表（详情页用）。
+- `GET /api/issues/child-progress` → **workspace 级** `[{parent_issue_id,total,done}]`，一次请求回答
+  「每一行有没有自己的子 issue、完成多少」。逐行请求是错的；没有条目的行 = 该行没有子 issue
+  （不要显示 `0/0`）。
+- 两个 schema 都在 `@multica/core/api/schemas`，属 mobile 允许的「平台无关 schema」，直接用
+  `fetchValidated` + `parseWithFallback`，只在 mobile 侧补空数组哨兵。
+
+**移动端的形态差异**（都保留了 web 行为，写在组件头注释里）：进度环 → 同源 `done/total` 文本
+（mobile 没有 ProgressRing 原语，不为此新增通用原语）；父 issue 行不可折叠（只有一行）；
+父 issue 放在 header card（= 属性区）之后、描述之前，保持 web「属性 → 父 issue」次序；
+查询未落地时不渲染空态入口（避免「先闪新建按钮再变列表」）。
+
+**复用既有行与新建表单**：子 issue 行不要另写一套 —— 给 `components/issue/issue-row.tsx` 加可选
+`trailing` 插槽（渲染在标题块与指派人之间）即可；新建子 issue 也复用既有新建表单，用
+`?parent=<uuid>` 传父 issue。
+
+**新鲜度**：子 issue 查询 `refetchOnMount: "always"`（对齐 web），下拉刷新一并 invalidate
+children + child-progress，创建成功后由创建表单显式 invalidate 父的这两个缓存
+（表单弹在详情页之上，详情页不卸载，`refetchOnMount` 不会触发）。
+子 issue 的 **WS 实时更新本轮未接**（属实时层职责，见 `data/realtime/`）：别处改了子 issue
+需要下拉刷新或重进详情页才可见。
+
+验收：分组 / 计数 / 行进度映射的纯函数单测在 `apps/mobile/lib/sub-issues.test.ts`
+（vitest Node lane 只收 `lib/**`、`data/**`，所以这类映射必须放 `lib/`）。

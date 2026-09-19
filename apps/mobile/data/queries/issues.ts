@@ -94,3 +94,44 @@ export const issueAttachmentsOptions = (wsId: string | null, id: string) =>
     queryFn: ({ signal }) => api.listAttachments(id, { signal }),
     enabled: !!wsId && !!id,
   });
+
+
+/**
+ * Direct children of one issue — the sub-issues panel on issue detail.
+ *
+ * `refetchOnMount: "always"` mirrors web's `childIssuesOptions`: a child can be
+ * created while this workspace is not the active realtime subscription (an
+ * agent creates it, or the user is looking at another workspace), and the
+ * global Infinity staleTime would otherwise reuse an incomplete children
+ * snapshot on the next open with no event guaranteed to heal it.
+ */
+export const issueChildrenOptions = (wsId: string | null, id: string) =>
+  queryOptions({
+    queryKey: issueKeys.children(wsId, id),
+    queryFn: ({ signal }) => api.listChildIssues(id, { signal }),
+    enabled: !!wsId && !!id,
+    refetchOnMount: "always",
+  });
+
+/**
+ * Workspace-wide parent→(done/total) map, folded into a `Map` for row lookups
+ * (mirrors the `select` in web's `childIssueProgressOptions`). Only parents
+ * with children appear in the response, so a sub-issue missing from the map is
+ * one with no children of its own.
+ */
+export const childIssueProgressOptions = (wsId: string | null) =>
+  queryOptions({
+    queryKey: issueKeys.childProgress(wsId),
+    queryFn: async ({ signal }) => {
+      const entries = await api.getChildIssueProgress({ signal });
+      const progress = new Map<string, { done: number; total: number }>();
+      for (const entry of entries) {
+        progress.set(entry.parent_issue_id, {
+          done: entry.done,
+          total: entry.total,
+        });
+      }
+      return progress;
+    },
+    enabled: !!wsId,
+  });

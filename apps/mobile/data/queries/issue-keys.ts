@@ -40,4 +40,13 @@ export const issueKeys = {
   // markdown renderer to resolve `mc://file/<id>` URIs to download_url.
   attachments: (wsId: string | null, id: string) =>
     [...issueKeys.all(wsId), "attachments", id] as const,
+  // Direct children of one issue (GET /api/issues/:id/children). Drives the
+  // sub-issues panel on issue detail; web keys the same cache the same way.
+  children: (wsId: string | null, id: string) =>
+    [...issueKeys.all(wsId), "children", id] as const,
+  // Workspace-wide parent→(done/total) map (GET /api/issues/child-progress).
+  // NOT scoped to an issue: the endpoint answers for every parent at once, so
+  // one key serves every sub-issue row on screen.
+  childProgress: (wsId: string | null) =>
+    [...issueKeys.all(wsId), "child-progress"] as const,
 };
