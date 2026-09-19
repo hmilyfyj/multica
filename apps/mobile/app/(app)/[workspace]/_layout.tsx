@@ -276,6 +276,16 @@ export default function WorkspaceLayout() {
           options={DUE_DATE_OPTIONS}
         />
         <Stack.Screen name="issue/[id]/runs" options={SHEET_OPTIONS} />
+        {/* Run detail — the transcript for one run, pushed from a row of the
+            runs sheet above. Same sheet family (a transcript is the "long
+            list" the container table sends here), but a single 0.95 detent:
+            at the default 0.6 the reader would have to drag the sheet up
+            before the timeline was usable, and the nested scroll inside it
+            only hands off cleanly once expanded. */}
+        <Stack.Screen
+          name="issue/[id]/runs/[taskId]"
+          options={{ ...SHEET_OPTIONS, sheetAllowedDetents: [0.95] }}
+        />
         {/* Thread outline — quick jump between an issue's comment threads,
             pushed from the timeline's floating thread stepper. */}
         <Stack.Screen name="issue/[id]/threads" options={SHEET_OPTIONS} />

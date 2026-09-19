@@ -120,7 +120,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       // vc11: chat stop-a-running-task + session rename (FEATURE-579).
       // vc12: issue-detail linked-PR block (FEATURE-578 — read-only list that
       // opens each PR in the system browser).
-      versionCode: 12,
+      // vc13: run detail transcript (FEATURE-581 — tap any run in the runs
+      // sheet to read its steps, windowed with "show earlier steps" and live
+      // while the run is in flight).
+      versionCode: 13,
 
       // Keep the window's soft-input mode on `adjustResize` — this is Expo's
       // default (its plugin writes `adjustResize` when the key is absent), so

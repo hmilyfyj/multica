@@ -16,6 +16,7 @@
  * use-chat-session-realtime.ts).
  */
 import { queryOptions } from "@tanstack/react-query";
+import type { TaskMessagePayload } from "@multica/core/types";
 import { api } from "@/data/api";
 
 export const chatKeys = {
@@ -48,6 +49,44 @@ export function isTaskMessageTaskId(
   return typeof taskId === "string" && UUID_PATTERN.test(taskId);
 }
 
+/**
+ * Union two task-message lists by `seq`, the authoritative (server) list
+ * winning on conflict and rows it did not mention being kept.
+ *
+ * This is the rule every write to `["task-messages", taskId]` goes through,
+ * wired in as `structuralSharing` below, because a fetch result and the
+ * realtime stream race: the timeline is fetched on first open and any
+ * `task:message` frame arriving while that request is in flight is written to
+ * the cache first. A plain replace would drop those seqs, and with
+ * `staleTime: Infinity` nothing would ever fetch them back — the gap would
+ * survive until a reload.
+ *
+ * Server data wins on conflict (the persisted row is the authority); a
+ * response snapshotted before a seq was persisted must not erase it. Mirrors
+ * `unionTaskMessagesBySeq` in `packages/core/chat/queries.ts`. The existing
+ * array reference is returned unchanged when nothing differs, so a duplicate
+ * event does not re-render every subscriber.
+ */
+export function unionTaskMessagesBySeq(
+  existing: readonly TaskMessagePayload[] | undefined,
+  incoming: readonly TaskMessagePayload[],
+): TaskMessagePayload[] {
+  if (!existing || existing.length === 0) {
+    return [...incoming].sort((a, b) => a.seq - b.seq);
+  }
+
+  const bySeq = new Map(existing.map((message) => [message.seq, message]));
+  let changed = false;
+  for (const message of incoming) {
+    if (bySeq.get(message.seq) !== message) {
+      bySeq.set(message.seq, message);
+      changed = true;
+    }
+  }
+  if (!changed) return existing as TaskMessagePayload[];
+  return [...bySeq.values()].sort((a, b) => a.seq - b.seq);
+}
+
 export const chatSessionsOptions = (wsId: string | null) =>
   queryOptions({
     queryKey: chatKeys.sessions(wsId),
@@ -78,4 +117,12 @@ export const taskMessagesOptions = (taskId: string | null | undefined) =>
     queryFn: ({ signal }) => api.listTaskMessages(taskId!, { signal }),
     enabled: isTaskMessageTaskId(taskId),
     staleTime: Infinity,
+    // A WS frame can land while the first fetch is in flight; the union keeps
+    // both instead of letting the response replace the cache (see
+    // `unionTaskMessagesBySeq`).
+    structuralSharing: (previous, next) =>
+      unionTaskMessagesBySeq(
+        previous as TaskMessagePayload[] | undefined,
+        next as TaskMessagePayload[],
+      ),
   });
