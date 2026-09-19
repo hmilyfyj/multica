@@ -636,3 +636,39 @@ trellis-check ran(clean)：AC 1-4 逐条核验（lib/thread-nav.test.ts 18 例�
 ### Status
 
 [OK] **Completed**
+
+
+## Session 41: FEATURE-576 子 issue 区块（归档）
+<!-- trellis-session: v=2 fp=b332c5702cdba653 -->
+
+**Date**: 2026-09-19
+**Task**: FEATURE-576 子 issue 区块（归档）
+**Package**: mobile
+**Branch**: `feature/576-issue-sub-issues`
+
+### Summary
+
+Session summary was not supplied.
+
+### Main Changes
+
+- issue 详情新增子 issue 区块：列表（stage 分组 / 状态 / 指派人 / 子进度）、新建入口、会话内折叠、父 issue 跳转；口径对齐 web，APK vc9 走 GitHub Release，PR #65 已合并 main@5d4f84e0a
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `88a81fea1` | feat(mobile): 子 issue 分组与计数纯函数 + 单测 (#576) |
+| `0e17748a5` | feat(mobile): issue 详情子 issue 区块（列表 / 新建 / 折叠）(#576) |
+
+### Testing
+
+- [OK] typecheck / lint(0 error) / mobile test（vitest 489 例 + 4 个 shell 用例）/ sub-issues 单测 13 例 + 变异 RED 验证
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 第 2 波 FEATURE-578（关联 PR 列表）、FEATURE-579（聊天：停止任务 + 会话重命名）已指派；子 issue 的 WS 实时更新未接
