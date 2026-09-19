@@ -384,3 +384,26 @@ Trellis 归档清尾：09-18-android-distribution 任务归档到 archive/2026-0
 ### Status
 
 [OK] **Completed**
+
+
+## Session 30: 归档 FEATURE-557 品牌化：应用名「海尔商城」与包名
+<!-- trellis-session: v=2 fp=35353111c7cc4d9a -->
+
+**Date**: 2026-09-19
+**Task**: 归档 FEATURE-557 品牌化：应用名「海尔商城」与包名
+**Package**: mobile
+**Branch**: `feature/557-android-branding`
+
+### Summary
+
+Trellis 归档清尾：09-18-android-branding 任务归档到 archive/2026-09；业务改动（应用名与包名 com.ehaier.zgq.shop.mall）已由 #12 合入 main；AC 全部勾选。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `564e6db87` | feat(mobile): Android 品牌化为「海尔商城」与 com.ehaier.zgq.shop.mall (#12) |
+
+### Status
+
+[OK] **Completed**
