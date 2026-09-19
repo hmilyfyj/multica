@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 33
+- **Total Sessions**: 34
 - **Last Active**: 2026-09-19
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~456 | Active |
+| `journal-1.md` | ~503 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 34 | 2026-09-19 | FEATURE-566 设置面板补齐：工作区 / 标签 / issue 状态 | `0759aac3c`, `446919803` | `feature/566-settings-workspace-labels-statuses` |
 | 33 | 2026-09-19 | 归档 FEATURE-558 阶段 5 收尾验收 | `f0979ddfe`, `903338f10` | `feature/558-android-final-acceptance` |
 | 31 | 2026-09-19 | 归档 FEATURE-559 实时层两处缺陷修复 | `86235a2aa` | `feature/559-realtime-defects` |
 | 30 | 2026-09-19 | 归档 FEATURE-557 品牌化：应用名「海尔商城」与包名 | `564e6db87` | `feature/557-android-branding` |

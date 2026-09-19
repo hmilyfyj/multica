@@ -493,6 +493,30 @@ FEATURE-562 让这件事变成缺陷：本机通知的**唯一**事件源就是�
 - 已知结论：**普通应用在 Android 上做不到「后台持续收事件」**。要么前台服务（常驻通知换取不被冻结），
   要么厂商/聚合推送（杀进程也能收，需外部账号），要么接受方案 A 的边界。
 
+## 设置面板补齐（FEATURE-566，基线 commit `06197ea41`）
+
+### `SegmentedControl` 在 Android 上必须显式传 `appearance`
+
+`@react-native-segmented-control/segmented-control` 按平台解析实现：
+iOS 走 `js/SegmentedControl.ios.js`（原生 `UISegmentedControl`），Android / web 走
+`js/SegmentedControl.js`（纯 JS 复刻）。JS 实现内部取的是 **React Native 的 `useColorScheme()`**
+（`js/SegmentedControl.js:43` 的 `appearance || colorSchemeHook`）——即**系统**深浅色，
+而不是本 App 通过 `lib/use-color-scheme.ts` 持久化的主题偏好。系统浅色而 App 内选深色时，
+控件会停在浅色。iOS 的原生实现跟随系统外观、不吃这个 prop。
+
+约定：**Android 传 `appearance={colorScheme}`（App 自己的偏好），iOS 传 `undefined`**。
+已落地在 `app/(app)/[workspace]/more/settings/labels.tsx`的 scope 切换上。
+
+⚠ 同一库的 `SegmentsSeparators` 不接收 `appearance`、仍用 RN 的 `useColorScheme()`
+（`js/SegmentsSeparators.js:20`），所以深色模式下**段间分割线仍跟随系统**。这是库自身的不一致，
+本仓库修不掉；真机验收时不要把这条色差判成主题失效。
+
+### 设置面板的写权限与后端一致
+
+`PATCH /api/workspaces/{id}` 与全部 `/api/issue-statuses` 写操作在 `server/cmd/server/router.go`
+里挂在 **owner|admin** 组，`/api/labels` 的增删改只要求工作区成员身份。移动端按同一规则
+门禁控件（`memberListOptions` + `user.id` 比对 role），不要用「失败了再提示」代替前端门禁。
+
 ## 时间线 deep-link 落点（FEATURE-571，基线 commit `26c8192e3`）
 
 收件箱通知带的是 comment id，点进来必须落到该评论/回复的起始位置。这里有三条容易踩的约束：

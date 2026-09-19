@@ -12,6 +12,9 @@ import {
   issueStatusColor,
   statusOptions,
   statusIconRenderer,
+  groupIssueStatuses,
+  issueStatusLabel,
+  moveStatusInCategory,
 } from "./issue-status";
 
 describe("custom icon parity", () => {
@@ -268,5 +271,115 @@ describe("isCustomStatus", () => {
   it("stays silent when the catalog has not landed", () => {
     expect(isCustomStatus(buildIssueStatusCatalog(undefined), "qa")).toBe(false);
     expect(isCustomStatus(buildIssueStatusCatalog([]), "qa")).toBe(false);
+  });
+});
+
+describe("groupIssueStatuses", () => {
+  // The editor renders a section per category even when it is empty: that is
+  // where the section's "Add status" button lives, so dropping an empty
+  // category would make its statuses impossible to create.
+  it("returns all four categories, empty ones included", () => {
+    const groups = groupIssueStatuses([]);
+    expect(groups.map((g) => g.category)).toEqual([
+      "unstarted",
+      "started",
+      "done",
+      "closed",
+    ]);
+    expect(groups.every((g) => g.active.length === 0 && g.archived.length === 0)).toBe(true);
+  });
+
+  it("splits active from archived inside the owning category", () => {
+    const groups = groupIssueStatuses([
+      entry("qa", "started", { name: "QA" }),
+      entry("gate", "started", { archived_at: "2026-01-01T00:00:00Z" }),
+      entry("done", "done", { is_system: true }),
+    ]);
+    expect(groups.find((g) => g.category === "started")?.active.map((e) => e.id)).toEqual(["qa"]);
+    expect(groups.find((g) => g.category === "started")?.archived.map((e) => e.id)).toEqual(["gate"]);
+    expect(groups.find((g) => g.category === "done")?.active.map((e) => e.id)).toEqual(["done"]);
+  });
+
+  // `position` is a float the server derives from array indexes, so two rows
+  // created in a race can share one. Without a deterministic tie-break the two
+  // would swap places between renders and the reorder buttons would look broken.
+  it("orders within a category by position, then by name", () => {
+    const groups = groupIssueStatuses([
+      entry("b", "started", { name: "Beta", position: 2 }),
+      entry("a", "started", { name: "Alpha", position: 2 }),
+      entry("c", "started", { name: "Gamma", position: 1 }),
+    ]);
+    expect(groups.find((g) => g.category === "started")?.active.map((e) => e.id)).toEqual([
+      "c",
+      "a",
+      "b",
+    ]);
+  });
+});
+
+describe("moveStatusInCategory", () => {
+  const entries = [
+    entry("one", "started", { position: 1 }),
+    entry("two", "started", { position: 2 }),
+    entry("three", "started", { position: 3 }),
+    entry("other", "done", { position: 1 }),
+  ];
+
+  // The endpoint rewrites the WHOLE category scope and rejects a payload that
+  // omits a row, so the result must be every active id of that category in its
+  // new order — nothing more, nothing less.
+  it("returns every active id of the category in the new order", () => {
+    expect(moveStatusInCategory(entries, "started", "one", 1)).toEqual(["two", "one", "three"]);
+    expect(moveStatusInCategory(entries, "started", "three", -1)).toEqual(["one", "three", "two"]);
+  });
+
+  it("leaves other categories out of the payload", () => {
+    expect(moveStatusInCategory(entries, "started", "one", 1)).not.toContain("other");
+  });
+
+  // Archived rows are outside the reorder scope, so they must stay out of the
+  // payload even though they render in the same section.
+  it("ignores archived rows", () => {
+    const withArchived = [
+      ...entries,
+      entry("old", "started", {
+        position: 4,
+        archived_at: "2026-01-01T00:00:00Z",
+      }),
+    ];
+    expect(moveStatusInCategory(withArchived, "started", "one", 1)).toEqual([
+      "two",
+      "one",
+      "three",
+    ]);
+  });
+
+  // Null means "send nothing": every one of these would come back a 4xx, so
+  // the row gates its button on this instead of round-tripping a known-bad
+  // request.
+  it("refuses moves the server would reject", () => {
+    expect(moveStatusInCategory(entries, "started", "one", -1)).toBeNull();
+    expect(moveStatusInCategory(entries, "started", "three", 1)).toBeNull();
+    expect(moveStatusInCategory(entries, "started", "other", 1)).toBeNull();
+    expect(moveStatusInCategory(entries, "closed", "one", 1)).toBeNull();
+  });
+
+  it("refuses a single-row category, where there is nothing to swap with", () => {
+    expect(moveStatusInCategory([entry("only", "started")], "started", "only", 1)).toBeNull();
+  });
+});
+
+describe("issueStatusLabel", () => {
+  // The settings list must not disagree with the picker about what "In Review"
+  // is called, so a built-in renders mobile's own copy even when its catalog
+  // row carries a different name.
+  it("uses mobile's copy for a built-in", () => {
+    expect(
+      issueStatusLabel(entry("in_review", "started", { name: "Renamed", is_system: true })),
+    ).toBe("In Review");
+  });
+
+  it("uses the workspace's name for a custom status", () => {
+    expect(issueStatusLabel(entry("qa", "started", { name: "QA" }))).toBe("QA");
   });
 });

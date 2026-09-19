@@ -271,11 +271,10 @@ export function buildIssueStatusCatalog(
       if (isBuiltInIssueStatus(statusKey)) return STATUS_LABEL[statusKey];
       return byKey.get(statusKey)?.name ?? statusKey;
     },
-    inCategory: (category) =>
-      list.filter(
-        (entry) =>
-          normalizeIssueStatusCategory(entry.category) === category && !entry.archived_at,
-      ),
+    // One implementation of "active rows of this category, in display order"
+    // — see activeStatusesInCategory. Two filters here would eventually
+    // disagree about an archived or unknown-category row.
+    inCategory: (category) => activeStatusesInCategory(list, category),
     isLoaded: entries !== undefined,
   };
 }
@@ -361,4 +360,137 @@ export function statusOptions(catalog: IssueStatusCatalog): StatusOption[] {
       icon: entry.icon ?? null,
     }));
   });
+}
+
+// ---------------------------------------------------------------------------
+// Settings-screen helpers
+//
+// The status CATALOG editor needs a different view of the same list than the
+// pickers do: it groups by category, orders within a category, and reorders
+// by array index. All three are pure so they can be tested without a render.
+// ---------------------------------------------------------------------------
+
+/** Position of a category in canonical order; unknown categories sort first,
+ *  which is where an unrecognised value already lands everywhere else. */
+function categoryRank(category: string): number {
+  const normalized = normalizeIssueStatusCategory(category) ?? "unstarted";
+  const index = STATUS_CATEGORIES.indexOf(normalized);
+  return index === -1 ? 0 : index;
+}
+/**
+ * Order two entries the way the settings screen renders them: by category
+ * (canonical order), then by `position` inside the category, then by name.
+ *
+ * The name tie-break is load-bearing. `position` is a float the server
+ * derives from array indexes, so two rows created in a race can hold the same
+ * value — without a deterministic last key the two would swap places between
+ * renders and the reorder control would look broken.
+ */
+export function compareIssueStatusEntries(
+  a: IssueStatusEntry,
+  b: IssueStatusEntry,
+): number {
+  const rank = categoryRank(a.category) - categoryRank(b.category);
+  if (rank !== 0) return rank;
+  if (a.position !== b.position) return a.position - b.position;
+  return a.name.localeCompare(b.name);
+}
+
+/**
+ * One category's ACTIVE entries, in the order the catalog sent them.
+ *
+ * This is exactly the set a reorder call must name — the endpoint rewrites
+ * the whole scope and rejects a payload that leaves a row out — so the
+ * reorder helpers below are built on it rather than on a second filter.
+ */
+export function activeStatusesInCategory(
+  entries: IssueStatusEntry[],
+  category: IssueStatusCategory,
+): IssueStatusEntry[] {
+  return entries.filter(
+    (entry) =>
+      !entry.archived_at &&
+      (normalizeIssueStatusCategory(entry.category) ?? "unstarted") === category,
+  );
+}
+
+/**
+ * The same set in the order the settings screen draws it.
+ *
+ * Deliberately separate from `activeStatusesInCategory`: the PICKER wants the
+ * catalog's own order, and sorting there would silently reorder the status
+ * sheet for any workspace whose rows share a position.
+ */
+function orderedActiveStatuses(
+  entries: IssueStatusEntry[],
+  category: IssueStatusCategory,
+): IssueStatusEntry[] {
+  return activeStatusesInCategory(entries, category).sort(
+    compareIssueStatusEntries,
+  );
+}
+
+/** One section of the settings list. */
+export interface IssueStatusCategoryGroup {
+  category: IssueStatusCategory;
+  active: IssueStatusEntry[];
+  archived: IssueStatusEntry[];
+}
+
+/**
+ * The catalog grouped for the settings screen — every canonical category, in
+ * order, each with its active and archived rows.
+ *
+ * Empty categories are kept: that is where the section's "Add status" button
+ * lives, and hiding a category would make its statuses impossible to create.
+ */
+export function groupIssueStatuses(
+  entries: IssueStatusEntry[],
+): IssueStatusCategoryGroup[] {
+  const archived = entries.filter((entry) => !!entry.archived_at);
+  return STATUS_CATEGORIES.map((category) => ({
+    category,
+    active: orderedActiveStatuses(entries, category),
+    archived: archived
+      .filter(
+        (entry) =>
+          (normalizeIssueStatusCategory(entry.category) ?? "unstarted") === category,
+      )
+      .sort(compareIssueStatusEntries),
+  }));
+}
+
+/**
+ * Move one entry a single slot up (-1) or down (+1) inside its category, and
+ * return the id order to send to `reorderIssueStatuses`.
+ *
+ * Null means "do not send anything": the row is already at the end it is
+ * being pushed toward, the id is not an active entry of that category, or the
+ * category has fewer than two rows. The endpoint would answer each of those
+ * with a 4xx, so the caller gates on this instead of round-tripping.
+ */
+export function moveStatusInCategory(
+  entries: IssueStatusEntry[],
+  category: IssueStatusCategory,
+  id: string,
+  delta: -1 | 1,
+): string[] | null {
+  const ordered = orderedActiveStatuses(entries, category);
+  const from = ordered.findIndex((entry) => entry.id === id);
+  if (from < 0) return null;
+  const to = from + delta;
+  if (to < 0 || to >= ordered.length) return null;
+  const ids = ordered.map((entry) => entry.id);
+  [ids[from], ids[to]] = [ids[to], ids[from]];
+  return ids;
+}
+
+/**
+ * The name to show for a catalog entry. Built-ins render mobile's own copy —
+ * the same string every other surface shows — so the settings list cannot
+ * disagree with the picker about what "In Review" is called. A custom status
+ * shows the name the workspace gave it.
+ */
+export function issueStatusLabel(entry: IssueStatusEntry): string {
+  return isBuiltInIssueStatus(entry.key) ? STATUS_LABEL[entry.key] : entry.name;
 }

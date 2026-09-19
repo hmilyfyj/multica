@@ -47,7 +47,9 @@ export function LabelPickerBody({
   onCreate,
 }: Props) {
   const wsId = useWorkspaceStore((s) => s.currentWorkspaceId);
-  const { data: labels = [] } = useQuery(labelListOptions(wsId));
+  // The picker only ever attaches ISSUE labels; the settings screen is the
+  // one place that also manages the skill catalog.
+  const { data: labels = [] } = useQuery(labelListOptions(wsId, "issue"));
   const listRef = useScrollToTopOnChange(query);
   const { colorScheme } = useColorScheme();
   const checkColor =

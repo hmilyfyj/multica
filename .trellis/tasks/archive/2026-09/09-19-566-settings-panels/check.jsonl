@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/mobile/frontend/android-platform.md", "reason": "核对平台差异原则与验收证据要求（本任务不做设备验收，需在交付里写明未覆盖）"}
+{"file": "apps/mobile/AGENTS.md", "reason": "核对行为对齐口径、data 层约定与 typecheck/lint/test 证据"}
