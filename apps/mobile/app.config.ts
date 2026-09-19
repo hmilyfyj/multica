@@ -22,7 +22,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         ? "海尔商城 (Staging)"
         : "海尔商城 (Dev)",
     slug: "multica-mobile",
-    version: "0.1.1",
+    version: "0.1.2",
     orientation: "portrait",
     // Applies to both platforms. On Android this only takes effect because
     // expo-system-ui is installed: prebuild writes the value into strings.xml
@@ -123,7 +123,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       // vc13: run detail transcript (FEATURE-581 — tap any run in the runs
       // sheet to read its steps, windowed with "show earlier steps" and live
       // while the run is in flight).
-      versionCode: 13,
+      // vc14: 0.1.2 release (inbox filters/unread/archive, issue sub-issues,
+      // linked PRs, chat stop-a-task + session rename, run transcript).
+      versionCode: 14,
 
       // Keep the window's soft-input mode on `adjustResize` — this is Expo's
       // default (its plugin writes `adjustResize` when the key is absent), so
