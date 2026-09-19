@@ -10,7 +10,7 @@
 
 - 事件名单：`packages/core/types/events.ts` 的 `WSEventType` 共 **79** 类。
 - web 覆盖 **79/79**：46 类显式 `ws.on(...)` + `refreshMap` 前缀泛化（`inbox/agent/member/workspace/skill/project/squad/label/issue_status/pin/daemon/task/pull_request/github_installation/...`），`specificEvents` 中的事件跳过前缀路径。
-- mobile 现有显式订阅 **45** 类（`ws.on`，分布在 use-inbox/use-issue/use-issues/use-my-issues/use-chat-session/use-chat-sessions/use-project/use-projects/use-pins/use-presence），缺口 **34** 类 —— 任务描述里的「缺 22 类」是粗估，实际按 79 全集差集为 34（明细见 `design.md`）。
+- origin/main（已含并行任务 FEATURE-563 合并的 inbox hook）现有显式订阅 **47** 类（`ws.on`，分布在 use-inbox/use-issue/use-issues/use-my-issues/use-chat-session/use-chat-sessions/use-project/use-projects/use-pins/use-presence），缺口 **32** 类 —— 任务描述里的「缺 22 类」是粗估，实际按 79 全集差集为 32（明细见 `design.md`）。
 - mobile 无 `onAny` 业务分发：`ws.onAny` 只被 `realtime-provider.tsx` 用于「有一帧到达」的取证记录。
 - mobile 没有 invitation / skill / subscriber / issue-properties / github-installation / pull_request 的 API、query 与路由（`rg -ci invitation apps/mobile` 命中 0；`data/api.ts` 无对应方法）。
 - `member:added` 是「我入组」到达客户端的通道：服务端接受邀请时先播 `member:added` 再播 `invitation:accepted`（`server/internal/handler/invitation.go:597,600`），因此 mobile 只需订阅 `member:added`。
@@ -19,11 +19,11 @@
 
 ## Requirements
 
-1. 产出一张对照表：`事件名 | web 行为（invalidate/invalidate 哪些 query） | mobile 现状 | 补齐后`，覆盖 34 个缺口事件。
-2. 补齐 mobile 有消费方的缺口：workspace / member / squad / label / issue_status / task（running、waiting_local_directory）/ chat:cancel_finalized。
+1. 产出一张对照表：`事件名 | web 行为（invalidate 哪些 query） | mobile 现状 | 补齐后`，覆盖 32 个缺口事件。
+2. 补齐 mobile 有消费方的缺口：workspace / member / squad / label / issue_status / chat:cancel_finalized（13 类）。
 3. 刷新口径复用 web 的域语义（按域 invalidate 对应 mobile key），不自造刷新策略；mobile 已有的 patch 优先约定（`apps/mobile/AGENTS.md` Realtime 段）保持不变。
 4. 不做过度刷新：同一事件不得触发全量 `invalidateQueries()` sweep，也不得连带刷新 web 刷新而 mobile 不渲染的域（示例：label 事件在 mobile 不刷 agents/skills）。
-5. 无消费方的缺口事件明确「不补」并写明证据（API/query/路由缺失），同时把 mobile 侧仍存在的越界缺口（`inbox:batch-*`，属 FEATURE-563 并行修改的 `use-inbox-realtime.ts`）记录在结论里。
+5. 无消费方的缺口事件明确「不补」并写明证据（API/query/路由缺失）。`task:running` / `task:waiting_local_directory` 已由 FEATURE-563 合并的 inbox hook 覆盖（同一 `agent-task-snapshot` key），本次不重复订阅，并在对照表注明。
 6. 为「事件 → invalidate 映射」补单测（沿用现有 mock `useWSSubscriptions` + 断言 invalidate key 的写法）。
 
 ## Boundaries
@@ -35,8 +35,8 @@
 
 ## Acceptance Criteria
 
-- [ ] 对照表覆盖全部 34 个缺口事件，其中补齐 15 类、明确不补 19 类（每类给出理由）。
-- [ ] 补齐后 mobile 覆盖率 45 → 60/79；不补的 19 类全部有无消费方证据。
+- [ ] 对照表覆盖全部 32 个缺口事件，其中补齐 13 类、由并行任务已覆盖 2 类、明确不补 19 类（每类给出理由）。
+- [ ] 补齐后 mobile 覆盖率 47 → 60/79；不补的 19 类全部有无消费方证据。
 - [ ] 新订阅全部经 `RealtimeSubscriptions` 挂载，且都带 `onReconnect` 刷新。
 - [ ] 单测覆盖：每个补齐事件 → 精确 invalidate key 集合（同时证明没有多刷其他 key）。
 - [ ] `pnpm --filter @multica/mobile typecheck` / `lint` / `test` 通过。

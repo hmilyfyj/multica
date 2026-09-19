@@ -4,7 +4,7 @@
 
 ## 步骤
 
-1. [x] 对照：用脚本抽取 `WSEventType` 全集、web 显式 `ws.on` + `refreshMap` 前缀、mobile 显式 `ws.on`，得到 34 个缺口事件（结果见 `design.md` 对照表）。
+1. [x] 对照：用脚本抽取 `WSEventType` 全集、web 显式 `ws.on` + `refreshMap` 前缀、mobile 显式 `ws.on`，得到 32 个缺口事件（结果见 `design.md` 对照表）。
 2. 新增 `apps/mobile/data/realtime/use-workspace-realtime.ts`
    - `workspace:updated` / `workspace:deleted` → invalidate `["workspaces"]`（用 `workspaceListOptions().queryKey`）
    - `member:added` → invalidate members；`member.user_id === 我` 时加 `["workspaces"]`
@@ -16,11 +16,11 @@
    - `label:created|updated|deleted` → `labelKeys.all(wsId)` + `issueKeys.all(wsId)`
    - `issue_status:changed` → `issueStatusKeys.all(wsId)`
    - `onReconnect` → squads + labels + issue-statuses
-4. `use-presence-realtime.ts`：任务生命周期集合补 `task:running`、`task:waiting_local_directory`
+4. ~~`use-presence-realtime.ts`：补 `task:running`、`task:waiting_local_directory`~~ —— 合并 origin/main 后发现 FEATURE-563 的 inbox hook 已为同一 `agent-task-snapshot` key 订阅这两个事件，改为不重复订阅（本文件与 main 保持一致）。
 5. `use-chat-session-realtime.ts`：补 `task:running`、`task:waiting_local_directory`、`chat:cancel_finalized`
 6. `use-chat-sessions-realtime.ts`：补 `chat:cancel_finalized`（`stopped` → sessions）
 7. `app/(app)/[workspace]/_layout.tsx`：`RealtimeSubscriptions` 挂载两个新 hook（仅 import + 调用）
-8. 单测：`use-workspace-realtime.test.ts`、`use-catalogs-realtime.test.ts` 新建；`use-presence-realtime.test.ts`、`use-chat-sessions-realtime.test.ts` 增补；`use-chat-session-realtime.test.ts` 新建
+8. 单测：`use-workspace-realtime.test.ts`、`use-catalogs-realtime.test.ts`、`use-chat-session-realtime.test.ts` 新建；`use-chat-sessions-realtime.test.ts` 增补
 
 ## 验证命令（收尾一次跑完）
 

@@ -5,8 +5,7 @@
  * Invalidates the queries that back the presence dot:
  *   - runtimeListOptions      ← daemon:register, runtime sweeper transitions
  *   - agentListOptions        ← agent:status / created / archived / restored
- *   - agentTaskSnapshotOptions← task:queued / dispatch / running /
- *                               waiting_local_directory / completed / failed /
+ *   - agentTaskSnapshotOptions← task:queued / dispatch / completed / failed /
  *                               cancelled
  *
  * Deliberately NOT subscribed (cellular-data rule, apps/mobile/CLAUDE.md):
@@ -56,10 +55,6 @@ export function usePresenceRealtime() {
         // reserved-for-P1 peek sheet. progress / message intentionally absent.
         ws.on("task:queued", invalidateSnapshot),
         ws.on("task:dispatch", invalidateSnapshot),
-        // Waiting-for-directory → running is the transition that clears the
-        // parked pill; dispatch's collapse covers the common path only.
-        ws.on("task:running", invalidateSnapshot),
-        ws.on("task:waiting_local_directory", invalidateSnapshot),
         ws.on("task:completed", invalidateSnapshot),
         ws.on("task:failed", invalidateSnapshot),
         ws.on("task:cancelled", invalidateSnapshot),

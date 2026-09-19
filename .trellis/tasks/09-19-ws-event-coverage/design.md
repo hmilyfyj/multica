@@ -4,10 +4,10 @@
 
 - 事件全集：`packages/core/types/events.ts` `WSEventType` = 79。
 - web 覆盖 79/79 = 46 类显式 `ws.on` + 前缀泛化（`refreshMap` 的 21 个前缀：`inbox/agent/member/workspace/skill/project/squad/label/issue_status/pin/daemon/autopilot/github_installation/lark_installation/slack_installation/dingtalk_installation/vcs_connection/wecom_installation/telegram_installation/pull_request/task`），`specificEvents` 里的 33 类跳过前缀路径（含 `daemon:heartbeat`，web 无对应 handler，等价于有意忽略）。
-- mobile 补齐前：45 类显式 `ws.on`。差集（web 有、mobile 无）= **34**。
-- 本轮补齐 15，明确不补 19 → mobile 覆盖率 60/79。
+- origin/main（已含 FEATURE-563 的 inbox hook）：47 类显式 `ws.on`；差集（web 有、mobile 无）= **32**。
+- 本轮补齐 **13** 类；`task:running` / `task:waiting_local_directory` 已由 FEATURE-563 合并的 `use-inbox-realtime.ts` 覆盖（同一 `agent-task-snapshot` key，不重复订阅）。明确不补 **19** 类 → mobile 覆盖率 **60/79**。
 
-## 对照表（34 个缺口事件）
+## 对照表（32 个缺口事件）
 
 | 事件 | web 行为 | mobile 现状（消费方） | 补齐后 |
 |---|---|---|---|
@@ -23,8 +23,8 @@
 | `label:updated` | 同上 | 同上（改名/改色要重绘 issue 上的 chip 与 picker） | 同上 |
 | `label:deleted` | 同上 | 同上 | 同上 |
 | `issue_status:changed` | 只刷 issue status catalog（刻意不拖 issues，`MUL-6458`） | 未订阅；`issueStatusKeys` 被 `useIssueStatuses` 用于 state/priority chip 的 name/color 解析 | invalidate `issueStatusKeys.all(wsId)`（同样不拖 issues：mobile 行只存 status key，渲染时查 catalog） |
-| `task:running` | 专项 handler：清掉 `waiting_local_directory` 的 pending 态 + 刷消息 +（task 前缀）刷快照 | 未订阅；presence 的 `["agent-task-snapshot",wsId]` 与 chat 的 `pendingTask` | presence 订阅 → invalidate snapshot；chat 会话 hook 订阅 → invalidate `pendingTask`（+ 保持既有 messages 口径） |
-| `task:waiting_local_directory` | 同上（daemon 占用同目录时） | 未订阅；同上 | 同上 |
+| `task:running` | 专项 handler：清掉 `waiting_local_directory` 的 pending 态 + 刷消息 +（task 前缀）刷快照 | origin/main 已由 FEATURE-563 的 inbox hook 订阅（invalidate `agent-task-snapshot`，即 presence 同一 key） | 不重复订阅：presence 侧保持 563 已声明的分工；chat 会话 hook 订阅 → invalidate `pendingTask` |
+| `task:waiting_local_directory` | 同上（daemon 占用同目录时） | 同上（563 已订阅） | 同上 |
 | `chat:cancel_finalized` | patch pending task；`outcome === "stopped"` 时另刷会话列表 | 未订阅；chat 的 `pendingTask` / `messages` / `sessions` | 会话 hook：invalidate `pendingTask`，`stopped` 时再刷 `messages`；列表 hook：`stopped` 时刷 `sessions`（预览出现 “Stopped.” 行） |
 | `daemon:heartbeat` | 在 `specificEvents` 中跳过且无 handler（有意忽略，避免心跳风暴） | 未订阅；`use-presence-realtime.ts` 注释已写明有意跳过 | **不补**（两端一致） |
 | `invitation:created` | 刷待处理邀请 + toast | 未订阅；mobile 无 invitation API / query / 路由（`rg -ci invitation apps/mobile` 命中 0） | 不补（无消费方） |
@@ -46,7 +46,7 @@
 | `pull_request:updated` | 同上 | 同上 | 不补（无消费方） |
 | `pull_request:unlinked` | 同上 | 同上 | 不补（无消费方） |
 
-覆盖外但记录在结论的越界缺口：`inbox:batch-read` / `inbox:batch-archived`（mobile 未订阅，属 `use-inbox-realtime.ts`，本任务禁改，FEATURE-563 并行）。
+（无越界缺口：`inbox:batch-read` / `inbox:batch-archived` 由本轮并行任务 FEATURE-563 合并进 origin/main，本次核对已确认覆盖。）
 
 ## 实现形态
 
@@ -57,19 +57,18 @@
 
 改动既有 hook（按域归属，不新建第三个文件）：
 
-3. `use-presence-realtime.ts`：任务生命周期集合补 `task:running`、`task:waiting_local_directory`（仍不含 `task:message` / `task:progress`，保持既有「高频道事件不订阅」的蜂窝数据约定）。
-4. `use-chat-session-realtime.ts`：补 `task:running`、`task:waiting_local_directory`（invalidate pendingTask）、`chat:cancel_finalized`（invalidate pendingTask；`stopped` 时加 messages）。
-5. `use-chat-sessions-realtime.ts`：补 `chat:cancel_finalized`（`stopped` 时 invalidate `chatKeys.sessions(wsId)`）。
+3. `use-chat-session-realtime.ts`：补 `task:running`、`task:waiting_local_directory`（invalidate pendingTask）、`chat:cancel_finalized`（invalidate pendingTask；`stopped` 时加 messages）。
+4. `use-chat-sessions-realtime.ts`：补 `chat:cancel_finalized`（`stopped` 时 invalidate `chatKeys.sessions(wsId)`）。
 
 key 来源：有 key factory 的用 factory（`labelKeys`、`issueStatusKeys`、`issueKeys`、`chatKeys`）；members/squads 只导出 `*Options`，用 `memberListOptions(wsId).queryKey` / `squadListOptions(wsId).queryKey` 取 key（既有先例：`data/mutations/issues.ts:353` 用 `appConfigOptions().queryKey`），避免硬编码字面量，也不越界改 `data/queries/**`。
 
 ## 权衡
 
 - `squad:updated` 只刷 squads、不刷 issues：mobile 的 assignee 名称由 `useActorName` 从 squads 缓存实时解析，issue 行不内联 squad 名称；只有 `squad:deleted` 会触发服务端 assignee 转移才需要 issues。web 在 squad 前缀上三个事件都刷 issues 是它的缓存形态所需，mobile 收窄属于「不复制无消费方的刷新」。
-- `task:running` / `task:waiting_local_directory` 在 chat 侧只刷 `pendingTask`：mobile 的 live timeline 走 `task:message`（按 taskId 缓存），持久消息列表不因状态跃迁而变化；web 多刷一次 messages 是它自身缓存形态，mobile 沿用既有 `task:completed` 的最小口径。
+- `task:running` / `task:waiting_local_directory` 不重复订阅：FEATURE-563 的 inbox hook 已为同一个 `agent-task-snapshot` key 订阅这两个事件（其注释即以此为前提）。presence 再加一遍只是同一事件对同一 key 的第二次 invalidate，本任务要避免的正是这种噪声。chat 侧只刷 `pendingTask`——mobile 的 live timeline 走 `task:message`（按 taskId 缓存），持久消息列表不因状态跃迁变化。
 - 不引入 `onAny` 前缀分发：mobile 每个域都有自己的 hook 与 updater，统一前缀表会把域归属打散，且容易与已有专项 handler 重复刷新（正是本任务要避免的过度刷新）。
 
 ## 风险与回滚
 
 - 风险：新订阅事件量极低（管理员改配置/换成员/删 squad），且都只在 wsId 作用域内 invalidate，不存在风暴面。
-- 回滚：单个 commit 内两个新 hook + 三处 hook 增补 + 挂载 import；`git revert` 即回到 45 类覆盖。
+- 回滚：单个 commit 内两个新 hook + 两处 hook 增补 + 挂载 import；`git revert` 即回到 47 类覆盖。
