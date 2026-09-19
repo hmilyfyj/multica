@@ -1,0 +1,2 @@
+{"file": "apps/mobile/AGENTS.md", "reason": "检查阶段核对改动是否违反移动端数据层 / 组件 / 乐观更新约定"}
+{"file": ".trellis/spec/mobile/frontend/android-platform.md", "reason": "检查阶段核对 Android 平台约束与验收证据要求"}

@@ -680,3 +680,56 @@ children + child-progress，创建成功后由创建表单显式 invalidate 父�
 
 验收：分组 / 计数 / 行进度映射的纯函数单测在 `apps/mobile/lib/sub-issues.test.ts`
 （vitest Node lane 只收 `lib/**`、`data/**`，所以这类映射必须放 `lib/`）。
+
+## 聊天停止任务与会话重命名（FEATURE-579，基线 commit `4e2d1c325`）
+
+聊天补齐 web 的「停止运行中的任务」与「会话重命名」。两条都有**容易踩错且看不出来**的地方。
+
+### 停止任务：能力头与 durable 回填是一对，不能只带一半
+
+- 入口位置与 web 一致：输入框操作位（`components/chat/chat-composer.tsx` 的 `renderStop` →
+  `StopButton`，`chat.tsx` 的 `sending = !!pendingTask?.task_id`）。`queued` 的后续任务**不给停止键**：
+  web 走队列 UI（带 queued action 的草稿回填），移动端没有队列 UI，停掉等于丢掉用户输入。
+- 取消接口是 `POST /api/tasks/:taskId/cancel`。服务端按**请求头**分两条路
+  （`server/internal/handler/chat.go` 读 `X-Client-Capabilities` →
+  `service/task.go` 的 `ClientSupportsDraftRestore`）：
+  - **不带 `chat-draft-restore-v1`**（mobile 的取值）：取消时 transcript 为空 → 删掉那条用户消息，
+    并在**响应体**里同步回 `cancelled_chat_message{content, restore_to_input}`；非空 → 落 `Stopped.`。
+  - **带该头**：**已启动**的任务不再同步回填，改 `MarkChatFinalizeDeferred`，输入改由 durable 行 +
+    `GET /api/chat/sessions/:id/draft-restores` + `DELETE` 取回，触发信号是
+    `chat:cancel_finalized(outcome="restored")`。
+  - 结论：**读不了 draft-restores 的客户端不要带这个头**。只带头不实现取回，服务端会把用户输入
+    从会话里删掉、交给一个本客户端永远不读的地方 —— 静默丢输入，比不做更糟。服务端注释同样认可
+    这条退路（legacy 同步分支「strictly better than dropping the input」）。
+- 回填语义（对齐 web）：
+  - 被取消的消息要从消息缓存里删掉（服务端已删，等 invalidate 回来会闪回一帧）；
+  - **只回填到空草稿**：用户在取消往返期间可能又开始打字，web 把回填当「offer」，草稿非空就不采纳；
+  - 取消失败要**回滚 pendingTask 快照**再 invalidate（服务端说任务还在，就必须还显示着）。
+- mobile 不落 durable 回填还因为 `GET/DELETE draft-restores` 的查询与 `chat:cancel_finalized`
+  的 `restored` 分支分别属于 `data/queries/chat.ts`、`data/realtime/use-chat-session-realtime.ts`
+  （FEATURE-579 的文件边界之外），要接就得连实时层一起改。
+
+### 会话重命名：Android 上不要用 `Alert.prompt`
+
+- `Alert.prompt` **是 iOS 专有**：RN 的 `Alert.android.js` 里没有该实现，Android 上调它会直接抛错。
+  `apps/mobile/AGENTS.md` 的容器表把「文本提示」写成 native alert/prompt，落地时 Android 侧必须
+  换成**行内 `TextInput`**（本仓用 `components/ui/text-field.tsx`，它已处理 iOS `lineHeight`
+  截断与 Android `includeFontPadding`）。同类「改个名字」需求（如 labels 的 formSheet 表单）在
+  Android 上同理不能靠 prompt。
+- 接口：`PATCH /api/chat/sessions/:id` body `{title}`，**响应体不用**（乐观改标题 + settle invalidate
+  即可让列表行与聊天头部同源更新）。空值 / 只输空格 / 与旧标题相同**不发请求**（no-op PATCH 也会
+  顶 `updated_at`，列表会在手指底下重排）；上限 200（web 的 `maxLength`）。
+- **键盘会挡住输入框**：会话列表 sheet 是 `SHEET_OPTIONS`（detents `[0.6, 0.95]`），而应用是强制
+  edge-to-edge（targetSdk 36，`windowSoftInputMode=adjustResize` 在边到边下不压缩窗口），Android
+  不会再自动把聚焦的输入框滚进可视区。做法两条并用：sheet body 套共享
+  `components/ui/keyboard-avoiding-view.tsx`，并在进入编辑时用行 `onLayout` 记下的 y
+  把该行滚到列表顶部（确定性，不依赖键盘高度读数）。
+- `ScrollView` 需 `keyboardShouldPersistTaps="handled"`，否则「点另一行先提交本次编辑」的点击会被
+  键盘收起吞掉。
+
+### 验证
+
+`lib/chat-session-rename.ts`（trim / 空值 / 同值 / 200 截断）与 `data/mutations/chat.test.ts`
+（取消：乐观清 pendingTask、回填响应、按 `message_id` 清理消息缓存、失败回滚；改名：乐观改标题、
+失败回滚、不凭空造列表）—— vite Node lane 只收 `lib/**`、`data/**`，判断逻辑与 mutation 必须放这两处。
+真机验收（发消息 → 运行中停止；会话标题改名）由用户在 Release APK 上执行。
