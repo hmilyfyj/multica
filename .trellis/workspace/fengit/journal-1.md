@@ -292,3 +292,26 @@ Android 收件箱本机通知落地并合入 main@0698402c8：expo-notifications
 ### Status
 
 [OK] **Completed**
+
+
+## Session 29: FEATURE-571 收件箱深链落点
+<!-- trellis-session: v=2 fp=6f75bf61779a62b6 -->
+
+**Date**: 2026-09-19
+**Task**: FEATURE-571 收件箱深链落点
+**Branch**: `feature/571-inbox-scroll-landing`
+
+### Summary
+
+把收件箱深链从「落到底部」改成「落到目标评论/回复起始位置」：新增 lib/comment-landing.ts（resolveCommentLanding 行内锚点解析 + startLanding 视口坐标测量-修正回路），timeline-list 删除 startRenderingFromBottom 与重挂列表，comment-card 暴露 landingViewRef；9 例单测；versionCode 5→6 并出 vc6 Release APK；平台约束写回 spec。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f9751a58d` | fix(mobile): 收件箱深链定位到目标回复的起始位置 (#571) |
+| `9d98ef013` | chore(task): 标记 FEATURE-571 验收项完成情况 |
+
+### Status
+
+[OK] **Completed**
