@@ -93,3 +93,25 @@ Android 收件箱本机通知落地并合入 main@0698402c8：expo-notifications
 ### Status
 
 [OK] **Completed**
+
+
+## Session 15: FEATURE-562d 后台诊断：构建号与实时数据到达时间
+<!-- trellis-session: v=2 fp=a50fdafcd9e45894 -->
+
+**Date**: 2026-09-19
+**Task**: FEATURE-562d 后台诊断：构建号与实时数据到达时间
+**Branch**: `feature/562-android-local-notifications`
+
+### Summary
+
+补设置页读得懂的诊断：最近收到实时数据的时间 + 当前构建号；用于区分进程被冻结与手机丢弃通知；vc4 交付。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d831aaa5f` | feat(mobile): 后台诊断——构建号 + 最近收到实时数据的时间 (#562) |
+
+### Status
+
+[OK] **Completed**
