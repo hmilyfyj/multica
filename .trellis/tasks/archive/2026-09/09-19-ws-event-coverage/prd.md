@@ -35,12 +35,12 @@
 
 ## Acceptance Criteria
 
-- [ ] 对照表覆盖全部 32 个缺口事件，其中补齐 13 类、由并行任务已覆盖 2 类、明确不补 19 类（每类给出理由）。
-- [ ] 补齐后 mobile 覆盖率 47 → 60/79；不补的 19 类全部有无消费方证据。
-- [ ] 新订阅全部经 `RealtimeSubscriptions` 挂载，且都带 `onReconnect` 刷新。
-- [ ] 单测覆盖：每个补齐事件 → 精确 invalidate key 集合（同时证明没有多刷其他 key）。
-- [ ] `pnpm --filter @multica/mobile typecheck` / `lint` / `test` 通过。
-- [ ] 结论写清「本地静态验证」与「未做的真机/跨端验证」的边界。
+- [x] 对照表覆盖全部 32 个缺口事件，其中补齐 13 类、由并行任务已覆盖 2 类、明确不补 19 类（每类给出理由）。核验：`design.md` 对照表 34 行 = 13 补齐 + 2 已由 FEATURE-563 覆盖 + 19 不补，32 = 13 + 19 缺口，每行均给出理由。
+- [x] 补齐后 mobile 覆盖率 47 → 60/79；不补的 19 类全部有无消费方证据。核验：`design.md`「基准与计数」段。
+- [x] 新订阅全部经 `RealtimeSubscriptions` 挂载，且都带 `onReconnect` 刷新。核验：`app/(app)/[workspace]/_layout.tsx:136-137` 挂载 `useWorkspaceRealtime` / `useCatalogsRealtime`；4 个相关 hook 均含 `onReconnect`。
+- [x] 单测覆盖：每个补齐事件 → 精确 invalidate key 集合（同时证明没有多刷其他 key）。核验：4 个 realtime 测试文件共 13 例。
+- [x] `pnpm --filter @multica/mobile typecheck` / `lint` / `test` 通过。核验：typecheck 通过、lint 0 error、vitest 476 例通过。
+- [x] 结论写清「本地静态验证」与「未做的真机/跨端验证」的边界。核验：`implement.md` 验证命令段与交付记录。
 
 ## Notes
 
