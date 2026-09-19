@@ -27,3 +27,25 @@ Android 视觉校准交付：新增 components/ui/nav-icon.tsx 收敛 sf: SF Sym
 ### Status
 
 [OK] **Completed**
+
+
+## Session 9: FEATURE-552 归档：Android 构建、签名与分发链路
+<!-- trellis-session: v=2 fp=ea65dd67be2092c9 -->
+
+**Date**: 2026-09-19
+**Task**: FEATURE-552 归档：Android 构建、签名与分发链路
+**Branch**: `feature/552-android-distribution`
+
+### Summary
+
+每日归档：09-18-android-distribution。issue done；业务 PR 已 squash 合并进 main；AC 全部核验；trellis-check ran(clean)。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `77f357f5b` | feat(mobile): Android Release 签名、产物构建与分发文档 |
+
+### Status
+
+[OK] **Completed**
