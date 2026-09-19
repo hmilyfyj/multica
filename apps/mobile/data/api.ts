@@ -51,11 +51,14 @@ import type {
   Reaction,
   ReorderPinsRequest,
   RuntimeDevice,
+  RuntimeUsage,
   SearchIssuesResponse,
   SearchProjectsResponse,
   ListIssueStatusesResponse,
   SendChatMessageResponse,
+  SkillSummary,
   Squad,
+  SquadMember,
   NotificationPreferenceResponse,
   NotificationPreferences,
   TaskMessagePayload,
@@ -77,6 +80,8 @@ import {
   ListAutopilotsResponseSchema,
   EMPTY_APP_CONFIG,
   EMPTY_REFRESH_SESSION_RESPONSE,
+  EMPTY_SKILL_SUMMARY_LIST,
+  EMPTY_SQUAD,
   RefreshSessionResponseSchema,
   EMPTY_LIST_ISSUE_STATUSES_RESPONSE,
   EMPTY_ISSUE_STATUS_ENTRY,
@@ -86,6 +91,7 @@ import {
   IssueStatusEntrySchema,
   ListIssuesResponseSchema,
   ListIssueStatusesResponseSchema,
+  SkillSummaryListSchema,
   TimelineEntriesSchema,
   WorkspaceSubscriptionSummarySchema,
 } from "@multica/core/api/schemas";
@@ -128,9 +134,12 @@ import {
   EMPTY_PIN_LIST,
   EMPTY_PROJECT,
   EMPTY_RUNTIME_LIST,
+  EMPTY_RUNTIME_USAGE_LIST,
   EMPTY_SEARCH_ISSUES_RESPONSE,
   EMPTY_SEARCH_PROJECTS_RESPONSE,
+  EMPTY_SKILL_DETAIL,
   EMPTY_SQUAD_LIST,
+  EMPTY_SQUAD_MEMBER_LIST,
   EMPTY_USER,
   EMPTY_WORKSPACE_LIST,
   InboxListSchema,
@@ -144,15 +153,20 @@ import {
   PinnedItemSchema,
   ProjectSchema,
   RuntimeListSchema,
+  RuntimeUsageListSchema,
   SearchIssuesResponseSchema,
   SearchProjectsResponseSchema,
   SendChatMessageResponseSchema,
+  SkillDetailSchema,
   SquadListSchema,
+  SquadMemberListSchema,
+  SquadSchema,
   TaskMessageListSchema,
   EMPTY_TASK_MESSAGE_LIST,
   UserSchema,
   WorkspaceListSchema,
 } from "./schemas";
+import type { SkillDetail } from "./schemas";
 import type { ZodType } from "zod";
 import { getCurrentSlug } from "./workspace-store";
 import { parseWithFallback } from "@/lib/parse-response";
@@ -653,6 +667,28 @@ class ApiClient {
     });
   }
 
+  // One runtime's daily usage rollup — backs the detail screen's usage summary.
+  // `days=N` returns today's partial bucket plus N prior days
+  // (server/internal/handler/runtime.go:360), one row per (date, provider,
+  // model); the caller trims that extra bucket to the window it labels.
+  // `tz` is deliberately NOT sent: the server falls back to the signed-in user's
+  // stored timezone and then to UTC (resolveViewingTZ, runtime.go:431), so a
+  // device-side guess could only make these buckets disagree with web's.
+  async getRuntimeUsage(
+    runtimeId: string,
+    params: { days: number },
+    opts?: { signal?: AbortSignal },
+  ): Promise<RuntimeUsage[]> {
+    const search = new URLSearchParams({ days: String(params.days) });
+    const raw = await this.fetch<unknown>(
+      `/api/runtimes/${runtimeId}/usage?${search}`,
+      { signal: opts?.signal },
+    );
+    return parseWithFallback(raw, RuntimeUsageListSchema, EMPTY_RUNTIME_USAGE_LIST, {
+      endpoint: "GET /api/runtimes/:id/usage",
+    });
+  }
+
   // Workspace-wide active agent tasks + each agent's most recent terminal —
   // feeds the workload dimension of presence (currently unused in the mobile
   // dot; reserved for the P1 long-press peek sheet). Listed here now so the
@@ -694,6 +730,69 @@ class ApiClient {
     return parseWithFallback(raw, SquadListSchema, EMPTY_SQUAD_LIST, {
       endpoint: "listSquads",
     });
+  }
+
+  // One squad, including the `instructions` body. The list payload already
+  // carries every identity field but not that body — which is exactly what the
+  // read-only detail screen exists to show. An unknown or out-of-workspace id
+  // answers 404, rendered as the screen's not-found state.
+  async getSquad(id: string, opts?: { signal?: AbortSignal }): Promise<Squad> {
+    return this.fetchValidated(`/api/squads/${id}`, SquadSchema, EMPTY_SQUAD, {
+      ...opts,
+      endpoint: "GET /api/squads/:id",
+    });
+  }
+
+  // The squad's roster. A row carries `member_type` + `member_id` only; display
+  // names come from the workspace agent / member lists the screen already has —
+  // the same cache-only resolution the squad list's leader column uses.
+  async listSquadMembers(
+    squadId: string,
+    opts?: { signal?: AbortSignal },
+  ): Promise<SquadMember[]> {
+    const raw = await this.fetch<unknown>(`/api/squads/${squadId}/members`, {
+      signal: opts?.signal,
+    });
+    return parseWithFallback(raw, SquadMemberListSchema, EMPTY_SQUAD_MEMBER_LIST, {
+      endpoint: "GET /api/squads/:id/members",
+    });
+  }
+
+  // --- Skills ---
+  // Read-only browse only: no create, no file editing, no refresh-from-source,
+  // no runtime-local import. Web owns all four.
+
+  // Workspace skill list. The server omits each SKILL.md body here on purpose
+  // (GH multica-ai/multica#2174) — a row is identity + description + `config`,
+  // and `config.origin` is where a skill's source lives, which is all the list
+  // renders.
+  async listSkills(opts?: { signal?: AbortSignal }): Promise<SkillSummary[]> {
+    const raw = await this.fetch<unknown>("/api/skills", {
+      signal: opts?.signal,
+    });
+    return parseWithFallback(
+      raw,
+      SkillSummaryListSchema,
+      EMPTY_SKILL_SUMMARY_LIST,
+      { endpoint: "GET /api/skills" },
+    );
+  }
+
+  // One skill's detail with `?include=metadata`, so no file body comes down: the
+  // read-only screen lists files and sizes, and a single SKILL.md commonly runs
+  // 50-200KB (server/internal/handler/skill.go:107-121). That response is the
+  // same one the CLI reads for `skill files list`, so it is a supported contract
+  // rather than a mobile-only shape.
+  async getSkill(
+    id: string,
+    opts?: { signal?: AbortSignal },
+  ): Promise<SkillDetail> {
+    return this.fetchValidated(
+      `/api/skills/${id}?include=metadata`,
+      SkillDetailSchema,
+      EMPTY_SKILL_DETAIL,
+      { ...opts, endpoint: "GET /api/skills/:id?include=metadata" },
+    );
   }
 
   // --- Autopilots ---
