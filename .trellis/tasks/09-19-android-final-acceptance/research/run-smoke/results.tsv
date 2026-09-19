@@ -1,0 +1,16 @@
+S1	pass	收件箱渲染出夹具条目（见 smoke-01-inbox.png）
+S2	pass	深链打开 issue 详情，属性 chip 渲染（见 smoke-02-issue.png）
+S3	pass	picker 打开后 BACK 只关 picker，回到 issue 详情
+S4	pass	评论框键盘避让：关键控件整块在 IME 顶边之上（见 smoke-k2-ime.png）
+S5	pass	edge-to-edge：tab bar 底边 y=2334 ≤ 系统导航条上沿 y=2337
+S6	pass	聊天发送 → 假 runtime 跑完后库侧任务 status=completed（见 smoke-06-chat.png、c8-task-snapshot.txt）
+S7	pass	Android 设备的 WS 握手在后端日志里上报 client_os=android（30 分钟内 122 条）
+S8	fail	冷启动帧未取到 #111827（采样=255 255 255，见 smoke-08-splash-*.png）
+S1	pass	收件箱渲染出夹具条目（见 smoke-01-inbox.png）
+S2	pass	深链打开 issue 详情，属性 chip 渲染（见 smoke-02-issue.png）
+S3	pass	picker 打开后 BACK 只关 picker，回到 issue 详情
+S4	pass	评论框键盘避让：关键控件整块在 IME 顶边之上（见 smoke-k2-ime.png）
+S5	pass	edge-to-edge：tab bar 底边 y=2334 ≤ 系统导航条上沿 y=2337
+S6	pass	聊天发送 → 假 runtime 跑完后库侧任务 status=completed（见 smoke-06-chat.png、c8-task-snapshot.txt）
+S7	pass	Android 设备的 WS 握手在后端日志里上报 client_os=android（30 分钟内 115 条）
+S8	pass	冷启动取到品牌启动屏：深蓝启动屏（第 1 帧采样=15 14 24，容差判定）
