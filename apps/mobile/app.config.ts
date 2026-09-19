@@ -110,7 +110,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       // package, so this counts store uploads and has to grow monotonically.
       // Left as a literal instead of being derived from `version` so a release
       // bump cannot silently move it.
-      versionCode: 1,
+      // vc5: background-session forensics (FEATURE-562 — is the process frozen,
+      // or is the socket silent?). Counts store uploads and has to grow
+      // monotonically; it is also the only way to tell on a device which build
+      // is actually installed.
+      versionCode: 5,
 
       // Keep the window's soft-input mode on `adjustResize` — this is Expo's
       // default (its plugin writes `adjustResize` when the key is absent), so
@@ -144,6 +148,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       "expo-secure-store",
       "@react-native-community/datetimepicker",
       "react-native-enriched-markdown",
+      // Local (not push) notifications on Android — FEATURE-562. With no props
+      // the plugin only clears the notification icon/colour metadata, keeping
+      // the app icon as the banner icon and the channel's own settings as the
+      // presentation. It is declared anyway so prebuild stays the single place
+      // the notification dependency is configured; it pulls in no Firebase
+      // config and no google-services plugin.
+      "expo-notifications",
       // Android previously had no splash config at all, so prebuild wrote its
       // stock fallback: Expo's placeholder graphic on white, with an EMPTY
       // res/values-night — a dark-mode launch flashed a white screen. Naming
@@ -206,6 +217,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           android: {
             compileSdkVersion: 36,
             targetSdkVersion: 36,
+            // 本地/内网验收后端是明文 http（模拟器经 10.0.2.2:8090 访问宿主机），而 Android 9+
+            // 默认禁止明文：Debug 构建靠 `src/debug/AndroidManifest.xml` 放行，Release 构建没有
+            // 这层 —— 2026-09-19 的 staging Release 验收就卡在登录，`/auth/send-code` 根本没到后端。
+            // 非生产构建显式放行，生产包保持平台默认（HTTPS-only）。
+            usesCleartextTraffic: !isProd,
           },
         },
       ],
