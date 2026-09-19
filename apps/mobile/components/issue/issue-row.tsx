@@ -30,6 +30,7 @@
  *     behavior — earlier whitelist (member/agent only) silently dropped
  *     squad assignees instead.
  */
+import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
 import type { Issue } from "@multica/core/types";
 import { Text } from "@/components/ui/text";
@@ -45,9 +46,17 @@ interface Props {
   onPress: () => void;
   /** Render the status icon inline at the start of the row. Default: false. */
   showStatus?: boolean;
+  /** Extra trailing content between the title block and the assignee. The
+   *  sub-issues panel puts the row's own done/total badge here. */
+  trailing?: ReactNode;
 }
 
-export function IssueRow({ issue, onPress, showStatus = false }: Props) {
+export function IssueRow({
+  issue,
+  onPress,
+  showStatus = false,
+  trailing,
+}: Props) {
   // One catalog read for both the icon's colour and the chip — see the
   // divergence note in `custom-status-chip.tsx`.
   const catalog = useIssueStatuses();
@@ -75,6 +84,7 @@ export function IssueRow({ issue, onPress, showStatus = false }: Props) {
           </Text>
           <CustomStatusChip status={issue.status} catalog={catalog} />
         </View>
+        {trailing}
         {issue.assignee_type && issue.assignee_id ? (
           <ActorAvatar
             type={issue.assignee_type}

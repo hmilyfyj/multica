@@ -92,6 +92,10 @@ export default function IssueDetail() {
     await Promise.all([
       detail.refetch(),
       qc.invalidateQueries({ queryKey: issueKeys.timeline(wsId, id) }),
+      // The sub-issues block reads its own caches — a pull-to-refresh has to
+      // cover them too, or children stay stale while the timeline updates.
+      qc.invalidateQueries({ queryKey: issueKeys.children(wsId, id) }),
+      qc.invalidateQueries({ queryKey: issueKeys.childProgress(wsId) }),
     ]);
   }, [detail, qc, wsId, id]);
 

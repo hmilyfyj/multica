@@ -114,7 +114,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       // vc7: comment-thread quick jump (FEATURE-572 — outline sheet + prev/next
       // stepper over an issue's comment threads).
       // vc8: 0.1.1 release (distribution bump after the 0.1.0 series).
-      versionCode: 8,
+      // vc9: issue-detail sub-issues block (FEATURE-576 — list, create, collapse
+      // and the parent-issue link).
+      versionCode: 9,
 
       // Keep the window's soft-input mode on `adjustResize` — this is Expo's
       // default (its plugin writes `adjustResize` when the key is absent), so
