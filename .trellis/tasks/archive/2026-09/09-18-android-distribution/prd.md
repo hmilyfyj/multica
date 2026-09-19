@@ -41,9 +41,9 @@
 
 ## Acceptance Criteria
 
-- [ ] 按文档从干净 checkout 能产出可安装的 Release APK，且 APK 由自用 release 密钥签名（`apksigner verify` 证据）
-- [ ] 文档里的命令逐条可执行，无失效命令
-- [ ] 签名材料未入库（`git check-ignore -v` 验证）
-- [ ] 三种 APP_ENV 的包名互不冲突，可同机共存（`expo config` 断言）
-- [ ] `bash apps/mobile/scripts/android-run.test.sh`、`android-keystore.test.sh`、`android-release.test.sh` 均通过
-- [ ] `bundleRelease` 产出 AAB
+- [x] 按文档从干净 checkout 能产出可安装的 Release APK，且 APK 由自用 release 密钥签名（`apksigner verify` 证据）
+- [x] 文档里的命令逐条可执行，无失效命令
+- [x] 签名材料未入库（`git check-ignore -v` 验证）
+- [x] 三种 APP_ENV 的包名互不冲突，可同机共存（`expo config` 断言）
+- [x] `bash apps/mobile/scripts/android-run.test.sh`、`android-keystore.test.sh`、`android-release.test.sh` 均通过
+- [x] `bundleRelease` 产出 AAB

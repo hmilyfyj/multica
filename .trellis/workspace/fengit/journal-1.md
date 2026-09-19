@@ -385,3 +385,72 @@ Trellis 归档清尾：09-19-android-full-regression 任务归档到 archive/202
 ### Status
 
 [OK] **Completed**
+
+
+## Session 28: 归档 FEATURE-552 Android 构建、签名与分发链路
+<!-- trellis-session: v=2 fp=efad9f6f97238d56 -->
+
+**Date**: 2026-09-19
+**Task**: 归档 FEATURE-552 Android 构建、签名与分发链路
+**Package**: mobile
+**Branch**: `feature/552-android-distribution`
+
+### Summary
+
+Trellis 归档清尾：09-18-android-distribution 任务归档到 archive/2026-09；业务改动（Release 签名、产物构建与分发文档）已由 #14 合入 main；6 项 AC 全部勾选。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `28f025e22` | feat(mobile): Android Release 签名、产物构建与分发文档 (#14) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 30: 归档 FEATURE-557 品牌化：应用名「海尔商城」与包名
+<!-- trellis-session: v=2 fp=35353111c7cc4d9a -->
+
+**Date**: 2026-09-19
+**Task**: 归档 FEATURE-557 品牌化：应用名「海尔商城」与包名
+**Package**: mobile
+**Branch**: `feature/557-android-branding`
+
+### Summary
+
+Trellis 归档清尾：09-18-android-branding 任务归档到 archive/2026-09；业务改动（应用名与包名 com.ehaier.zgq.shop.mall）已由 #12 合入 main；AC 全部勾选。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `564e6db87` | feat(mobile): Android 品牌化为「海尔商城」与 com.ehaier.zgq.shop.mall (#12) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 31: 归档 FEATURE-559 实时层两处缺陷修复
+<!-- trellis-session: v=2 fp=00858f485af19853 -->
+
+**Date**: 2026-09-19
+**Task**: 归档 FEATURE-559 实时层两处缺陷修复
+**Package**: mobile
+**Branch**: `feature/559-realtime-defects`
+
+### Summary
+
+Trellis 归档清尾：09-19-realtime-defects 任务归档到 archive/2026-09；业务改动（断网恢复刷新 + client_os 与握手看门狗）已由 #16 合入 main；6 项 AC 全部勾选。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `86235a2aa` | fix(mobile): 断网恢复后自动刷新 + Android client_os 与握手看门狗 |
+
+### Status
+
+[OK] **Completed**

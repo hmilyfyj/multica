@@ -46,9 +46,9 @@
 
 ## Acceptance Criteria
 
-- [ ] `APP_ENV={dev 未设,staging,production}` 三档下 `npx expo config --type public --json` 输出
+- [x] `APP_ENV={dev 未设,staging,production}` 三档下 `npx expo config --type public --json` 输出
       `name` = 海尔商城 / 海尔商城 (Staging) / 海尔商城，`android.package` = 三个新包名且互不相同
-- [ ] `npx expo prebuild -p android --clean` 成功；`android/app/build.gradle` 的 `applicationId` 为新包名，
+- [x] `npx expo prebuild -p android --clean` 成功；`android/app/build.gradle` 的 `applicationId` 为新包名，
       `android/app/src/main/res/values/strings.xml` 的 `app_name` 为 `海尔商城`
-- [ ] `pnpm -C apps/mobile typecheck` / `lint` / `test` 通过
-- [ ] 仓库内仍有效的 `ai.multica.mobile` 引用已清零（历史产物按 Boundary 保留）
+- [x] `pnpm -C apps/mobile typecheck` / `lint` / `test` 通过
+- [x] 仓库内仍有效的 `ai.multica.mobile` 引用已清零（历史产物按 Boundary 保留）
