@@ -407,3 +407,26 @@ Trellis 归档清尾：09-18-android-branding 任务归档到 archive/2026-09；
 ### Status
 
 [OK] **Completed**
+
+
+## Session 31: 归档 FEATURE-559 实时层两处缺陷修复
+<!-- trellis-session: v=2 fp=00858f485af19853 -->
+
+**Date**: 2026-09-19
+**Task**: 归档 FEATURE-559 实时层两处缺陷修复
+**Package**: mobile
+**Branch**: `feature/559-realtime-defects`
+
+### Summary
+
+Trellis 归档清尾：09-19-realtime-defects 任务归档到 archive/2026-09；业务改动（断网恢复刷新 + client_os 与握手看门狗）已由 #16 合入 main；6 项 AC 全部勾选。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `86235a2aa` | fix(mobile): 断网恢复后自动刷新 + Android client_os 与握手看门狗 |
+
+### Status
+
+[OK] **Completed**
