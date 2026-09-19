@@ -226,3 +226,25 @@ Android 收件箱本机通知落地并合入 main@0698402c8：expo-notifications
 ### Status
 
 [OK] **Completed**
+
+
+## Session 21: FEATURE-545 归档：ActionSheetIOS 六处调用替换为跨平台动作菜单
+<!-- trellis-session: v=2 fp=cc997091e168f95a -->
+
+**Date**: 2026-09-19
+**Task**: FEATURE-545 归档：ActionSheetIOS 六处调用替换为跨平台动作菜单
+**Branch**: `feature/545-actionsheet-cross-platform`
+
+### Summary
+
+归档 09-18-android-action-sheet。issue FEATURE-545 done；业务 PR #4 已 squash 合并进 main（a01f374d6）；prd.md 5 项 AC 中 4 项核销（iOS 模拟器实测一项保留未核销：本机无 iOS 运行时，仅代码级证据）；trellis-check ran(clean)，归档仅 .trellis/ 产物。本批归档在最新 main 上重跑。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `389bf2526` | feat(mobile): ActionSheetIOS 六处调用改为跨平台动作菜单 |
+
+### Status
+
+[OK] **Completed**
