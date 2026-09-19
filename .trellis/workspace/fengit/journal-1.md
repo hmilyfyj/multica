@@ -672,3 +672,26 @@ Session summary was not supplied.
 ### Next Steps
 
 - 第 2 波 FEATURE-578（关联 PR 列表）、FEATURE-579（聊天：停止任务 + 会话重命名）已指派；子 issue 的 WS 实时更新未接
+
+
+## Session 42: FEATURE-577 收件箱筛选 / 标记未读 / 归档视图（归档）
+<!-- trellis-session: v=2 fp=2f482b3ef9b271b8 -->
+
+**Date**: 2026-09-19
+**Task**: FEATURE-577 收件箱筛选 / 标记未读 / 归档视图（归档）
+**Branch**: `chore/577-trellis-archive`
+
+### Summary
+
+收件箱补齐筛选（状态/优先级/来源/仅未读，分面计数 + 生效计数）、标记未读、归档视图（游标分页 + 取消归档），语义对齐 web 的 inbox-filter-menu / filter-store / row-menu；新增 5 组单测，静态检查全过，APK vc10 已走 GitHub Release 交付真机自测。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c445aae02` | feat(mobile): 收件箱筛选 + 标记未读 + 归档视图（FEATURE-577） |
+| `ea54895bd` | feat(mobile): 收件箱筛选 + 标记未读 + 归档视图（FEATURE-577） (#67) |
+
+### Status
+
+[OK] **Completed**
