@@ -658,6 +658,24 @@ class ApiClient {
     });
   }
 
+  // One agent's whole task history (every status) — drives the agent detail
+  // Runs section. The workspace snapshot can't back that list: it carries a
+  // single terminal row per agent. Backend route is
+  // server/internal/handler/agent.go:2667 (GET /api/agents/:id/tasks); it
+  // responds with a bare array and answers 403 for a non-owner member on a
+  // private agent, so callers must render a failure state for it.
+  async listAgentTasks(
+    agentId: string,
+    opts?: { signal?: AbortSignal },
+  ): Promise<AgentTask[]> {
+    return this.fetchValidated(
+      `/api/agents/${agentId}/tasks`,
+      AgentTaskListSchema,
+      EMPTY_AGENT_TASK_LIST,
+      { ...opts, endpoint: "GET /api/agents/:id/tasks" },
+    );
+  }
+
   async listSquads(opts?: { signal?: AbortSignal }): Promise<Squad[]> {
     const raw = await this.fetch<unknown>("/api/squads", {
       signal: opts?.signal,

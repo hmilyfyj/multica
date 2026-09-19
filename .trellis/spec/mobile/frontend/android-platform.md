@@ -516,3 +516,26 @@ iOS 走 `js/SegmentedControl.ios.js`（原生 `UISegmentedControl`），Android 
 `PATCH /api/workspaces/{id}` 与全部 `/api/issue-statuses` 写操作在 `server/cmd/server/router.go`
 里挂在 **owner|admin** 组，`/api/labels` 的增删改只要求工作区成员身份。移动端按同一规则
 门禁控件（`memberListOptions` + `user.id` 比对 role），不要用「失败了再提示」代替前端门禁。
+
+## 时间线 deep-link 落点（FEATURE-571，基线 commit `26c8192e3`）
+
+收件箱通知带的是 comment id，点进来必须落到该评论/回复的起始位置。这里有三条容易踩的约束：
+
+- **一行 ≠ 一条评论**：移动端时间线一行是一个线程根，整条回复链内嵌在同一个气泡里
+  （`lib/timeline-thread.ts` 的 `buildTimelineRows`）。所以「回复在屏幕上的位置」**不是行下标能表达的**，
+  也不能照抄 web 的 `#comment-<id>` —— web 是递归树 + 每条评论一个节点。
+- **落点必须两段式**（`lib/comment-landing.ts` 的 `resolveCommentLanding` + `startLanding`）：
+  `scrollToIndex(row, viewPosition: 0)` 只能把「行」放到视口顶（回复可能在这行下方一两屏），
+  再用 `measureInWindow` 量锚点的窗口 y，把残差转成 scroll offset 迭代修正；跳转后 Shiki/图片/
+  markdown 仍在改行高，同一回路负责收敛。iOS/Android 同构，**不做平台分支**。
+- **FlashList v2 的 offset 有两个坐标系**：`scrollToOffset({ skipFirstItemOffset: true })` 的参数
+  == `getAbsoluteLastScrollOffset()` == 原生 contentOffset；**不传 `skipFirstItemOffset` 会再加一次
+  `firstItemOffset`（即 ListHeader 高度）**，两者混用会整天偏一个表头高。落点回路全程用原生偏移。
+
+纪律与边界：
+
+- 落点逻辑**不得 import `react-native`**：`apps/mobile/vitest.config.ts` 的 Node lane 只收 `lib/**`、`data/**`，
+  所以列表与视图以结构化接口（`LandingList` / `Measurable`）注入，`FlashListRef` 与 `View` 天然满足。
+- 锚点始终不可测时（例如折叠的已解决线程）由帧预算兜底停手，不空转；用户一开始拖动立即 cancel。
+- 已知边界：回复位于根评论气泡底部约 7 屏以外时，探测上限内找不到就停在行顶（仍优于旧的「落到底部」）。
+  真机上遇到长线程深度回复需要复核这一条。

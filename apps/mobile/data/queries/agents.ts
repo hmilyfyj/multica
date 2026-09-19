@@ -18,3 +18,15 @@ export const agentListOptions = (wsId: string | null) =>
         ? 30_000
         : false,
   });
+
+// One agent's whole task history — backs the agent detail Runs section.
+// Keyed under the `["agents", wsId]` prefix so the roster's `agent:*`
+// realtime invalidations cover it too; task lifecycle events are the detail
+// screen's own record subscription (the listing-level presence hook
+// deliberately does not carry this per-record key).
+export const agentTasksOptions = (wsId: string | null, agentId: string) =>
+  queryOptions({
+    queryKey: ["agents", wsId, "tasks", agentId] as const,
+    queryFn: ({ signal }) => api.listAgentTasks(agentId, { signal }),
+    enabled: !!wsId && !!agentId,
+  });
