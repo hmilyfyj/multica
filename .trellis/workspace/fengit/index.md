@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 1
-- **Last Active**: 2026-09-18
+- **Total Sessions**: 5
+- **Last Active**: 2026-09-19
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~29 | Active |
+| `journal-1.md` | ~51 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 5 | 2026-09-19 | FEATURE-543 归档：app.config.ts 的 Android 配置与图标资源 | `86843f607` | `feature/543-android-config` |
 | 1 | 2026-09-18 | FEATURE-549 Android 视觉校准归档 | `fd622eca6` | `feature/549-android-visual-calibration` |
 <!-- @@@/auto:session-history -->
 
