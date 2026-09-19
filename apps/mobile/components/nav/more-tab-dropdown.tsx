@@ -98,6 +98,28 @@ const NAV_ITEMS: NavItem[] = [
     ion: "flash-outline",
     path: "/more/autopilots",
   },
+  // Web's route icon for /runtimes is Monitor (packages/core/paths/route-icons.ts);
+  // SF has no Monitor, so the display glyph stands in for the same idea.
+  {
+    label: "Runtimes",
+    sf: "display",
+    ion: "desktop-outline",
+    path: "/more/runtimes",
+  },
+  // Web's route icon for /squads is Users.
+  {
+    label: "Squads",
+    sf: "person.3",
+    ion: "people-outline",
+    path: "/more/squads",
+  },
+  // Web's route icon for /skills is BookOpenText.
+  {
+    label: "Skills",
+    sf: "book",
+    ion: "book-outline",
+    path: "/more/skills",
+  },
   // Read-only workspace reporting. Both screens are look-only by design, so
   // they sit after the browsable collections rather than needing their own
   // section.

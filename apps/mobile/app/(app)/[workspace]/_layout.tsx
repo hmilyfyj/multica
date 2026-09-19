@@ -380,6 +380,35 @@ export default function WorkspaceLayout() {
           options={{ title: "Autopilot", headerBackTitle: "Autopilots" }}
         />
         <Stack.Screen
+          name="more/runtimes"
+          options={{ title: "Runtimes", headerBackTitle: "Back" }}
+        />
+        {/* Runtime detail. The title is overridden in-screen with the runtime's
+            own name once the roster resolves; this is the cold-start /
+            deep-link fallback. */}
+        <Stack.Screen
+          name="more/runtimes/[id]"
+          options={{ title: "Runtime", headerBackTitle: "Runtimes" }}
+        />
+        <Stack.Screen
+          name="more/squads"
+          options={{ title: "Squads", headerBackTitle: "Back" }}
+        />
+        {/* Squad detail. Same in-screen title override as the two above. */}
+        <Stack.Screen
+          name="more/squads/[id]"
+          options={{ title: "Squad", headerBackTitle: "Squads" }}
+        />
+        <Stack.Screen
+          name="more/skills"
+          options={{ title: "Skills", headerBackTitle: "Back" }}
+        />
+        {/* Skill detail. Same in-screen title override as the two above. */}
+        <Stack.Screen
+          name="more/skills/[id]"
+          options={{ title: "Skill", headerBackTitle: "Skills" }}
+        />
+        <Stack.Screen
           name="more/pins"
           options={{ title: "Pinned", headerBackTitle: "Back" }}
         />
