@@ -17,6 +17,12 @@ import { useAuthStore } from "@/data/auth-store";
 import { useWorkspaceStore } from "@/data/workspace-store";
 import { SessionActivityBoundary } from "@/components/auth/session-activity-boundary";
 import { ActionSheetHost } from "@/components/ui/action-sheet";
+import {
+  isAppBackgrounded,
+  probeApiReachable,
+  recordJsTick,
+  setAppBackgrounded,
+} from "@/lib/background-forensics";
 import { subscribeToInboxNotificationResponses } from "@/lib/inbox-notification-response";
 import {
   configureLocalNotificationHandler,
@@ -122,6 +128,35 @@ export default function RootLayout() {
     if (Platform.OS !== "android" || authLoading) return;
     return subscribeToInboxNotificationResponses();
   }, [authLoading]);
+
+  // Background forensics (lib/background-forensics.ts). Three writers, all
+  // armed for the app's whole lifetime: a JS ticker (did the process get CPU at
+  // all?), the WS frame counter in the realtime provider (did data arrive?), and
+  // a plain HTTP probe while backgrounded (could anything leave the process?).
+  // The settings screen reads them back, which is how "the phone froze us" gets
+  // told apart from "the socket went quiet" without a computer and logcat.
+  //
+  // The probe interval runs always but does nothing outside a background
+  // session, so a foregrounded app issues no extra requests.
+  useEffect(() => {
+    const ticker = setInterval(() => recordJsTick(), 15_000);
+    const probe = setInterval(() => {
+      if (isAppBackgrounded()) void probeApiReachable();
+    }, 60_000);
+    return () => {
+      clearInterval(ticker);
+      clearInterval(probe);
+    };
+  }, []);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (status: AppStateStatus) => {
+      // 'inactive' is iOS-only and transient — it must not close a session.
+      if (status !== "active" && status !== "background") return;
+      setAppBackgrounded(status === "background");
+    });
+    return () => sub.remove();
+  }, []);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
