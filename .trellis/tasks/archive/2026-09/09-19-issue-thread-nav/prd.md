@@ -31,10 +31,10 @@ issue 详情的评论线程一多就不好找。给 `apps/mobile` 的 issue 详�
 
 ## Acceptance Criteria
 
-- [ ] 线程索引单测覆盖：activity 行/分隔行不计入、嵌套回复计入根线程、已删除回复不计入回复数、根与回复两种已解决判定、行下标 → 当前线程映射（含列表顶部在第一线程之前的情况）。
-- [ ] `pnpm --filter @multica/mobile typecheck` / `lint` / `test` 通过。
-- [ ] 打新 APK 走 GitHub Release 交付，结论给文件名、大小、SHA-256 与真机自测步骤（线程 ≥2 出现入口、点某线程落到该线程起始、已解决线程也能跳、上/下一线程）。
-- [ ] 结论写清本地验证与真机验收的边界（本地不启模拟器）。
+- [x] 线程索引单测覆盖：activity 行/分隔行不计入、嵌套回复计入根线程、已删除回复不计入回复数、根与回复两种已解决判定、行下标 → 当前线程映射（含列表顶部在第一线程之前的情况）。核验：`lib/thread-nav.test.ts` 18 例通过。
+- [x] `pnpm --filter @multica/mobile typecheck` / `lint` / `test` 通过。核验：归档轮在合并 origin/main 后的树上复跑 —— typecheck 通过、lint 0 error、vitest 476 例通过。
+- [x] 打新 APK 走 GitHub Release 交付，结论给文件名、大小、SHA-256 与真机自测步骤（线程 ≥2 出现入口、点某线程落到该线程起始、已解决线程也能跳、上/下一线程）。核验：Release `android-v0.1.0-vc7-thread-nav`，资产 `haier-mall-android-0.1.0-vc7-arm64-v8a-thread-nav.apk`，48,637,051 字节，sha256 `e392e1aa…f58050`，签名证书 `267600f2…b25ccf`，Release 说明含 5 步真机自测。
+- [x] 结论写清本地验证与真机验收的边界（本地不启模拟器）。核验：Release 说明「已知边界」段与 FEATURE-572 交付结论。
 
 ## Boundaries
 

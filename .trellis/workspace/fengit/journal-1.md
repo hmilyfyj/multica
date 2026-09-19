@@ -614,3 +614,25 @@ trellis-check ran(clean)：AC 1-5 逐条核验（More 菜单 Runtimes/Squads/Ski
 ### Status
 
 [OK] **Completed**
+
+
+## Session 40: 归档 09-19-issue-thread-nav（FEATURE-572 issue 详情评论线程快速跳转）
+<!-- trellis-session: v=2 fp=7c0b68fab7f411a7 -->
+
+**Date**: 2026-09-19
+**Task**: 归档 09-19-issue-thread-nav（FEATURE-572 issue 详情评论线程快速跳转）
+**Branch**: `feature/572-thread-minimap-nav`
+
+### Summary
+
+trellis-check ran(clean)：AC 1-4 逐条核验（lib/thread-nav.test.ts 18 例通过；合并 origin/main 后复跑 mobile typecheck/lint/vitest 476 例通过；APK 走 Release android-v0.1.0-vc7-thread-nav 交付，48,637,051 字节，sha256 e392e1aa…f58050；Release 说明含真机自测步骤与边界）。AC 4 项已在合并后的 prd.md 勾选。finish-work 四步完成，task 目录移入 .trellis/tasks/archive/2026-09/。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `57394ae27` | feat(mobile): issue 详情评论线程快速跳转（对齐 web ThreadMinimap）(#572) |
+
+### Status
+
+[OK] **Completed**
