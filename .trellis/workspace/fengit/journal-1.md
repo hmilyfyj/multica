@@ -27,3 +27,25 @@ Android 视觉校准交付：新增 components/ui/nav-icon.tsx 收敛 sf: SF Sym
 ### Status
 
 [OK] **Completed**
+
+
+## Session 3: FEATURE-547 归档：formSheet 路由 Android 校准
+<!-- trellis-session: v=2 fp=b15ca80726c83793 -->
+
+**Date**: 2026-09-19
+**Task**: FEATURE-547 归档：formSheet 路由 Android 校准
+**Branch**: `feature/547-formsheet-android`
+
+### Summary
+
+每日归档：formsheet 任务归档。issue FEATURE-547 done；PR #5 已 squash 合并进 main（803576e9d）；6 项 AC 全部核验（iOS 一项按交付评论的代码级证据核销）；trellis-check ran(clean)。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `44413160a` | fix(mobile): 校准 formSheet 路由在 Android 的呈现 |
+
+### Status
+
+[OK] **Completed**
