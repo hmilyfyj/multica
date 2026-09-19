@@ -17,6 +17,8 @@ import type {
   Agent,
   AgentTask,
   Attachment,
+  Autopilot,
+  AutopilotRun,
   ChatMessage,
   ChatPendingTask,
   ChatSession,
@@ -26,6 +28,7 @@ import type {
   CreateLabelRequest,
   CreateProjectRequest,
   CreateProjectResourceRequest,
+  GetAutopilotResponse,
   InboxItem,
   InboxWorkspaceUnread,
   Issue,
@@ -69,6 +72,9 @@ import type {
 } from "@multica/core/types";
 import {
   AppConfigSchema,
+  AutopilotRunSchema,
+  FALLBACK_AUTOPILOT_RUN,
+  ListAutopilotsResponseSchema,
   EMPTY_APP_CONFIG,
   EMPTY_REFRESH_SESSION_RESPONSE,
   RefreshSessionResponseSchema,
@@ -91,6 +97,8 @@ import {
   ActiveTasksResponseSchema,
   AgentListSchema,
   AgentTaskListSchema,
+  AutopilotDetailSchema,
+  AutopilotRunListSchema,
   AttachmentListSchema,
   AttachmentSchema,
   ChatMessageListSchema,
@@ -101,6 +109,9 @@ import {
   EMPTY_ACTIVE_TASKS_RESPONSE,
   EMPTY_AGENT_LIST,
   EMPTY_AGENT_TASK_LIST,
+  EMPTY_AUTOPILOT_LIST,
+  EMPTY_AUTOPILOT_DETAIL,
+  EMPTY_AUTOPILOT_RUN_LIST,
   EMPTY_ATTACHMENT_LIST,
   EMPTY_CHAT_MESSAGE_LIST,
   EMPTY_CHAT_PENDING_TASK,
@@ -683,6 +694,89 @@ class ApiClient {
     return parseWithFallback(raw, SquadListSchema, EMPTY_SQUAD_LIST, {
       endpoint: "listSquads",
     });
+  }
+
+  // --- Autopilots ---
+  // Read-only browse plus the one write the mobile view offers: a manual
+  // "run now". Web answers the rest (create / edit / pause / delete, trigger
+  // editors, webhook token rotation, access management); none of it is here.
+
+  // Workspace autopilot list. Omitting `status` is exactly web's "all" scope:
+  // the server returns active + paused and never archived
+  // (server/pkg/db/queries/autopilot.sql). Rows already carry the three derived
+  // columns the list renders (trigger_kinds / next_run_at / last_run_status,
+  // enabled triggers only), so the page never N+1s into the detail endpoint.
+  async listAutopilots(opts?: { signal?: AbortSignal }): Promise<Autopilot[]> {
+    const raw = await this.fetch<unknown>("/api/autopilots", {
+      signal: opts?.signal,
+    });
+    const parsed = parseWithFallback(
+      raw,
+      ListAutopilotsResponseSchema,
+      EMPTY_AUTOPILOT_LIST,
+      { endpoint: "GET /api/autopilots" },
+    );
+    return parsed.autopilots;
+  }
+
+  // Autopilot + its configured triggers. The list response cannot back the
+  // detail screen (it carries no triggers, only the derived `trigger_kinds`).
+  // A missing / out-of-workspace id answers 404, which the screen renders as
+  // its not-found state — same scope the list page shows, so the two agree.
+  async getAutopilot(
+    id: string,
+    opts?: { signal?: AbortSignal },
+  ): Promise<GetAutopilotResponse> {
+    return this.fetchValidated(
+      `/api/autopilots/${id}`,
+      AutopilotDetailSchema,
+      EMPTY_AUTOPILOT_DETAIL,
+      { ...opts, endpoint: "GET /api/autopilots/:id" },
+    );
+  }
+
+  // Run history, newest first. The endpoint pages at 20 by default (100 max)
+  // and omits each run's `trigger_payload` — a webhook envelope can reach
+  // 256 KiB, so `limit` rows of it would be megabytes on cellular. Rows carry
+  // status / source / failure_reason / timestamps, which is all this screen
+  // shows.
+  async listAutopilotRuns(
+    id: string,
+    opts?: { signal?: AbortSignal },
+  ): Promise<AutopilotRun[]> {
+    const raw = await this.fetch<unknown>(`/api/autopilots/${id}/runs`, {
+      signal: opts?.signal,
+    });
+    const parsed = parseWithFallback(
+      raw,
+      AutopilotRunListSchema,
+      EMPTY_AUTOPILOT_RUN_LIST,
+      { endpoint: "GET /api/autopilots/:id/runs" },
+    );
+    return parsed.runs;
+  }
+
+  // Manual "run now". A 200 does NOT mean the run started: the pre-flight
+  // admission check can block it and still answer 200, carrying the outcome on
+  // the run's `status` + `reason_code` (MUL-4525), so the caller branches on
+  // the run, never on the HTTP code. Quota rejection is the one HTTP-level
+  // failure (429 + `reason_code: quota_exceeded`).
+  //
+  // The Idempotency-Key mirrors web, which also mints a fresh id per request:
+  // it is the dispatch ledger's uniqueness key, not a client retry cache.
+  // Mobile has no WebCrypto (`crypto.randomUUID` is not available on Hermes),
+  // so this uses the mobile-owned request-id helper.
+  async triggerAutopilot(id: string): Promise<AutopilotRun> {
+    return this.fetchValidatedWith(
+      `/api/autopilots/${id}/trigger`,
+      AutopilotRunSchema,
+      FALLBACK_AUTOPILOT_RUN,
+      {
+        method: "POST",
+        headers: { "Idempotency-Key": createRequestId() },
+      },
+      { endpoint: "POST /api/autopilots/:id/trigger" },
+    );
   }
 
   // --- Issues ---
