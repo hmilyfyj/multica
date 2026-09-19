@@ -395,6 +395,18 @@ export default function WorkspaceLayout() {
           name="more/settings/notifications"
           options={{ title: "Notifications", headerBackTitle: "Settings" }}
         />
+        {/* Read-only workspace reporting, both reached from the More popover:
+            usage trends + failure breakdown, and the current subscription.
+            They carry no writes, so they need nothing from the realtime
+            layer — the rollups refresh on their own cadence and on pull. */}
+        <Stack.Screen
+          name="more/usage"
+          options={{ title: "Usage", headerBackTitle: "Back" }}
+        />
+        <Stack.Screen
+          name="more/billing"
+          options={{ title: "Billing", headerBackTitle: "Back" }}
+        />
         <Stack.Screen
           name="more/settings/workspace"
           options={{ title: "Workspace", headerBackTitle: "Settings" }}

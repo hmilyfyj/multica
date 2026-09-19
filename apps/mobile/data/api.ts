@@ -18,6 +18,7 @@ import type {
   AgentTask,
   Attachment,
   Autopilot,
+  AutopilotQuotaUsage,
   AutopilotRun,
   ChatMessage,
   ChatPendingTask,
@@ -28,11 +29,18 @@ import type {
   CreateLabelRequest,
   CreateProjectRequest,
   CreateProjectResourceRequest,
+  DashboardAgentRunTime,
+  DashboardFailureByAgent,
+  DashboardFailureDaily,
+  DashboardRunTimeDaily,
+  DashboardUsageByAgent,
+  DashboardUsageDaily,
   GetAutopilotResponse,
   InboxItem,
   InboxWorkspaceUnread,
   Issue,
   IssueLabelsResponse,
+  IssueLimitUsage,
   Label,
   IssueReaction,
   IssueStatusCategory,
@@ -72,8 +80,16 @@ import type {
 } from "@multica/core/types";
 import {
   AppConfigSchema,
+  AutopilotQuotaUsageSchema,
   AutopilotRunSchema,
+  DashboardAgentRunTimeListSchema,
+  DashboardFailureByAgentListSchema,
+  DashboardFailureDailyListSchema,
+  DashboardRunTimeDailyListSchema,
+  DashboardUsageByAgentListSchema,
+  DashboardUsageDailyListSchema,
   FALLBACK_AUTOPILOT_RUN,
+  IssueLimitUsageSchema,
   ListAutopilotsResponseSchema,
   EMPTY_APP_CONFIG,
   EMPTY_REFRESH_SESSION_RESPONSE,
@@ -225,6 +241,25 @@ export interface ApiClientOptions {
    *  to clear the token + navigate to /login so a stale token doesn't keep
    *  every subsequent request looping on 401. */
   onUnauthorized?: () => void;
+}
+
+/** Window selector shared by every `/api/dashboard/*` rollup read. */
+interface DashboardQueryParams {
+  /** Window length in calendar days, sliced in `tz`. */
+  days: number;
+  /** Viewer timezone. Omitted when the client has none, letting the server
+   *  fall back to the caller's stored timezone and finally UTC
+   *  (`resolveViewingTZ`, server/internal/handler/runtime.go) — the same value
+   *  web sends, so both clients bucket the same days. */
+  tz?: string;
+}
+
+/** `?days=N[&tz=…]` for the dashboard rollups. */
+function dashboardQueryString(params: DashboardQueryParams): string {
+  const search = new URLSearchParams();
+  search.set("days", String(params.days));
+  if (params.tz) search.set("tz", params.tz);
+  return `?${search.toString()}`;
 }
 
 class ApiClient {
@@ -1652,6 +1687,129 @@ class ApiClient {
       throw new ApiError("Upload response invalid", res.status, json);
     }
     return parsed.data;
+  }
+
+  // --- Workspace dashboard (Analytics: Usage / Errors) ---
+  //
+  // Six read-only rollups behind `/{slug}/usage`, mirroring
+  // packages/core/api/client.ts:2313-2413. Each takes the window length in
+  // days and an optional timezone; the server returns a bare array with no
+  // pagination cursor. Cost is deliberately absent: web derives it client-side
+  // from the runtimes pricing table, which mobile does not ship.
+
+  async getDashboardUsageDaily(
+    params: DashboardQueryParams,
+    opts?: { signal?: AbortSignal },
+  ): Promise<DashboardUsageDaily[]> {
+    return this.fetchValidated(
+      `/api/dashboard/usage/daily${dashboardQueryString(params)}`,
+      DashboardUsageDailyListSchema,
+      [],
+      { ...opts, endpoint: "GET /api/dashboard/usage/daily" },
+    );
+  }
+
+  async getDashboardUsageByAgent(
+    params: DashboardQueryParams,
+    opts?: { signal?: AbortSignal },
+  ): Promise<DashboardUsageByAgent[]> {
+    return this.fetchValidated(
+      `/api/dashboard/usage/by-agent${dashboardQueryString(params)}`,
+      DashboardUsageByAgentListSchema,
+      [],
+      { ...opts, endpoint: "GET /api/dashboard/usage/by-agent" },
+    );
+  }
+
+  async getDashboardAgentRunTime(
+    params: DashboardQueryParams,
+    opts?: { signal?: AbortSignal },
+  ): Promise<DashboardAgentRunTime[]> {
+    return this.fetchValidated(
+      `/api/dashboard/agent-runtime${dashboardQueryString(params)}`,
+      DashboardAgentRunTimeListSchema,
+      [],
+      { ...opts, endpoint: "GET /api/dashboard/agent-runtime" },
+    );
+  }
+
+  async getDashboardRunTimeDaily(
+    params: DashboardQueryParams,
+    opts?: { signal?: AbortSignal },
+  ): Promise<DashboardRunTimeDaily[]> {
+    return this.fetchValidated(
+      `/api/dashboard/runtime/daily${dashboardQueryString(params)}`,
+      DashboardRunTimeDailyListSchema,
+      [],
+      { ...opts, endpoint: "GET /api/dashboard/runtime/daily" },
+    );
+  }
+
+  async getDashboardFailuresDaily(
+    params: DashboardQueryParams,
+    opts?: { signal?: AbortSignal },
+  ): Promise<DashboardFailureDaily[]> {
+    return this.fetchValidated(
+      `/api/dashboard/failures/daily${dashboardQueryString(params)}`,
+      DashboardFailureDailyListSchema,
+      [],
+      { ...opts, endpoint: "GET /api/dashboard/failures/daily" },
+    );
+  }
+
+  async getDashboardFailuresByAgent(
+    params: DashboardQueryParams,
+    opts?: { signal?: AbortSignal },
+  ): Promise<DashboardFailureByAgent[]> {
+    return this.fetchValidated(
+      `/api/dashboard/failures/by-agent${dashboardQueryString(params)}`,
+      DashboardFailureByAgentListSchema,
+      [],
+      { ...opts, endpoint: "GET /api/dashboard/failures/by-agent" },
+    );
+  }
+
+  // --- Billing quotas ---
+  //
+  // Entitlement usage for the read-only Billing screen. Both are
+  // Cloud-authoritative snapshots: they can lag the summary above them, and a
+  // snapshot the server could not compute comes back as nulls rather than as
+  // an error.
+
+  async getIssueLimitUsage(
+    opts?: { signal?: AbortSignal },
+  ): Promise<IssueLimitUsage | null> {
+    return this.fetchValidated<IssueLimitUsage | null>(
+      "/api/issues/limit-usage",
+      IssueLimitUsageSchema,
+      null,
+      { ...opts, endpoint: "getIssueLimitUsage" },
+    );
+  }
+
+  async getAutopilotQuotaUsage(
+    opts?: { signal?: AbortSignal },
+  ): Promise<AutopilotQuotaUsage> {
+    // Every field is nullable and every schema field defaults, so an
+    // all-null snapshot is the honest fallback: the screen renders it as
+    // "usage unavailable" with a retry instead of as a limit of zero.
+    return this.fetchValidated<AutopilotQuotaUsage>(
+      "/api/autopilots/usage",
+      AutopilotQuotaUsageSchema,
+      {
+        action: "off",
+        used: null,
+        reserved: null,
+        total: null,
+        limit: null,
+        reached: null,
+        period_start: null,
+        period_end: null,
+        reset_at: null,
+        blocked_counts: null,
+      },
+      { ...opts, endpoint: "getAutopilotQuotaUsage" },
+    );
   }
 }
 
