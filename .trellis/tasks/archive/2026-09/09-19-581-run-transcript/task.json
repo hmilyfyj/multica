@@ -1,0 +1,28 @@
+{
+  "id": "581-run-transcript",
+  "name": "581-run-transcript",
+  "title": "581 运行详情（transcript）：从 Runs 列表进入 + 实时追加",
+  "description": "Runs 列表点历史 run 打开该 run 的完整时间线（thinking/tool_use/tool_result/text/error，按 seq 排序，「显示前面 N 个步骤」开窗分页），运行中经 WS task:message 实时追加；对齐 web packages/views/common/task-transcript 的条目语义。",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": "mobile",
+  "priority": "P2",
+  "creator": "fengit",
+  "assignee": "fengit",
+  "createdAt": "2026-09-19",
+  "completedAt": "2026-09-19",
+  "branch": "feature/581-run-transcript",
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "worktree_path": "/Users/fengit/workspace/multica.worktrees/FEATURE-581"
+  }
+}
