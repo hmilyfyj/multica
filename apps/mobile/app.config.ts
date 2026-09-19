@@ -22,7 +22,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         ? "海尔商城 (Staging)"
         : "海尔商城 (Dev)",
     slug: "multica-mobile",
-    version: "0.1.0",
+    version: "0.1.1",
     orientation: "portrait",
     // Applies to both platforms. On Android this only takes effect because
     // expo-system-ui is installed: prebuild writes the value into strings.xml
@@ -113,7 +113,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       // device which build is actually installed.
       // vc7: comment-thread quick jump (FEATURE-572 — outline sheet + prev/next
       // stepper over an issue's comment threads).
-      versionCode: 7,
+      // vc8: 0.1.1 release (distribution bump after the 0.1.0 series).
+      versionCode: 8,
 
       // Keep the window's soft-input mode on `adjustResize` — this is Expo's
       // default (its plugin writes `adjustResize` when the key is absent), so
