@@ -27,3 +27,25 @@ Android 视觉校准交付：新增 components/ui/nav-icon.tsx 收敛 sf: SF Sym
 ### Status
 
 [OK] **Completed**
+
+
+## Session 10: FEATURE-557 归档：品牌化海尔商城与包名
+<!-- trellis-session: v=2 fp=438f7bb29c8c0304 -->
+
+**Date**: 2026-09-19
+**Task**: FEATURE-557 归档：品牌化海尔商城与包名
+**Branch**: `feature/557-android-branding`
+
+### Summary
+
+每日归档：09-18-android-branding。issue done；业务 PR 已 squash 合并进 main；AC 全部核验；trellis-check ran(clean)。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b1badc2d4` | feat(mobile): Android 品牌化为「海尔商城」与 com.ehaier.zgq.shop.mall |
+
+### Status
+
+[OK] **Completed**
