@@ -454,3 +454,73 @@ Trellis 归档清尾：09-19-realtime-defects 任务归档到 archive/2026-09；
 ### Status
 
 [OK] **Completed**
+
+
+## Session 33: 归档 FEATURE-558 阶段 5 收尾验收
+<!-- trellis-session: v=2 fp=46dcfc971c60f3e7 -->
+
+**Date**: 2026-09-19
+**Task**: 归档 FEATURE-558 阶段 5 收尾验收
+**Package**: mobile
+**Branch**: `feature/558-android-final-acceptance`
+
+### Summary
+
+Trellis 归档清尾：09-19-android-final-acceptance 任务归档到 archive/2026-09；业务改动（Tier 1 冒烟门禁 + Release 包验收结论 + 回归清单回写）已由 #28 合入 main；10 项 AC 全部勾选。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f0979ddfe` | test(mobile): Android 验收提速（冒烟门禁 + Release 包 + 判定源修正） |
+| `903338f10` | docs(mobile): 清单更新为 FEATURE-558 Release 轮结论（Tier 1 冒烟 + 未跑项逐条说明） |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 34: FEATURE-566 设置面板补齐：工作区 / 标签 / issue 状态
+<!-- trellis-session: v=2 fp=8ed5491b2fa3a998 -->
+
+**Date**: 2026-09-19
+**Task**: FEATURE-566 设置面板补齐：工作区 / 标签 / issue 状态
+**Branch**: `feature/566-settings-workspace-labels-statuses`
+
+### Summary
+
+新增三个设置子页（工作区常规设置、标签管理、issue 状态管理）与其数据层与单测；MR #50 已 squash 合入 main（21ae38793）。turbo typecheck/lint/test --filter=@multica/mobile 全绿；未跑真机。trellis-check: ran(clean)，finish-work 4 步完成。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0759aac3c` | feat(mobile): 设置面板补齐工作区 / 标签 / issue 状态管理 (#566) |
+| `446919803` | Merge remote-tracking branch 'origin/main' into feature/566-settings-workspace-labels-statuses |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 35: FEATURE-568 Usage / Billing 只读查看（含归档）
+<!-- trellis-session: v=2 fp=5259c07f2701c077 -->
+
+**Date**: 2026-09-19
+**Task**: FEATURE-568 Usage / Billing 只读查看（含归档）
+**Branch**: `chore/568-task-journal`
+
+### Summary
+
+给 apps/mobile 补上 Usage（用量趋势 + 失败概览）与 Billing（订阅/席位/配额/账单入口）两块只读页面；新增 6 个 dashboard rollup + 2 个配额端点的移动端方法与 query options、lib/usage-stats.ts 与 lib/billing-display.ts 两组纯函数（带单测）；More 菜单新增两个入口。已与 main 合并（冲突仅在 api.ts import 区与 More 菜单项），PR #54 squash 合并，随后归档本任务的 Trellis 记录。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `037f13251` | feat(mobile): Usage / Billing 只读查看 |
+| `85993fc86` | feat(mobile): Usage / Billing 只读查看 (#54) |
+
+### Status
+
+[OK] **Completed**

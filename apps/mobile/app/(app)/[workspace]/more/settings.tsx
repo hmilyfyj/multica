@@ -9,6 +9,9 @@
  * Subscreens push under more/settings/:
  *   - more/settings/profile        — edit name + avatar
  *   - more/settings/notifications  — per-group inbox + system toggles
+ *   - more/settings/workspace      — workspace name, description, prefix
+ *   - more/settings/labels         — issue + skill label catalogs
+ *   - more/settings/issue-statuses — the workspace status catalog
  *
  * Theme picker stays inline (3 fixed options, fits in one section).
  */
@@ -86,6 +89,10 @@ export default function SettingsPage() {
   const goProfile = () => router.push(`/${currentSlug}/more/settings/profile`);
   const goNotifications = () =>
     router.push(`/${currentSlug}/more/settings/notifications`);
+  const goWorkspace = () => router.push(`/${currentSlug}/more/settings/workspace`);
+  const goLabels = () => router.push(`/${currentSlug}/more/settings/labels`);
+  const goIssueStatuses = () =>
+    router.push(`/${currentSlug}/more/settings/issue-statuses`);
 
   return (
     <ScrollView
@@ -149,6 +156,31 @@ export default function SettingsPage() {
             );
           })
         )}
+      </SectionGroup>
+
+      {/* Workspace administration. Sits after the switcher so the two read as
+          "which workspace am I in" then "what I can change in it". */}
+      <SectionGroup title="Workspace settings">
+        <NavRow
+          onPress={goWorkspace}
+          chevronColor={mutedFg}
+          title="General"
+          subtitle="Name, description and issue prefix"
+        />
+        <Separator />
+        <NavRow
+          onPress={goIssueStatuses}
+          chevronColor={mutedFg}
+          title="Statuses"
+          subtitle="Customize the status catalog"
+        />
+        <Separator />
+        <NavRow
+          onPress={goLabels}
+          chevronColor={mutedFg}
+          title="Labels"
+          subtitle="Manage issue and skill labels"
+        />
       </SectionGroup>
 
       <SectionGroup title="Appearance">

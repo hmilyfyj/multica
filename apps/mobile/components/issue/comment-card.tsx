@@ -83,6 +83,12 @@ interface Props {
    *  measures it to park the target at the top of the viewport
    *  (components/issue/timeline-list.tsx `startLanding`). */
   landingViewRef?: (node: View | null) => void;
+  /** The comment the timeline must be able to land on in this card. A thread
+   *  outline jump sets it: the row is parked without being flashed, and a
+   *  resolved thread keeps its folded bar folded (web's outline jumps to the
+   *  bar too). An inbox deep link leaves it unset and anchors on whatever it
+   *  flashes. */
+  anchorCommentId?: string;
 }
 
 export function CommentCard({
@@ -92,12 +98,15 @@ export function CommentCard({
   issueIdentifier,
   highlightedCommentId,
   landingViewRef,
+  anchorCommentId,
 }: Props) {
   // Resolved threads default to a single-line bar; tap expands in place for
   // the current session. Unmount (scroll out of viewport) resets — same
-  // behavior as iOS Mail's "tap to expand a thread" pattern. Replies cannot
-  // themselves be resolved (server enforces root-only), so the resolved flag
-  // on the root is the single source of truth for this card.
+  // behavior as iOS Mail's "tap to expand a thread" pattern. Only the root's
+  // resolved_at folds this card: the server also lets a REPLY carry the
+  // resolution (server/internal/handler/comment.go folds those threads too),
+  // and such a thread renders unfolded here. The thread outline
+  // (lib/thread-nav.ts) does report it as resolved.
   const resolved = !!entry.resolved_at;
   const [expanded, setExpanded] = useState(false);
   // Highlight ring while a long-press action sheet is on screen — child
@@ -145,10 +154,18 @@ export function CommentCard({
   const highlightId = highlightedCommentId
     ? commentLandingTarget(highlightedCommentId, entry.id, replies)
     : highlightedCommentId;
+  // A thread-outline jump parks a row without flashing it, and must leave a
+  // resolved thread's folded bar folded. So the anchor can be named
+  // separately from the flash target; an inbox deep link leaves it unset.
+  // The anchor resolves the same deleted-reply fallback the flash does, so a
+  // landing named after a tombstoned reply still finds a view to park on.
+  const anchorId = anchorCommentId
+    ? commentLandingTarget(anchorCommentId, entry.id, replies)
+    : highlightId;
 
   if (resolved && !expanded) {
     return (
-      <View ref={highlightId === entry.id ? landingViewRef : undefined}>
+      <View ref={anchorId === entry.id ? landingViewRef : undefined}>
         <ResolvedThreadBar
           entry={entry}
           replies={replies}
@@ -161,7 +178,7 @@ export function CommentCard({
   return (
     <View
       className="px-4"
-      ref={highlightId === entry.id ? landingViewRef : undefined}
+      ref={anchorId === entry.id ? landingViewRef : undefined}
     >
       <View className="rounded-xl" style={continuousCorners}>
         {/* Bubble uses `surface-1` (L 98%) — extremely subtle elevation
@@ -207,7 +224,7 @@ export function CommentCard({
             <View
               key={reply.id}
               className="border-t border-border/60 pt-3"
-              ref={highlightId === reply.id ? landingViewRef : undefined}
+              ref={anchorId === reply.id ? landingViewRef : undefined}
             >
               <CommentBody
                 entry={reply}

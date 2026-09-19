@@ -18,22 +18,34 @@ import type {
   AgentTask,
   Attachment,
   Autopilot,
+  AutopilotQuotaUsage,
   AutopilotRun,
   ChatMessage,
   ChatPendingTask,
   ChatSession,
   Comment,
   CreateIssueRequest,
+  CreateIssueStatusRequest,
   CreateLabelRequest,
   CreateProjectRequest,
   CreateProjectResourceRequest,
+  DashboardAgentRunTime,
+  DashboardFailureByAgent,
+  DashboardFailureDaily,
+  DashboardRunTimeDaily,
+  DashboardUsageByAgent,
+  DashboardUsageDaily,
   GetAutopilotResponse,
   InboxItem,
   InboxWorkspaceUnread,
   Issue,
   IssueLabelsResponse,
+  IssueLimitUsage,
   Label,
   IssueReaction,
+  IssueStatusCategory,
+  IssueStatusEntry,
+  LabelResourceType,
   ListIssuesParams,
   ListIssuesResponse,
   ListLabelsResponse,
@@ -47,36 +59,55 @@ import type {
   Reaction,
   ReorderPinsRequest,
   RuntimeDevice,
+  RuntimeUsage,
   SearchIssuesResponse,
   SearchProjectsResponse,
   ListIssueStatusesResponse,
   SendChatMessageResponse,
+  SkillSummary,
   Squad,
+  SquadMember,
   NotificationPreferenceResponse,
   NotificationPreferences,
   TaskMessagePayload,
   TimelineEntry,
   UpdateIssueRequest,
+  UpdateLabelRequest,
   UpdateMeRequest,
   UpdateProjectRequest,
+  UpdateIssueStatusRequest,
   User,
   Workspace,
+  WorkspaceRepo,
   WorkspaceSubscriptionSummary,
 } from "@multica/core/types";
 import {
   AppConfigSchema,
+  AutopilotQuotaUsageSchema,
   AutopilotRunSchema,
+  DashboardAgentRunTimeListSchema,
+  DashboardFailureByAgentListSchema,
+  DashboardFailureDailyListSchema,
+  DashboardRunTimeDailyListSchema,
+  DashboardUsageByAgentListSchema,
+  DashboardUsageDailyListSchema,
   FALLBACK_AUTOPILOT_RUN,
+  IssueLimitUsageSchema,
   ListAutopilotsResponseSchema,
   EMPTY_APP_CONFIG,
   EMPTY_REFRESH_SESSION_RESPONSE,
+  EMPTY_SKILL_SUMMARY_LIST,
+  EMPTY_SQUAD,
   RefreshSessionResponseSchema,
   EMPTY_LIST_ISSUE_STATUSES_RESPONSE,
+  EMPTY_ISSUE_STATUS_ENTRY,
   EMPTY_LIST_ISSUES_RESPONSE,
   EMPTY_TIMELINE_ENTRIES,
   IssueSchema,
+  IssueStatusEntrySchema,
   ListIssuesResponseSchema,
   ListIssueStatusesResponseSchema,
+  SkillSummaryListSchema,
   TimelineEntriesSchema,
   WorkspaceSubscriptionSummarySchema,
 } from "@multica/core/api/schemas";
@@ -119,9 +150,12 @@ import {
   EMPTY_PIN_LIST,
   EMPTY_PROJECT,
   EMPTY_RUNTIME_LIST,
+  EMPTY_RUNTIME_USAGE_LIST,
   EMPTY_SEARCH_ISSUES_RESPONSE,
   EMPTY_SEARCH_PROJECTS_RESPONSE,
+  EMPTY_SKILL_DETAIL,
   EMPTY_SQUAD_LIST,
+  EMPTY_SQUAD_MEMBER_LIST,
   EMPTY_USER,
   EMPTY_WORKSPACE_LIST,
   InboxListSchema,
@@ -135,15 +169,20 @@ import {
   PinnedItemSchema,
   ProjectSchema,
   RuntimeListSchema,
+  RuntimeUsageListSchema,
   SearchIssuesResponseSchema,
   SearchProjectsResponseSchema,
   SendChatMessageResponseSchema,
+  SkillDetailSchema,
   SquadListSchema,
+  SquadMemberListSchema,
+  SquadSchema,
   TaskMessageListSchema,
   EMPTY_TASK_MESSAGE_LIST,
   UserSchema,
   WorkspaceListSchema,
 } from "./schemas";
+import type { SkillDetail } from "./schemas";
 import type { ZodType } from "zod";
 import { getCurrentSlug } from "./workspace-store";
 import { parseWithFallback } from "@/lib/parse-response";
@@ -172,6 +211,19 @@ export interface FileAsset {
   uri: string;
   name: string;
   type: string;
+}
+
+/** Body of `PATCH /api/workspaces/{id}`. Mirrors the inline shape in
+ *  `packages/core/api/client.ts` updateWorkspace — core exports no named
+ *  type for it, and the fields this screen writes are a subset of these. */
+export interface UpdateWorkspaceRequest {
+  name?: string;
+  description?: string;
+  context?: string;
+  settings?: Record<string, unknown>;
+  repos?: WorkspaceRepo[];
+  issue_prefix?: string;
+  avatar_url?: string;
 }
 
 /** Web mirrors this from `packages/core/constants/upload.ts`. Mobile keeps
@@ -203,6 +255,25 @@ export interface ApiClientOptions {
    *  to clear the token + navigate to /login so a stale token doesn't keep
    *  every subsequent request looping on 401. */
   onUnauthorized?: () => void;
+}
+
+/** Window selector shared by every `/api/dashboard/*` rollup read. */
+interface DashboardQueryParams {
+  /** Window length in calendar days, sliced in `tz`. */
+  days: number;
+  /** Viewer timezone. Omitted when the client has none, letting the server
+   *  fall back to the caller's stored timezone and finally UTC
+   *  (`resolveViewingTZ`, server/internal/handler/runtime.go) — the same value
+   *  web sends, so both clients bucket the same days. */
+  tz?: string;
+}
+
+/** `?days=N[&tz=…]` for the dashboard rollups. */
+function dashboardQueryString(params: DashboardQueryParams): string {
+  const search = new URLSearchParams();
+  search.set("days", String(params.days));
+  if (params.tz) search.set("tz", params.tz);
+  return `?${search.toString()}`;
 }
 
 class ApiClient {
@@ -510,6 +581,26 @@ class ApiClient {
     });
   }
 
+  /**
+   * Patch the workspace's own fields. Owner/admin only — the route sits in
+   * the owner|admin group in server/cmd/server/router.go, so a plain member
+   * gets a 403 ApiError.
+   *
+   * Raw `this.fetch<Workspace>` rather than `fetchValidatedWith`: the
+   * response replaces the cached Workspace, and a parseWithFallback stand-in
+   * would blank the settings form instead of surfacing the drift. Mirrors
+   * `packages/core/api/client.ts` updateWorkspace.
+   */
+  async updateWorkspace(
+    id: string,
+    body: UpdateWorkspaceRequest,
+  ): Promise<Workspace> {
+    return this.fetch<Workspace>(`/api/workspaces/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    });
+  }
+
   // --- Inbox ---
   async listInbox(opts?: { signal?: AbortSignal }): Promise<InboxItem[]> {
     const raw = await this.fetch<unknown>("/api/inbox", {
@@ -611,6 +702,28 @@ class ApiClient {
     });
   }
 
+  // One runtime's daily usage rollup — backs the detail screen's usage summary.
+  // `days=N` returns today's partial bucket plus N prior days
+  // (server/internal/handler/runtime.go:360), one row per (date, provider,
+  // model); the caller trims that extra bucket to the window it labels.
+  // `tz` is deliberately NOT sent: the server falls back to the signed-in user's
+  // stored timezone and then to UTC (resolveViewingTZ, runtime.go:431), so a
+  // device-side guess could only make these buckets disagree with web's.
+  async getRuntimeUsage(
+    runtimeId: string,
+    params: { days: number },
+    opts?: { signal?: AbortSignal },
+  ): Promise<RuntimeUsage[]> {
+    const search = new URLSearchParams({ days: String(params.days) });
+    const raw = await this.fetch<unknown>(
+      `/api/runtimes/${runtimeId}/usage?${search}`,
+      { signal: opts?.signal },
+    );
+    return parseWithFallback(raw, RuntimeUsageListSchema, EMPTY_RUNTIME_USAGE_LIST, {
+      endpoint: "GET /api/runtimes/:id/usage",
+    });
+  }
+
   // Workspace-wide active agent tasks + each agent's most recent terminal —
   // feeds the workload dimension of presence (currently unused in the mobile
   // dot; reserved for the P1 long-press peek sheet). Listed here now so the
@@ -652,6 +765,69 @@ class ApiClient {
     return parseWithFallback(raw, SquadListSchema, EMPTY_SQUAD_LIST, {
       endpoint: "listSquads",
     });
+  }
+
+  // One squad, including the `instructions` body. The list payload already
+  // carries every identity field but not that body — which is exactly what the
+  // read-only detail screen exists to show. An unknown or out-of-workspace id
+  // answers 404, rendered as the screen's not-found state.
+  async getSquad(id: string, opts?: { signal?: AbortSignal }): Promise<Squad> {
+    return this.fetchValidated(`/api/squads/${id}`, SquadSchema, EMPTY_SQUAD, {
+      ...opts,
+      endpoint: "GET /api/squads/:id",
+    });
+  }
+
+  // The squad's roster. A row carries `member_type` + `member_id` only; display
+  // names come from the workspace agent / member lists the screen already has —
+  // the same cache-only resolution the squad list's leader column uses.
+  async listSquadMembers(
+    squadId: string,
+    opts?: { signal?: AbortSignal },
+  ): Promise<SquadMember[]> {
+    const raw = await this.fetch<unknown>(`/api/squads/${squadId}/members`, {
+      signal: opts?.signal,
+    });
+    return parseWithFallback(raw, SquadMemberListSchema, EMPTY_SQUAD_MEMBER_LIST, {
+      endpoint: "GET /api/squads/:id/members",
+    });
+  }
+
+  // --- Skills ---
+  // Read-only browse only: no create, no file editing, no refresh-from-source,
+  // no runtime-local import. Web owns all four.
+
+  // Workspace skill list. The server omits each SKILL.md body here on purpose
+  // (GH multica-ai/multica#2174) — a row is identity + description + `config`,
+  // and `config.origin` is where a skill's source lives, which is all the list
+  // renders.
+  async listSkills(opts?: { signal?: AbortSignal }): Promise<SkillSummary[]> {
+    const raw = await this.fetch<unknown>("/api/skills", {
+      signal: opts?.signal,
+    });
+    return parseWithFallback(
+      raw,
+      SkillSummaryListSchema,
+      EMPTY_SKILL_SUMMARY_LIST,
+      { endpoint: "GET /api/skills" },
+    );
+  }
+
+  // One skill's detail with `?include=metadata`, so no file body comes down: the
+  // read-only screen lists files and sizes, and a single SKILL.md commonly runs
+  // 50-200KB (server/internal/handler/skill.go:107-121). That response is the
+  // same one the CLI reads for `skill files list`, so it is a supported contract
+  // rather than a mobile-only shape.
+  async getSkill(
+    id: string,
+    opts?: { signal?: AbortSignal },
+  ): Promise<SkillDetail> {
+    return this.fetchValidated(
+      `/api/skills/${id}?include=metadata`,
+      SkillDetailSchema,
+      EMPTY_SKILL_DETAIL,
+      { ...opts, endpoint: "GET /api/skills/:id?include=metadata" },
+    );
   }
 
   // --- Autopilots ---
@@ -1020,8 +1196,13 @@ class ApiClient {
   // --- Labels ---
   async listLabels(opts?: {
     signal?: AbortSignal;
+    /** Catalog to read. Omitted means the server default — `issue`. */
+    resourceType?: LabelResourceType;
   }): Promise<ListLabelsResponse> {
-    const raw = await this.fetch<unknown>("/api/labels", {
+    const query = opts?.resourceType
+      ? `?resource_type=${encodeURIComponent(opts.resourceType)}`
+      : "";
+    const raw = await this.fetch<unknown>(`/api/labels${query}`, {
       signal: opts?.signal,
     });
     return parseWithFallback(
@@ -1041,6 +1222,30 @@ class ApiClient {
       method: "POST",
       body: JSON.stringify(body),
     });
+  }
+
+  /**
+   * Rename / recolour / re-describe an existing label. `PUT` is a sparse
+   * update — the server COALESCEs absent fields — so send only what changed.
+   * Raw `this.fetch<Label>` on purpose, same as `createLabel`: the result is
+   * written straight into the list cache, and a parseWithFallback stand-in
+   * would plant a phantom row there instead of surfacing the drift.
+   *
+   * A name already used in the workspace (any resource_type, case-
+   * insensitive) comes back as a 409 ApiError, which the form shows verbatim.
+   */
+  async updateLabel(id: string, body: UpdateLabelRequest): Promise<Label> {
+    return this.fetch<Label>(`/api/labels/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    });
+  }
+
+  /** Delete a label. The server clears its issue/agent/skill links in the
+   *  same transaction, so no client-side cache repair is needed beyond
+   *  dropping the row. 204 No Content — `this.fetch` maps that to undefined. */
+  async deleteLabel(id: string): Promise<void> {
+    await this.fetch<void>(`/api/labels/${id}`, { method: "DELETE" });
   }
 
   async attachLabel(
@@ -1089,6 +1294,92 @@ class ApiClient {
       ListIssueStatusesResponseSchema,
       EMPTY_LIST_ISSUE_STATUSES_RESPONSE,
       { ...opts, endpoint: "GET /api/issue-statuses" },
+    );
+  }
+
+  /**
+   * Create a CUSTOM status. Owner/admin only (the handler re-checks the role
+   * and returns 403 otherwise).
+   *
+   * `key` is deliberately not sendable — the server derives it from `name`
+   * (`issuestatus.DeriveKey`) and returns it, which is what the editor's
+   * "Referred to as {{key}} by the API and the CLI" hint reports.
+   */
+  async createIssueStatus(
+    body: CreateIssueStatusRequest,
+  ): Promise<IssueStatusEntry> {
+    return this.fetchValidatedWith(
+      "/api/issue-statuses",
+      IssueStatusEntrySchema,
+      EMPTY_ISSUE_STATUS_ENTRY,
+      { method: "POST", body: JSON.stringify(body) },
+      { endpoint: "createIssueStatus" },
+    );
+  }
+
+  /** Rename / recolour / re-describe / re-icon a CUSTOM status. `key` and
+   *  `category` are not settable — both are immutable server-side, and the
+   *  editor locks the category for that reason. Built-ins are refused. */
+  async updateIssueStatus(
+    id: string,
+    body: UpdateIssueStatusRequest,
+  ): Promise<IssueStatusEntry> {
+    return this.fetchValidatedWith(
+      `/api/issue-statuses/${id}`,
+      IssueStatusEntrySchema,
+      EMPTY_ISSUE_STATUS_ENTRY,
+      { method: "PATCH", body: JSON.stringify(body) },
+      { endpoint: "updateIssueStatus" },
+    );
+  }
+
+  /**
+   * Rewrite one category's order in a single server-side statement. Not
+   * expressible as a sequence of `updateIssueStatus` calls: a row rejected
+   * mid-sequence would leave the earlier rows already reordered while the
+   * caller saw a failure.
+   *
+   * LOAD-BEARING CONTRACT: `ids` must name EVERY active (non-archived)
+   * status in `category`, in the intended order — `include_system` decides
+   * whether the built-ins of that category are part of the scope. Leaving
+   * one out, naming a status from another category, or naming an archived
+   * one is a 4xx, not a partial apply. The response is the whole catalog
+   * (archived rows included), so callers can write it straight to cache.
+   */
+  async reorderIssueStatuses(
+    category: IssueStatusCategory,
+    ids: string[],
+    includeSystem = false,
+  ): Promise<ListIssueStatusesResponse> {
+    return this.fetchValidatedWith(
+      "/api/issue-statuses/reorder",
+      ListIssueStatusesResponseSchema,
+      EMPTY_LIST_ISSUE_STATUSES_RESPONSE,
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          category,
+          ids,
+          include_system: includeSystem,
+        }),
+      },
+      { endpoint: "reorderIssueStatuses" },
+    );
+  }
+
+  /**
+   * Archive a custom status — terminal on the server, there is no restore.
+   * Refused with 409 `{ code: "issue_status_in_use", issue_count: N }` while
+   * any issue still carries it; `issueStatusArchiveConflictCount` turns that
+   * body into the count the confirm dialog quotes.
+   */
+  async archiveIssueStatus(id: string): Promise<IssueStatusEntry> {
+    return this.fetchValidatedWith(
+      `/api/issue-statuses/${id}`,
+      IssueStatusEntrySchema,
+      EMPTY_ISSUE_STATUS_ENTRY,
+      { method: "DELETE" },
+      { endpoint: "archiveIssueStatus" },
     );
   }
 
@@ -1495,6 +1786,129 @@ class ApiClient {
       throw new ApiError("Upload response invalid", res.status, json);
     }
     return parsed.data;
+  }
+
+  // --- Workspace dashboard (Analytics: Usage / Errors) ---
+  //
+  // Six read-only rollups behind `/{slug}/usage`, mirroring
+  // packages/core/api/client.ts:2313-2413. Each takes the window length in
+  // days and an optional timezone; the server returns a bare array with no
+  // pagination cursor. Cost is deliberately absent: web derives it client-side
+  // from the runtimes pricing table, which mobile does not ship.
+
+  async getDashboardUsageDaily(
+    params: DashboardQueryParams,
+    opts?: { signal?: AbortSignal },
+  ): Promise<DashboardUsageDaily[]> {
+    return this.fetchValidated(
+      `/api/dashboard/usage/daily${dashboardQueryString(params)}`,
+      DashboardUsageDailyListSchema,
+      [],
+      { ...opts, endpoint: "GET /api/dashboard/usage/daily" },
+    );
+  }
+
+  async getDashboardUsageByAgent(
+    params: DashboardQueryParams,
+    opts?: { signal?: AbortSignal },
+  ): Promise<DashboardUsageByAgent[]> {
+    return this.fetchValidated(
+      `/api/dashboard/usage/by-agent${dashboardQueryString(params)}`,
+      DashboardUsageByAgentListSchema,
+      [],
+      { ...opts, endpoint: "GET /api/dashboard/usage/by-agent" },
+    );
+  }
+
+  async getDashboardAgentRunTime(
+    params: DashboardQueryParams,
+    opts?: { signal?: AbortSignal },
+  ): Promise<DashboardAgentRunTime[]> {
+    return this.fetchValidated(
+      `/api/dashboard/agent-runtime${dashboardQueryString(params)}`,
+      DashboardAgentRunTimeListSchema,
+      [],
+      { ...opts, endpoint: "GET /api/dashboard/agent-runtime" },
+    );
+  }
+
+  async getDashboardRunTimeDaily(
+    params: DashboardQueryParams,
+    opts?: { signal?: AbortSignal },
+  ): Promise<DashboardRunTimeDaily[]> {
+    return this.fetchValidated(
+      `/api/dashboard/runtime/daily${dashboardQueryString(params)}`,
+      DashboardRunTimeDailyListSchema,
+      [],
+      { ...opts, endpoint: "GET /api/dashboard/runtime/daily" },
+    );
+  }
+
+  async getDashboardFailuresDaily(
+    params: DashboardQueryParams,
+    opts?: { signal?: AbortSignal },
+  ): Promise<DashboardFailureDaily[]> {
+    return this.fetchValidated(
+      `/api/dashboard/failures/daily${dashboardQueryString(params)}`,
+      DashboardFailureDailyListSchema,
+      [],
+      { ...opts, endpoint: "GET /api/dashboard/failures/daily" },
+    );
+  }
+
+  async getDashboardFailuresByAgent(
+    params: DashboardQueryParams,
+    opts?: { signal?: AbortSignal },
+  ): Promise<DashboardFailureByAgent[]> {
+    return this.fetchValidated(
+      `/api/dashboard/failures/by-agent${dashboardQueryString(params)}`,
+      DashboardFailureByAgentListSchema,
+      [],
+      { ...opts, endpoint: "GET /api/dashboard/failures/by-agent" },
+    );
+  }
+
+  // --- Billing quotas ---
+  //
+  // Entitlement usage for the read-only Billing screen. Both are
+  // Cloud-authoritative snapshots: they can lag the summary above them, and a
+  // snapshot the server could not compute comes back as nulls rather than as
+  // an error.
+
+  async getIssueLimitUsage(
+    opts?: { signal?: AbortSignal },
+  ): Promise<IssueLimitUsage | null> {
+    return this.fetchValidated<IssueLimitUsage | null>(
+      "/api/issues/limit-usage",
+      IssueLimitUsageSchema,
+      null,
+      { ...opts, endpoint: "getIssueLimitUsage" },
+    );
+  }
+
+  async getAutopilotQuotaUsage(
+    opts?: { signal?: AbortSignal },
+  ): Promise<AutopilotQuotaUsage> {
+    // Every field is nullable and every schema field defaults, so an
+    // all-null snapshot is the honest fallback: the screen renders it as
+    // "usage unavailable" with a retry instead of as a limit of zero.
+    return this.fetchValidated<AutopilotQuotaUsage>(
+      "/api/autopilots/usage",
+      AutopilotQuotaUsageSchema,
+      {
+        action: "off",
+        used: null,
+        reserved: null,
+        total: null,
+        limit: null,
+        reached: null,
+        period_start: null,
+        period_end: null,
+        reset_at: null,
+        blocked_counts: null,
+      },
+      { ...opts, endpoint: "getAutopilotQuotaUsage" },
+    );
   }
 }
 
