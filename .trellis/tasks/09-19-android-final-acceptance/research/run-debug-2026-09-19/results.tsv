@@ -1,0 +1,68 @@
+K5	pass	登录页邮箱+Send code：关键控件整块在键盘顶边之上（k5-login-ime）
+C1	pass	邮箱 → Send code 发出验证码，进入验证码页
+K6	pass	验证码页 OTP（以 Verify 按钮位置为判据）：关键控件整块在键盘顶边之上（k6-verify-ime）
+C2	pass	输入开发码 888888，满 6 位自动提交并通过（verify.tsx:97 onComplete=submit）
+C3	pass	工作区选择页列出多个工作区（probe550 / probe542），选中 Probe 550 后进入收件箱
+C4	pass	收件箱渲染出夹具条目（服务端按 issue 去重后 2 行：Mentioned + PRB-2 新评论），见 c4-01-inbox.png
+C4c	fail	左滑未露出 Archive 操作（见 c4-03-swipe-reveal.png）
+C4d	blocked	上一步失败，归档动作未执行
+C4b	fail	点开条目后未进入详情（见 c4-02-item-opened.png）
+C4e	pass	顶部 Inbox actions 面板打开并列出批量操作
+C5	pass	深链打开 issue 详情（标题 + 时间线分节）
+C5b	pass	属性 chip 渲染： In Progress High Android 回归项目 android 回归（未命中：）
+C5c	fail	滚动后夹具评论仍未进无障碍树（见 c5-02-detail-bottom.png）
+C5d	fail	⋯ 菜单未列出操作项（见 c5-03-actions-menu.png）
+C5e	fail	长按后未出现动作面板（见 c5-04-comment-menu.png）
+C5f	blocked	上一步失败
+K2	pass	评论 composer：关键控件整块在键盘顶边之上（k2-comment-ime）
+C6	pass	编辑 issue 页打开（Edit Issue：Title + Description 两个字段）
+K4	pass	编辑 issue 标题：关键控件整块在键盘顶边之上（k4-editissue-ime）
+C6b	fail	从详情点 chip 进选择器只成功 0 次
+C6c	fail	issue 属性选择器只打开 4/6 个（见 c6-picker-*.png）
+C7	pass	新建 issue 页打开
+K3	pass	新建 issue 标题：关键控件整块在键盘顶边之上（k3-newissue-ime）
+C7b	fail	新建 issue 属性 chip 只打开 2/5 个（见 c7-picker-chip-*.png）
+C7c	pass	new-issue-picker 路由可打开（4/5）
+C7d	fail	提交后服务端返回错误并弹出原生对话框（）—— 见 c7-03-after-create.png
+C8	pass	聊天页渲染出夹具会话的历史气泡（user + assistant 各一条）
+K1	blocked	聊天 composer：键盘未占位，本次无法判定（k1-chat-ime）
+C8b	fail	未定位到聊天发送按钮（content-desc=Send，见 c8-02-chat-typed.png）
+C8c	fail	发送后约 18s 内既没看到运行中 pill 文案，也没看到步骤折叠（见 c8-05-chat-running.png、c8-task-snapshot.txt）
+C8d	fail	30 次轮询（≈60s）内未出现助手回复文案（见 c8-06-chat-done.png、c8-task-snapshot.txt、fake-daemon.log）
+C8e	blocked	第二次发送未点到 Send 按钮（见 c8-02-chat-typed.png 的选择器口径）
+C9	pass	项目列表渲染出夹具项目
+C9b	pass	项目详情页打开
+C10	pass	全局搜索输入后返回结果
+B1	pass	详情点 chip 进入 picker（sheet 叠 sheet）后按 BACK 只关 picker，回到 issue 详情
+B2	pass	⋯ 菜单（JS action sheet）按 BACK 只关面板；issue 详情未弹栈、应用仍在前台
+B3	pass	picker 选中一项后关闭，未残留空壳
+B4	blocked	More 下拉未打开（未看到 Projects/Pinned 行），见 b4-more-open.png
+B1	pass	详情点 chip 进入 picker（sheet 叠 sheet）后按 BACK 只关 picker，回到 issue 详情
+B2	pass	⋯ 菜单（JS action sheet）按 BACK 只关面板；issue 详情未弹栈、应用仍在前台
+B3	pass	picker 选中一项后关闭，未残留空壳
+B4	pass	More 下拉菜单开着按 BACK 只关菜单；应用未退出、未切 tab
+B5	blocked	截图里没定位到图片块（image_block_bounds 返回空）—— 夹具图片没渲染出来，见 b5-01/b5-02
+B1	pass	详情点 chip 进入 picker（sheet 叠 sheet）后按 BACK 只关 picker，回到 issue 详情
+B2	pass	⋯ 菜单（JS action sheet）按 BACK 只关面板；issue 详情未弹栈、应用仍在前台
+D1	blocked	深链未落到 picker（见 d1-picker-direct.png）
+D2	pass	断网→重连后实时同步生效：断网期间插入的评论在约 0s（轮询粒度 2~4s）后出现在时间线（离线提示 marker=0；预算 30s，见平台 spec）
+D4	pass	Android 设备的 WS 连接在后端日志里上报 client_os=android（命中 412 条，其中带登录用户 2f9cf0e9-992b-4cbc-bbfd-00a8cea18f1e 的 3 条；同一份日志里 client_os=ios 有 589 条，来自本机其它客户端）
+D4b	fail	HTTP 请求的 client_os 仍是 ios（probe551 的接口调用里 client_os=ios 有 426 条、android 0 条）：559 只修了 WS 握手，apps/mobile/data/api.ts:227 与 :1319 的 X-Client-OS 还是硬编码 "ios"；见 d4-http-ios-lines.txt（本轮新发现，修复需另立任务）
+D3	pass	HOME→回前台恢复到应用；am kill 后 dev-client 冷启重新渲染
+V1	pass	四个 tab 图标齐全（图标框 ink 比例 min=My）： Inbox=0.4286 My Issues=0.0683 Chat=0.0812 More=0.0357 
+V2	pass	冷启动帧取到品牌启动屏背景 #111827（launch-splash-1）
+V2b	pass	prebuild 生成物：colors=splashscreen_background">#111827</color> / values-night 无深色覆盖 / windowSplashScreen 属性 3 条 / MainActivity 已注册
+V2c	pass	logcat 无 “Failed to hide splash screen”
+V3	fail	深浅两套未生效：浅色 254、深色 254
+V3b	fail	状态栏区域未随主题变化：浅色 254 / 深色 254
+V4	fail	My Issues 未渲染 scope pill 组（见 v4-my-issues-light.png）
+E1	fail	手势导航下 tab bar 底边 y=0 / 导航条上沿 y=2337 不符
+E2	fail	三键导航下 tab bar 底边 y=0 / 导航条上沿 y=2274 不符
+E3	blocked	未找到聊天输入框（composer 的 content-desc 会随状态变成 “Agent is working…”，见 e3-chat-nokeyboard.png）
+V1	fail	tab 图标缺失或标签不全（labels_ok=0 min_ink=n/a）： 
+V2	pass	冷启动帧取到品牌启动屏背景 #111827（launch-splash-2）
+V2b	pass	prebuild 生成物：colors=splashscreen_background">#111827</color> / values-night 无深色覆盖 / windowSplashScreen 属性 3 条 / MainActivity 已注册
+V2c	pass	logcat 无 “Failed to hide splash screen”
+V3	pass	深浅两套生效：浅色正文亮度 254（>180）、深色 9（<80）
+V3b	pass	状态栏区域随主题变暗：浅色 254 → 深色 9
+V4	pass	My Issues 的 scope pill 组渲染（Assigned/Created/Agents），替代已废弃的 SegmentedControl

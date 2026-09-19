@@ -9,12 +9,15 @@
  * apps/mobile/CLAUDE.md "Visual alignment is baseline":
  *   - Right column stacks vertically: status icon on top row, time on bottom.
  *   - Secondary line uses the type-aware `InboxDetailLabel`, not raw body.
+ *   - The agent-activity badge sits between that label and the time, which is
+ *     the order web's row uses (indicator, then timestamp).
  */
 import { Pressable, View } from "react-native";
 import type { InboxItem } from "@multica/core/types";
 import { Text } from "@/components/ui/text";
 import { ActorAvatar } from "@/components/ui/actor-avatar";
 import { StatusIcon } from "@/components/ui/status-icon";
+import { InboxActivityBadge } from "@/components/inbox/inbox-activity-badge";
 import { InboxDetailLabel } from "@/components/inbox/detail-label";
 import { getInboxDisplayTitle } from "@/lib/inbox-display";
 import { useIssueStatuses } from "@/lib/use-issue-statuses";
@@ -71,7 +74,8 @@ export function InboxRow({ item, onPress }: Props) {
               />
             ) : null}
           </View>
-          {/* Bottom row: [type-aware detail label] (left) | [time] (right).
+          {/* Bottom row: [type-aware detail label] (left) |
+              [agent-activity badge + time] (right).
               Detail label mirrors web InboxDetailLabel — same per-type
               wording (Mentioned / Set status to ... / Assigned to ... / etc),
               not the raw markdown body. */}
@@ -86,6 +90,9 @@ export function InboxRow({ item, onPress }: Props) {
                 }
               />
             </View>
+            {/* Renders nothing (no width, no gap) unless an agent has a live
+                task on this issue — see the component for the state mapping. */}
+            <InboxActivityBadge issueId={item.issue_id} />
             <Text
               className={cn(
                 "text-xs shrink-0",

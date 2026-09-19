@@ -1,7 +1,7 @@
 /**
  * Inbox realtime — Layer 3 of the realtime stack.
  *
- * Two subscription groups:
+ * Three subscription groups:
  *
  * 1. `inbox:*` events → invalidate the inbox list AND the cross-workspace
  *    unread summary that backs the tab badge (the summary lives under its
@@ -21,20 +21,35 @@
  *        issue, otherwise tapping the orphan row 404s on issue/[id].
  *    Web does the same in `packages/core/inbox/ws-updaters.ts`.
  *
- * Reconnect: invalidate the list (we may have missed events while down;
- * no replay buffer in v1).
+ * 3. `task:*` lifecycle events → invalidate the workspace agent-task
+ *    snapshot behind the row's "working" badge. The handler block below
+ *    carries the reasoning (which event is load-bearing, and why this file
+ *    subscribes rather than relying on presence realtime).
+ *
+ * Reconnect: invalidate the list and the snapshot (we may have missed events
+ * while down; no replay buffer in v1).
+ *
+ * `inbox:new` additionally raises an **Android** system banner (plan "A",
+ * FEATURE-562; see inbox-notification.ts for the mute/permission gates and
+ * for why a killed app stops notifying). iOS is untouched — the branch
+ * below never runs there.
  */
+import { Platform } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { useWSSubscriptions } from "@/lib/use-ws-subscriptions";
+import { agentTaskSnapshotOptions } from "@/data/queries/agent-task-snapshot";
+import { useWorkspaceStore } from "@/data/workspace-store";
 import {
   dropInboxItemsByIssue,
   patchInboxIssueStatus,
   refreshInboxList,
   refreshInboxUnreadSummary,
 } from "./inbox-ws-updaters";
+import { notifyNewInboxItem } from "./inbox-notification";
 
 export function useInboxRealtime() {
   const qc = useQueryClient();
+  const slug = useWorkspaceStore((s) => s.currentWorkspaceSlug);
 
   useWSSubscriptions(
     (ws, wsId) => {
@@ -46,9 +61,26 @@ export function useInboxRealtime() {
         void refreshInboxUnreadSummary(qc);
       };
 
+      // Key comes from the query factory, so this file cannot drift from the
+      // query it refreshes (lib/inbox-activity.ts derives the row badge off
+      // that snapshot).
+      const invalidateSnapshot = () =>
+        void qc.invalidateQueries({
+          queryKey: agentTaskSnapshotOptions(wsId).queryKey,
+        });
+
       return [
         // Inbox-domain events: refetch the inbox list and the badge count.
-        ws.on("inbox:new", invalidate),
+        // A new item also raises an Android system banner — the phone's
+        // counterpart of the desktop client's Electron `new Notification` and
+        // of `showWebNotification` in the shared handler. Both run: the banner
+        // must not depend on, or delay, the cache refresh beside it.
+        ws.on("inbox:new", (payload) => {
+          invalidate();
+          if (Platform.OS === "android") {
+            void notifyNewInboxItem(qc, payload.item, wsId, slug ?? "");
+          }
+        }),
         ws.on("inbox:read", invalidate),
         // Mobile has no mark-unread affordance yet (web/desktop right-click
         // only), but a mark-unread there must un-read the row here too —
@@ -62,6 +94,30 @@ export function useInboxRealtime() {
         ws.on("inbox:unarchived", invalidate),
         ws.on("inbox:batch-read", invalidate),
         ws.on("inbox:batch-archived", invalidate),
+
+        // Agent task lifecycle — the inbox row's "working" badge reads the
+        // workspace agent-task snapshot, so every transition that moves an
+        // issue between working / queued / nothing has to reach it. web
+        // refreshes that same snapshot on each `task:` event
+        // (packages/core/realtime/use-realtime-sync.ts:909); task:progress and
+        // task:message stay unsubscribed for the cellular-data reason
+        // documented in use-presence-realtime.ts.
+        //
+        // task:running is the one this file cannot go without. The backend
+        // broadcasts it precisely for the dispatched → running flip that a
+        // queued-vs-working UI waits on (server/internal/service/task.go:4152),
+        // and presence realtime does not subscribe to it — without this the
+        // badge would sit on "Queued" for the whole run and only clear when
+        // something else happened to refetch. Presence invalidates the same
+        // key for the other transitions; invalidation is idempotent and the
+        // two subscriptions collapse into one refetch.
+        ws.on("task:queued", invalidateSnapshot),
+        ws.on("task:dispatch", invalidateSnapshot),
+        ws.on("task:running", invalidateSnapshot),
+        ws.on("task:waiting_local_directory", invalidateSnapshot),
+        ws.on("task:completed", invalidateSnapshot),
+        ws.on("task:failed", invalidateSnapshot),
+        ws.on("task:cancelled", invalidateSnapshot),
 
         // Cross-cutting: issue events that need to patch inbox state.
         ws.on("issue:updated", (payload) => {
@@ -78,9 +134,12 @@ export function useInboxRealtime() {
 
         // After a reconnect we don't know what we missed during the
         // downtime — refresh from server.
-        ws.onReconnect(invalidate),
+        ws.onReconnect(() => {
+          invalidate();
+          invalidateSnapshot();
+        }),
       ];
     },
-    [qc],
+    [qc, slug],
   );
 }

@@ -1,0 +1,3 @@
+00:22:50.678 INF websocket connected user_id=2f9cf0e9-992b-4cbc-bbfd-00a8cea18f1e workspace_id=ab9300f7-4890-4bf7-b514-d56cb4f29d7c client_platform=mobile client_version=0.1.0 client_os=android
+00:23:10.080 INF websocket connected user_id=2f9cf0e9-992b-4cbc-bbfd-00a8cea18f1e workspace_id=ab9300f7-4890-4bf7-b514-d56cb4f29d7c client_platform=mobile client_version=0.1.0 client_os=android
+00:23:40.501 INF websocket connected user_id=2f9cf0e9-992b-4cbc-bbfd-00a8cea18f1e workspace_id=ab9300f7-4890-4bf7-b514-d56cb4f29d7c client_platform=mobile client_version=0.1.0 client_os=android

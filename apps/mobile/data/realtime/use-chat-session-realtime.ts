@@ -13,6 +13,11 @@
  *                                  onto the assistant message
  *   - task:queued / dispatch    → seed / promote pendingTask
  *   - task:cancelled            → refresh pendingTask + messages
+ *   - task:running /            → refresh pendingTask (a task parked on
+ *     task:waiting_local_directory  waiting_local_directory resumed)
+ *   - chat:cancel_finalized     → refresh pendingTask; on outcome
+ *                                  "stopped" refresh messages too (the
+ *                                  "Stopped." row was just persisted)
  *   - task:completed            → no-op for messages (chat:done already
  *                                  wrote the assistant message); just
  *                                  refresh pendingTask
@@ -82,6 +87,19 @@ export function useChatSessionRealtime(
           if (!isMine(payload)) return;
           promotePendingTaskToRunning(qc, payload);
         }),
+        // dispatch→running is collapsed inside task:dispatch above; these
+        // two matter when a task parks on a busy local_directory and later
+        // resumes. pendingTask is server-authored, so invalidating is the
+        // whole answer — a status transition does not change the message
+        // list.
+        ws.on("task:running", (payload) => {
+          if (!isMine(payload)) return;
+          invalidatePendingTask(qc, sessionId);
+        }),
+        ws.on("task:waiting_local_directory", (payload) => {
+          if (!isMine(payload)) return;
+          invalidatePendingTask(qc, sessionId);
+        }),
         ws.on("task:cancelled", (payload) => {
           if (!isMine(payload)) return;
           invalidatePendingTask(qc, sessionId);
@@ -97,6 +115,17 @@ export function useChatSessionRealtime(
           // and recover any queued successor from the authoritative endpoint.
           invalidatePendingTask(qc, sessionId);
           qc.invalidateQueries({ queryKey: chatKeys.messages(sessionId) });
+        }),
+        // Deferred cancellation outcome (#5219): the server settles
+        // empty/non-empty only after the daemon's transcript flush, so this
+        // lands seconds after the cancel response. `stopped` persists a
+        // "Stopped." assistant row — the one outcome that changes messages.
+        ws.on("chat:cancel_finalized", (payload) => {
+          if (!isMine(payload)) return;
+          invalidatePendingTask(qc, sessionId);
+          if (payload.outcome === "stopped") {
+            qc.invalidateQueries({ queryKey: chatKeys.messages(sessionId) });
+          }
         }),
         ws.on("chat:session_deleted", (payload) => {
           if (!isMine(payload)) return;
