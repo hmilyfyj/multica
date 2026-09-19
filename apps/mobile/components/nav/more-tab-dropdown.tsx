@@ -90,6 +90,51 @@ const NAV_ITEMS: NavItem[] = [
     ion: "albums-outline",
     path: "/more/projects",
   },
+  // Web's route icon for /autopilots is Zap (packages/core/paths/route-icons.ts);
+  // SF has no Zap, so both platforms get the bolt/flash glyph.
+  {
+    label: "Autopilots",
+    sf: "bolt.fill",
+    ion: "flash-outline",
+    path: "/more/autopilots",
+  },
+  // Web's route icon for /runtimes is Monitor (packages/core/paths/route-icons.ts);
+  // SF has no Monitor, so the display glyph stands in for the same idea.
+  {
+    label: "Runtimes",
+    sf: "display",
+    ion: "desktop-outline",
+    path: "/more/runtimes",
+  },
+  // Web's route icon for /squads is Users.
+  {
+    label: "Squads",
+    sf: "person.3",
+    ion: "people-outline",
+    path: "/more/squads",
+  },
+  // Web's route icon for /skills is BookOpenText.
+  {
+    label: "Skills",
+    sf: "book",
+    ion: "book-outline",
+    path: "/more/skills",
+  },
+  // Read-only workspace reporting. Both screens are look-only by design, so
+  // they sit after the browsable collections rather than needing their own
+  // section.
+  {
+    label: "Usage",
+    sf: "chart.bar",
+    ion: "bar-chart-outline",
+    path: "/more/usage",
+  },
+  {
+    label: "Billing",
+    sf: "creditcard",
+    ion: "card-outline",
+    path: "/more/billing",
+  },
 ];
 
 export function MoreTabDropdownAnchor({

@@ -15,14 +15,19 @@ import type {
   AgentInvocationTarget,
   AgentTask,
   Attachment,
+  Autopilot,
+  AutopilotTrigger,
   ChatMessage,
   ChatPendingTask,
   ChatSession,
   Comment,
+  GetAutopilotResponse,
   InboxItem,
   InboxWorkspaceUnread,
   IssueLabelsResponse,
   Label,
+  ListAutopilotRunsResponse,
+  ListAutopilotsResponse,
   ListLabelsResponse,
   ListProjectResourcesResponse,
   ListProjectsResponse,
@@ -31,15 +36,24 @@ import type {
   Project,
   ProjectResource,
   RuntimeDevice,
+  RuntimeUsage,
   SearchIssuesResponse,
   SearchProjectsResponse,
   SendChatMessageResponse,
+  SkillSummary,
   Squad,
+  SquadMember,
+  SquadMemberPreview,
   TaskMessagePayload,
   User,
   Workspace,
 } from "@multica/core/types";
-import { IssueSchema } from "@multica/core/api/schemas";
+import {
+  AutopilotRunSchema,
+  EMPTY_SKILL_SUMMARY,
+  IssueSchema,
+  SkillSummarySchema,
+} from "@multica/core/api/schemas";
 
 /** Upload response. Only fields mobile actually consumes — `url` to put
  *  into the markdown link, `filename` for the `[📎 name](url)` form, `id`
@@ -725,10 +739,23 @@ export const RuntimeSchema: z.ZodType<RuntimeDevice> = z.object({
 export const RuntimeListSchema = z.array(RuntimeSchema).default([]);
 export const EMPTY_RUNTIME_LIST: RuntimeDevice[] = [];
 
-// Squad schema — fields mobile actually consumes for the @mention suggestion
-// bar (id, name, archived_at filter) plus identity/timestamp fields that are
-// safe to default. `.loose()` so the server can add squad fields without
-// breaking the parser.
+// Squad member preview — the server attaches up to three of these per squad
+// (server/internal/handler/squad.go `addSquadMemberPreview`) so a list row can
+// show a member stack without a per-squad request. Declared before SquadSchema
+// because that schema evaluates this one at module-init time.
+export const SquadMemberPreviewSchema: z.ZodType<SquadMemberPreview> = z
+  .object({
+    // Two values on the wire, same as the roster's own member_type.
+    member_type: z.enum(["agent", "member"]).catch("agent"),
+    member_id: z.string().default(""),
+    role: z.string().default(""),
+  })
+  .loose();
+
+// Squad schema — fields mobile consumes for the @mention suggestion bar (id,
+// name, archived_at filter) and for the read-only Squads views (member count /
+// preview, leader) plus identity/timestamp fields that are safe to default.
+// `.loose()` so the server can add squad fields without breaking the parser.
 export const SquadSchema: z.ZodType<Squad> = z.object({
   id: z.string(),
   workspace_id: z.string().default(""),
@@ -742,6 +769,8 @@ export const SquadSchema: z.ZodType<Squad> = z.object({
   updated_at: z.string().default(""),
   archived_at: z.string().nullable().default(null),
   archived_by: z.string().nullable().default(null),
+  member_count: z.number().default(0),
+  member_preview: z.array(SquadMemberPreviewSchema).default([]),
 }).loose();
 
 export const SquadListSchema = z.array(SquadSchema).default([]);
@@ -778,3 +807,262 @@ export const EMPTY_ISSUE_FALLBACK: import("@multica/core/types").Issue = {
 
 // Helpers re-exported for ergonomic single-import at the call site.
 export type { Label, Project, ProjectResource };
+
+// --- Autopilots: detail payload + run history ---
+//
+// The list response and the single-run response already have core schemas
+// (`ListAutopilotsResponseSchema` / `AutopilotRunSchema`), and this file's
+// detail/run-list envelopes parse their rows with the core run schema. What
+// core does not schematise yet is the detail payload (`{ autopilot, triggers }`)
+// and the run-list envelope, so those live here like the rest of this file.
+//
+// Every closed vocabulary (`status`, `execution_mode`, `assignee_type`, trigger
+// `kind`) stays a lenient `z.string()` behind a `ZodType<...>` cast: the server
+// owns these enums, so a value this build predates must degrade to the generic
+// UI fallback instead of failing the parse and blanking the screen.
+
+export const AutopilotSchema: z.ZodType<Autopilot> = z
+  .object({
+    id: z.string(),
+    workspace_id: z.string().default(""),
+    title: z.string().default(""),
+    description: z.string().nullable().default(null),
+    project_id: z.string().nullable().optional(),
+    assignee_type: z
+      .string()
+      .catch("agent") as unknown as z.ZodType<Autopilot["assignee_type"]>,
+    assignee_id: z.string().default(""),
+    // Unreadable status degrades to "paused": the safe direction is the one
+    // that does NOT offer Run now for a state we could not confirm.
+    status: z.string().catch("paused") as unknown as z.ZodType<
+      Autopilot["status"]
+    >,
+    pause_reason: z.string().nullable().optional(),
+    execution_mode: z
+      .string()
+      .catch("create_issue") as unknown as z.ZodType<
+      Autopilot["execution_mode"]
+    >,
+    issue_title_template: z.string().nullable().default(null),
+    created_by_type: z.string().default(""),
+    created_by_id: z.string().default(""),
+    last_run_at: z.string().nullable().default(null),
+    created_at: z.string().default(""),
+    updated_at: z.string().default(""),
+    // List-endpoint-only derived fields; absent on detail/create/update.
+    trigger_kinds: z.array(z.string()).optional(),
+    next_run_at: z.string().nullable().optional(),
+    last_run_status: z.string().nullable().optional(),
+    // Per-caller capability flags; absent on older servers (treated as unknown).
+    can_write: z.boolean().optional(),
+    can_manage_access: z.boolean().optional(),
+  })
+  .loose();
+
+export const AutopilotTriggerSchema: z.ZodType<AutopilotTrigger> = z
+  .object({
+    id: z.string(),
+    autopilot_id: z.string().default(""),
+    kind: z.string().catch("schedule") as unknown as z.ZodType<
+      AutopilotTrigger["kind"]
+    >,
+    enabled: z.boolean().default(false),
+    cron_expression: z.string().nullable().default(null),
+    timezone: z.string().nullable().default(null),
+    next_run_at: z.string().nullable().default(null),
+    webhook_token: z.string().nullable().default(null),
+    webhook_path: z.string().nullable().optional(),
+    webhook_url: z.string().nullable().optional(),
+    label: z.string().nullable().default(null),
+    event_filters: z
+      .array(
+        z
+          .object({
+            event: z.string(),
+            actions: z.array(z.string()).optional(),
+          })
+          .loose(),
+      )
+      .nullable()
+      .optional(),
+    last_fired_at: z.string().nullable().default(null),
+    created_at: z.string().default(""),
+    updated_at: z.string().default(""),
+  })
+  .loose();
+
+// `GET /api/autopilots/{id}` — the autopilot plus its triggers. Collaborators
+// ride along on newer servers; nothing on mobile reads them, and `.loose()`
+// keeps them out of the way.
+export const AutopilotDetailSchema = z
+  .object({
+    autopilot: AutopilotSchema,
+    triggers: z.array(AutopilotTriggerSchema).default([]),
+  })
+  .loose();
+
+// Drift sentinel: `id: ""` makes the detail screen render its not-found state
+// instead of an empty shell when the payload could not be read.
+export const EMPTY_AUTOPILOT: Autopilot = {
+  id: "",
+  workspace_id: "",
+  title: "",
+  description: null,
+  assignee_type: "agent",
+  assignee_id: "",
+  status: "paused",
+  execution_mode: "create_issue",
+  issue_title_template: null,
+  created_by_type: "member",
+  created_by_id: "",
+  last_run_at: null,
+  created_at: "",
+  updated_at: "",
+};
+
+export const EMPTY_AUTOPILOT_DETAIL: GetAutopilotResponse = {
+  autopilot: EMPTY_AUTOPILOT,
+  triggers: [],
+};
+
+// `GET /api/autopilots/{id}/runs` envelope. Rows validate against the core run
+// schema — the same one web's run-now flow parses — so a new run status or
+// reason_code reaches mobile without a second definition.
+export const AutopilotRunListSchema = z
+  .object({
+    runs: z.array(AutopilotRunSchema).default([]),
+    total: z.number().default(0),
+  })
+  .loose();
+
+// The two list envelopes this feature parses. Typed by their wire contract
+// rather than inferred from an empty literal, so the unwrapped arrays the api
+// layer hands back are checked against the real shape.
+export const EMPTY_AUTOPILOT_LIST: ListAutopilotsResponse = {
+  autopilots: [],
+  total: 0,
+};
+
+export const EMPTY_AUTOPILOT_RUN_LIST: ListAutopilotRunsResponse = {
+  runs: [],
+  total: 0,
+};
+
+// ---------------------------------------------------------------------------
+// Runtimes — usage summary (FEATURE-569)
+// ---------------------------------------------------------------------------
+
+// One (date, provider, model) bucket of a runtime's daily usage. Cost arrives
+// as ticks (1e-10 USD) because the provider's own charge is authoritative; the
+// `uncosted_*` counts are the tokens that provider did not price and are
+// optional because a backend older than the split omits them. Field names stay
+// exactly as the wire spells them, so the api layer unwraps the real contract
+// instead of a renamed copy.
+export const RuntimeUsageSchema: z.ZodType<RuntimeUsage> = z
+  .object({
+    runtime_id: z.string().default(""),
+    date: z.string(),
+    provider: z.string().default(""),
+    model: z.string().default(""),
+    input_tokens: z.number().default(0),
+    output_tokens: z.number().default(0),
+    cache_read_tokens: z.number().default(0),
+    cache_write_tokens: z.number().default(0),
+    cost_usd_ticks: z.number().optional(),
+    uncosted_input_tokens: z.number().optional(),
+    uncosted_output_tokens: z.number().optional(),
+    uncosted_cache_read_tokens: z.number().optional(),
+    uncosted_cache_write_tokens: z.number().optional(),
+  })
+  .loose();
+
+export const RuntimeUsageListSchema = z.array(RuntimeUsageSchema).default([]);
+export const EMPTY_RUNTIME_USAGE_LIST: RuntimeUsage[] = [];
+
+// ---------------------------------------------------------------------------
+// Squads — member roster (FEATURE-569)
+// ---------------------------------------------------------------------------
+
+// `GET /api/squads/{id}/members`. `member_id` points at an agent or a human
+// depending on `member_type`; the roster resolves names through the workspace
+// lists, so this schema only has to carry the pair intact. Catching an unknown
+// member_type to "agent" keeps a future server-side kind from failing the whole
+// roster.
+export const SquadMemberSchema: z.ZodType<SquadMember> = z
+  .object({
+    id: z.string(),
+    squad_id: z.string().default(""),
+    // Two values on the wire. An unknown third kind catches to "agent" rather
+    // than failing the whole roster — the same rule the runtime status field uses.
+    member_type: z.enum(["agent", "member"]).catch("agent"),
+    member_id: z.string().default(""),
+    role: z.string().default(""),
+    created_at: z.string().default(""),
+  })
+  .loose();
+
+export const SquadMemberListSchema = z.array(SquadMemberSchema).default([]);
+export const EMPTY_SQUAD_MEMBER_LIST: SquadMember[] = [];
+
+// ---------------------------------------------------------------------------
+// Skills — read-only detail (FEATURE-569)
+// ---------------------------------------------------------------------------
+
+// `GET /api/skills/{id}?include=metadata`: the list shape plus `content_size`
+// (the SKILL.md byte length that `content` would have carried) and per-file
+// size/hash instead of per-file bodies. Mobile's detail page lists files
+// read-only, so bodies would be payload thrown away on arrival — and a single
+// SKILL.md routinely runs 50-200KB (server/internal/handler/skill.go:107-121),
+// which is exactly why the server made this shrink opt-in for the CLI.
+export const SkillFileMetadataSchema: z.ZodType<SkillFileMetadata> = z
+  .object({
+    id: z.string().default(""),
+    skill_id: z.string().default(""),
+    path: z.string(),
+    size: z.number().default(0),
+    content_hash: z.string().default(""),
+    created_at: z.string().default(""),
+    updated_at: z.string().default(""),
+  })
+  .loose();
+
+export interface SkillFileMetadata {
+  id: string;
+  skill_id: string;
+  path: string;
+  size: number;
+  content_hash: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// The skill's own fields reuse the core summary schema: the list endpoint and
+// this one return the same summary shape, so a second definition here would be
+// a second thing to keep in step. The response is FLAT — Go embeds
+// SkillSummaryResponse inside SkillWithFileMetadataResponse
+// (server/internal/handler/skill.go:136-149), so the summary's fields sit
+// beside `content_size`, not under a `skill` key.
+//
+// The cast is the same one this file already uses for a wire value narrower
+// than the schema can express: core's `labels` parses `resource_type` as a
+// plain string, so the extended object does not structurally satisfy
+// `SkillSummary` without it.
+export const SkillDetailSchema = SkillSummarySchema.extend({
+    content_size: z.number().default(0),
+    files: z.array(SkillFileMetadataSchema).default([]),
+  })
+  .loose() as unknown as z.ZodType<SkillDetail>;
+
+export interface SkillDetail extends SkillSummary {
+  /** Byte length of the SKILL.md body this response omits. */
+  content_size: number;
+  files: SkillFileMetadata[];
+}
+
+// Drift sentinel: `id: ""` makes the detail screen render its not-found state
+// instead of an empty shell, the same contract the agent/autopilot details use.
+export const EMPTY_SKILL_DETAIL: SkillDetail = {
+  ...EMPTY_SKILL_SUMMARY,
+  content_size: 0,
+  files: [],
+};

@@ -1,0 +1,2 @@
+{"file": "apps/mobile/AGENTS.md", "reason": "移动端数据层/组件/导航约定与 typecheck/lint/test 证据要求"}
+{"file": ".trellis/spec/mobile/frontend/android-platform.md", "reason": "平台差异与验收证据要求（本任务无设备验收，需写明未覆盖）"}

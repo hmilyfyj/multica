@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 29
+- **Total Sessions**: 38
 - **Last Active**: 2026-09-19
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~317 | Active |
+| `journal-1.md` | ~582 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,7 +29,19 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
-| 29 | 2026-09-19 | FEATURE-571 收件箱深链落点 | `f9751a58d`, `9d98ef013` | `feature/571-inbox-scroll-landing` |
+| 38 | 2026-09-19 | 归档 09-19-569-runtimes-squads-skills-readonly（FEATURE-569 Runtimes / Squads / Skills 只读视图） | `1651f9c4c` | `feature/569-runtimes-squads-skills-readonly` |
+| 37 | 2026-09-19 | 归档 09-19-567-autopilots-readonly（FEATURE-567 Autopilots 只读视图） | `de4e19c2f` | `feature/567-autopilots-readonly` |
+| 36 | 2026-09-19 | 归档 09-19-ws-event-coverage（FEATURE-564 WS 事件订阅补齐） | `cd760e71b`, `9508a29cd` | `feature/564-ws-event-subscriptions` |
+| 35 | 2026-09-19 | FEATURE-568 Usage / Billing 只读查看（含归档） | `037f13251`, `85993fc86` | `chore/568-task-journal` |
+| 34 | 2026-09-19 | FEATURE-566 设置面板补齐：工作区 / 标签 / issue 状态 | `0759aac3c`, `446919803` | `feature/566-settings-workspace-labels-statuses` |
+| 33 | 2026-09-19 | 归档 FEATURE-558 阶段 5 收尾验收 | `f0979ddfe`, `903338f10` | `feature/558-android-final-acceptance` |
+| 31 | 2026-09-19 | 归档 FEATURE-559 实时层两处缺陷修复 | `86235a2aa` | `feature/559-realtime-defects` |
+| 30 | 2026-09-19 | 归档 FEATURE-557 品牌化：应用名「海尔商城」与包名 | `564e6db87` | `feature/557-android-branding` |
+| 28 | 2026-09-19 | 归档 FEATURE-552 Android 构建、签名与分发链路 | `28f025e22` | `feature/552-android-distribution` |
+| 27 | 2026-09-19 | 归档 FEATURE-551 核心流程 Android 全量回归验收 | `e35fb0a5a` | `feature/551-android-full-regression` |
+| 26 | 2026-09-19 | FEATURE-565 Agents 只读视图（列表 + 详情） | `a87736874`, `ee04cedc5` | `feature/565-agents-readonly` |
+| 25 | 2026-09-19 | 归档 FEATURE-550 Android 构建按目标设备收敛 ABI | `3c1a101af` | `feature/550-android-build-abi` |
+| 24 | 2026-09-19 | 归档 FEATURE-548 Android 输入、键盘与系统导航行为校准 | `805a69427` | `feature/548-android-input-keyboard-nav` |
 | 23 | 2026-09-19 | FEATURE-547 归档：formSheet 路由 Android 校准 | `44413160a` | `feature/547-formsheet-android` |
 | 22 | 2026-09-19 | FEATURE-546 归档：七个搜索栏选择器 Android 替代实现 | `a00c1bb62` | `feature/546-android-search-bar` |
 | 21 | 2026-09-19 | FEATURE-545 归档：ActionSheetIOS 六处调用替换为跨平台动作菜单 | `389bf2526` | `feature/545-actionsheet-cross-platform` |

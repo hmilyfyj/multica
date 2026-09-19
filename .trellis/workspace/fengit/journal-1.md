@@ -161,6 +161,21 @@ Android 收件箱本机通知落地并合入 main@0698402c8：expo-notifications
 [OK] **Completed**
 
 
+## Session 26: FEATURE-565 Agents 只读视图（列表 + 详情）
+<!-- trellis-session: v=2 fp=953372fe2a832c75 -->
+
+**Date**: 2026-09-19
+**Task**: FEATURE-565 Agents 只读视图（列表 + 详情）
+**Package**: mobile
+**Branch**: `feature/565-agents-readonly`
+
+### Summary
+
+把 apps/mobile 的 more/agents.tsx 占位页换成真正的 Agents 只读视图：列表（头像/名称/presence/模型/最近活动，三态+下拉刷新）与详情路由 more/agents/[id]（身份块、状态与基本信息、Active/Recent 运行含状态与耗时、跳相关 issue）。数据层只追加 api.listAgentTasks + agentTasksOptions（GET /api/agents/:id/tasks）；presence 继续复用 @multica/core/agents 纯函数派生；分桶/排序/最近活动/耗时下沉 lib/agent-runs.ts 并补 12 条单测。turbo typecheck lint test --filter=@multica/mobile 4/4 通过；按 issue 要求未启动模拟器，设备视觉验收交用户真机自测。
+
+### Main Changes
+
+- apps/mobile 新增 components/agents/（agent-row / agent-presence-line / agent-detail-header / agent-facts-section / agent-runs-section）、路由 more/agents.tsx 重写 + more/agents/[id].tsx 新增、lib/agent-runs.ts(+test)、data/api.ts 与 data/queries/agents.ts 追加、_layout.tsx 注册详情路由
 ## Session 18: FEATURE-542 归档：Android 环境探针与可行性报告
 <!-- trellis-session: v=2 fp=5a6200abec648734 -->
 
@@ -176,6 +191,12 @@ Android 收件箱本机通知落地并合入 main@0698402c8：expo-notifications
 
 | Hash | Message |
 |------|---------|
+| `a87736874` | feat(mobile): Agents 只读视图（列表 + 详情） |
+| `ee04cedc5` | feat(mobile): Agents 只读视图（列表 + 详情） (#41) |
+
+### Testing
+
+- [OK] pnpm exec turbo typecheck lint test --filter=@multica/mobile → 4/4 successful（typecheck/lint/test 全绿，0 error）
 | `97aa6efba` | docs(mobile): 新增 Android 端到端可行性探针报告 |
 | `733b0a3fb` | docs(trellis): 补充 mobile 包 Android 平台 spec |
 
@@ -183,6 +204,9 @@ Android 收件箱本机通知落地并合入 main@0698402c8：expo-notifications
 
 [OK] **Completed**
 
+### Next Steps
+
+- 设备/视觉验收由用户在真机执行；More 菜单缺 Agents 入口（不在本任务文件边界），建议与 FEATURE-569 一并补
 
 ## Session 19: FEATURE-543 归档：app.config.ts 的 Android 配置与图标资源
 <!-- trellis-session: v=2 fp=4c79258bbdd09e00 -->
@@ -304,6 +328,17 @@ Android 收件箱本机通知落地并合入 main@0698402c8：expo-notifications
 ### Summary
 
 把收件箱深链从「落到底部」改成「落到目标评论/回复起始位置」：新增 lib/comment-landing.ts（resolveCommentLanding 行内锚点解析 + startLanding 视口坐标测量-修正回路），timeline-list 删除 startRenderingFromBottom 与重挂列表，comment-card 暴露 landingViewRef；9 例单测；versionCode 5→6 并出 vc6 Release APK；平台约束写回 spec。
+## Session 24: 归档 FEATURE-548 Android 输入、键盘与系统导航行为校准
+<!-- trellis-session: v=2 fp=b5276fcb125121cb -->
+
+**Date**: 2026-09-19
+**Task**: 归档 FEATURE-548 Android 输入、键盘与系统导航行为校准
+**Package**: mobile
+**Branch**: `feature/548-android-input-keyboard-nav`
+
+### Summary
+
+Trellis 归档清尾：FEATURE-548 任务归档到 archive/2026-09，业务改动已由 #13 合入 main。
 
 ### Git Commits
 
@@ -311,6 +346,248 @@ Android 收件箱本机通知落地并合入 main@0698402c8：expo-notifications
 |------|---------|
 | `f9751a58d` | fix(mobile): 收件箱深链定位到目标回复的起始位置 (#571) |
 | `9d98ef013` | chore(task): 标记 FEATURE-571 验收项完成情况 |
+| `805a69427` | feat(mobile): Android 输入/键盘/返回键校准 |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 25: 归档 FEATURE-550 Android 构建按目标设备收敛 ABI
+<!-- trellis-session: v=2 fp=914b6d440f235a21 -->
+
+**Date**: 2026-09-19
+**Task**: 归档 FEATURE-550 Android 构建按目标设备收敛 ABI
+**Package**: mobile
+**Branch**: `feature/550-android-build-abi`
+
+### Summary
+
+Trellis 归档清尾：09-18-android-build-abi 任务归档到 archive/2026-09；业务改动已由 #9 合入 main；5 项 AC 全部勾选。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3c1a101af` | perf(mobile): Android 调试构建按目标设备收敛 ABI |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 27: 归档 FEATURE-551 核心流程 Android 全量回归验收
+<!-- trellis-session: v=2 fp=6c4c8d73305ac1a4 -->
+
+**Date**: 2026-09-19
+**Task**: 归档 FEATURE-551 核心流程 Android 全量回归验收
+**Package**: mobile
+**Branch**: `feature/551-android-full-regression`
+
+### Summary
+
+Trellis 归档清尾：09-19-android-full-regression 任务归档到 archive/2026-09；业务改动（全量回归清单与验收证据）已由 #15 合入 main；6 项 AC 全部勾选。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e35fb0a5a` | docs(mobile): Android 全量回归清单与验收证据 (#15) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 28: 归档 FEATURE-552 Android 构建、签名与分发链路
+<!-- trellis-session: v=2 fp=efad9f6f97238d56 -->
+
+**Date**: 2026-09-19
+**Task**: 归档 FEATURE-552 Android 构建、签名与分发链路
+**Package**: mobile
+**Branch**: `feature/552-android-distribution`
+
+### Summary
+
+Trellis 归档清尾：09-18-android-distribution 任务归档到 archive/2026-09；业务改动（Release 签名、产物构建与分发文档）已由 #14 合入 main；6 项 AC 全部勾选。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `28f025e22` | feat(mobile): Android Release 签名、产物构建与分发文档 (#14) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 30: 归档 FEATURE-557 品牌化：应用名「海尔商城」与包名
+<!-- trellis-session: v=2 fp=35353111c7cc4d9a -->
+
+**Date**: 2026-09-19
+**Task**: 归档 FEATURE-557 品牌化：应用名「海尔商城」与包名
+**Package**: mobile
+**Branch**: `feature/557-android-branding`
+
+### Summary
+
+Trellis 归档清尾：09-18-android-branding 任务归档到 archive/2026-09；业务改动（应用名与包名 com.ehaier.zgq.shop.mall）已由 #12 合入 main；AC 全部勾选。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `564e6db87` | feat(mobile): Android 品牌化为「海尔商城」与 com.ehaier.zgq.shop.mall (#12) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 31: 归档 FEATURE-559 实时层两处缺陷修复
+<!-- trellis-session: v=2 fp=00858f485af19853 -->
+
+**Date**: 2026-09-19
+**Task**: 归档 FEATURE-559 实时层两处缺陷修复
+**Package**: mobile
+**Branch**: `feature/559-realtime-defects`
+
+### Summary
+
+Trellis 归档清尾：09-19-realtime-defects 任务归档到 archive/2026-09；业务改动（断网恢复刷新 + client_os 与握手看门狗）已由 #16 合入 main；6 项 AC 全部勾选。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `86235a2aa` | fix(mobile): 断网恢复后自动刷新 + Android client_os 与握手看门狗 |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 33: 归档 FEATURE-558 阶段 5 收尾验收
+<!-- trellis-session: v=2 fp=46dcfc971c60f3e7 -->
+
+**Date**: 2026-09-19
+**Task**: 归档 FEATURE-558 阶段 5 收尾验收
+**Package**: mobile
+**Branch**: `feature/558-android-final-acceptance`
+
+### Summary
+
+Trellis 归档清尾：09-19-android-final-acceptance 任务归档到 archive/2026-09；业务改动（Tier 1 冒烟门禁 + Release 包验收结论 + 回归清单回写）已由 #28 合入 main；10 项 AC 全部勾选。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f0979ddfe` | test(mobile): Android 验收提速（冒烟门禁 + Release 包 + 判定源修正） |
+| `903338f10` | docs(mobile): 清单更新为 FEATURE-558 Release 轮结论（Tier 1 冒烟 + 未跑项逐条说明） |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 34: FEATURE-566 设置面板补齐：工作区 / 标签 / issue 状态
+<!-- trellis-session: v=2 fp=8ed5491b2fa3a998 -->
+
+**Date**: 2026-09-19
+**Task**: FEATURE-566 设置面板补齐：工作区 / 标签 / issue 状态
+**Branch**: `feature/566-settings-workspace-labels-statuses`
+
+### Summary
+
+新增三个设置子页（工作区常规设置、标签管理、issue 状态管理）与其数据层与单测；MR #50 已 squash 合入 main（21ae38793）。turbo typecheck/lint/test --filter=@multica/mobile 全绿；未跑真机。trellis-check: ran(clean)，finish-work 4 步完成。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0759aac3c` | feat(mobile): 设置面板补齐工作区 / 标签 / issue 状态管理 (#566) |
+| `446919803` | Merge remote-tracking branch 'origin/main' into feature/566-settings-workspace-labels-statuses |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 35: FEATURE-568 Usage / Billing 只读查看（含归档）
+<!-- trellis-session: v=2 fp=5259c07f2701c077 -->
+
+**Date**: 2026-09-19
+**Task**: FEATURE-568 Usage / Billing 只读查看（含归档）
+**Branch**: `chore/568-task-journal`
+
+### Summary
+
+给 apps/mobile 补上 Usage（用量趋势 + 失败概览）与 Billing（订阅/席位/配额/账单入口）两块只读页面；新增 6 个 dashboard rollup + 2 个配额端点的移动端方法与 query options、lib/usage-stats.ts 与 lib/billing-display.ts 两组纯函数（带单测）；More 菜单新增两个入口。已与 main 合并（冲突仅在 api.ts import 区与 More 菜单项），PR #54 squash 合并，随后归档本任务的 Trellis 记录。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `037f13251` | feat(mobile): Usage / Billing 只读查看 |
+| `85993fc86` | feat(mobile): Usage / Billing 只读查看 (#54) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 37: 归档 09-19-567-autopilots-readonly（FEATURE-567 Autopilots 只读视图）
+<!-- trellis-session: v=2 fp=cc565166bcfc8490 -->
+
+**Date**: 2026-09-19
+**Task**: 归档 09-19-567-autopilots-readonly（FEATURE-567 Autopilots 只读视图）
+**Branch**: `feature/567-autopilots-readonly`
+
+### Summary
+
+trellis-check ran(clean)：AC 1-7 逐条核验（More 菜单 Autopilots 入口、列表页/详情页路由与域组件齐备、Run now 白名单分类、autopilot 纯函数单测 22 例通过、mobile typecheck/lint/vitest 476 例通过；AC7 第 4 波 FEATURE-569 已于本轮合并）。finish-work 四步完成，task 目录移入 .trellis/tasks/archive/2026-09/。
+## Session 36: 归档 09-19-ws-event-coverage（FEATURE-564 WS 事件订阅补齐）
+<!-- trellis-session: v=2 fp=cbffc99ca294680e -->
+
+**Date**: 2026-09-19
+**Task**: 归档 09-19-ws-event-coverage（FEATURE-564 WS 事件订阅补齐）
+**Branch**: `feature/564-ws-event-subscriptions`
+
+### Summary
+
+trellis-check ran(clean)：AC 6 项逐条核验（对照表 34 行=13 补齐+2 已由 563 覆盖+19 不补；覆盖率 47→60/79；RealtimeSubscriptions 挂载 useWorkspaceRealtime/useCatalogsRealtime 且含 onReconnect；realtime 13 例测试通过；mobile typecheck/lint/vitest 476 例通过）。finish-work 四步完成，task 目录移入 .trellis/tasks/archive/2026-09/。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `de4e19c2f` | feat(mobile): Autopilots 只读视图（列表 + 详情 / 立即运行） |
+| `cd760e71b` | feat(mobile): 补齐 WS 事件订阅（workspace/member/squad/label/issue_status/chat） |
+| `9508a29cd` | feat(mobile): 补齐 WS 事件订阅（workspace/member/squad/label/issue_status/task/chat） |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 38: 归档 09-19-569-runtimes-squads-skills-readonly（FEATURE-569 Runtimes / Squads / Skills 只读视图）
+<!-- trellis-session: v=2 fp=990cc2e3f878ee5d -->
+
+**Date**: 2026-09-19
+**Task**: 归档 09-19-569-runtimes-squads-skills-readonly（FEATURE-569 Runtimes / Squads / Skills 只读视图）
+**Branch**: `feature/569-runtimes-squads-skills-readonly`
+
+### Summary
+
+trellis-check ran(clean)：AC 1-5 逐条核验（More 菜单 Runtimes/Squads/Skills 三项与 3 组列表+详情路由齐备、runtime 用量与 squad 成员/skill 文件清单分区齐备、not-found 态存在、6 个域测试文件 70 例通过、mobile typecheck/lint/vitest 476 例通过；AC5 设备验收交用户）。finish-work 四步完成，task 目录移入 .trellis/tasks/archive/2026-09/。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `1651f9c4c` | feat(mobile): Runtimes / Squads / Skills 只读视图（列表 + 详情） |
 
 ### Status
 

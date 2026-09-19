@@ -111,9 +111,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       // Left as a literal instead of being derived from `version` so a release
       // bump cannot silently move it — it is also the only way to tell on a
       // device which build is actually installed.
-      // vc6: inbox deep-link landing (FEATURE-571 — land on the comment a
-      // notification is about, its replies included).
-      versionCode: 6,
+      // vc7: comment-thread quick jump (FEATURE-572 — outline sheet + prev/next
+      // stepper over an issue's comment threads).
+      versionCode: 7,
 
       // Keep the window's soft-input mode on `adjustResize` — this is Expo's
       // default (its plugin writes `adjustResize` when the key is absent), so
