@@ -115,3 +115,25 @@ Android 收件箱本机通知落地并合入 main@0698402c8：expo-notifications
 ### Status
 
 [OK] **Completed**
+
+
+## Session 16: FEATURE-562e 后台会话取证
+<!-- trellis-session: v=2 fp=37b53049664299a2 -->
+
+**Date**: 2026-09-19
+**Task**: FEATURE-562e 后台会话取证
+**Branch**: `feature/562-android-local-notifications`
+
+### Summary
+
+补 JS 心跳/帧计数/HTTP 探针三类读数与设置页结论行，用于区分进程被冻结与数据未到；vc5 交付。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8c5276d1e` | feat(mobile): 后台会话取证——直接判定进程被冻结还是数据没到 (#562) |
+
+### Status
+
+[OK] **Completed**
