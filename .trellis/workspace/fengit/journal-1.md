@@ -558,3 +558,25 @@ trellis-check ran(clean)：AC 6 项逐条核验（对照表 34 行=13 补齐+2 �
 ### Status
 
 [OK] **Completed**
+
+
+## Session 38: 归档 09-19-569-runtimes-squads-skills-readonly（FEATURE-569 Runtimes / Squads / Skills 只读视图）
+<!-- trellis-session: v=2 fp=990cc2e3f878ee5d -->
+
+**Date**: 2026-09-19
+**Task**: 归档 09-19-569-runtimes-squads-skills-readonly（FEATURE-569 Runtimes / Squads / Skills 只读视图）
+**Branch**: `feature/569-runtimes-squads-skills-readonly`
+
+### Summary
+
+trellis-check ran(clean)：AC 1-5 逐条核验（More 菜单 Runtimes/Squads/Skills 三项与 3 组列表+详情路由齐备、runtime 用量与 squad 成员/skill 文件清单分区齐备、not-found 态存在、6 个域测试文件 70 例通过、mobile typecheck/lint/vitest 476 例通过；AC5 设备验收交用户）。finish-work 四步完成，task 目录移入 .trellis/tasks/archive/2026-09/。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `1651f9c4c` | feat(mobile): Runtimes / Squads / Skills 只读视图（列表 + 详情） |
+
+### Status
+
+[OK] **Completed**
