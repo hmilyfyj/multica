@@ -37,8 +37,8 @@
 
 ## Acceptance Criteria
 
-- [ ] `bash apps/mobile/scripts/android-run.test.sh` 通过；`ios-run.test.sh` 仍通过
-- [ ] 仓库根 `pnpm android:mobile:device:staging` 完成一次 install（见到 `Installing …app-debug.apk`，
+- [x] `bash apps/mobile/scripts/android-run.test.sh` 通过；`ios-run.test.sh` 仍通过
+- [x] 仓库根 `pnpm android:mobile:device:staging` 完成一次 install（见到 `Installing …app-debug.apk`，
       且 `adb shell pm list packages` 能查到 `ai.multica.mobile.staging`）
-- [ ] README Android 章节的命令与 `package.json` 实际脚本一一对应
-- [ ] `git diff` 中 `ios-run.sh` 无变化
+- [x] README Android 章节的命令与 `package.json` 实际脚本一一对应
+- [x] `git diff` 中 `ios-run.sh` 无变化
