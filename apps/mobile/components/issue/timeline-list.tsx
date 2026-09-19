@@ -80,6 +80,7 @@ import { IssueHeaderCard } from "./issue-header-card";
 import { IssueDescription } from "./issue-description";
 import { ParentIssueRow } from "./parent-issue-row";
 import { SubIssuesSection } from "./sub-issues-section";
+import { PullRequestList } from "./pull-request-list";
 import { IssueReactionRow } from "./issue-reaction-row";
 import { ActivityRow } from "./activity-row";
 import { CommentCard } from "./comment-card";
@@ -464,6 +465,10 @@ export function TimelineList({
       <IssueReactionRow issue={issue} />
       {/* Sub-issues render between the reactions and the timeline, as on web. */}
       <SubIssuesSection issue={issue} />
+      {/* Linked PRs sit with the other related-entity blocks. Web keeps them in
+          the detail sidebar; a phone has no sidebar, so they follow the
+          sub-issues block instead of the Activity divider. */}
+      <PullRequestList issueId={issue.id} />
       <View className="px-4 pt-4 pb-2 border-t border-border">
         <Text className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
           Activity

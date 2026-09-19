@@ -623,3 +623,41 @@ children + child-progress，创建成功后由创建表单显式 invalidate 父�
 
 验收：分组 / 计数 / 行进度映射的纯函数单测在 `apps/mobile/lib/sub-issues.test.ts`
 （vitest Node lane 只收 `lib/**`、`data/**`，所以这类映射必须放 `lib/`）。
+
+## issue 详情关联 PR 区块（FEATURE-578，基线 commit `4e2d1c325`）
+
+576 说的「新增同类区块（例如关联 PR 列表）照此执行」就是本轮。口径与两条新的平台约束：
+
+**唯一口径也是 web**：`packages/views/issues/components/pull-request-list.tsx`。数据不是 issue 详情
+自带字段，而是独立接口 `GET /api/issues/:id/pull-requests`（`server/cmd/server/router.go` 单 issue
+路由组内，与 `/children`、`/attachments` 同级）→ `{ pull_requests: GitHubPullRequest[] }`；
+schema `IssuePullRequestsResponseSchema` / 哨兵 `EMPTY_ISSUE_PULL_REQUESTS_RESPONSE` 平台无关，
+`fetchValidated` 直接用。
+
+- **可见性门禁**：`deriveGitHubSettings(workspace).prSidebar`——workspace 关掉 PR 侧栏时 mobile
+  也不显示。这个派生函数在 `packages/core/github/settings.ts`，但 **`@multica/core/github` 是 barrel，
+  mobile 不能整体 import**（会连带 react-query Query factory 与 `use-github-settings` hook，违反
+  `apps/mobile/AGENTS.md` 的运行时导入白名单）。core 的 `exports` 已加 `"./github/settings"`
+  直连子路径，与既有的 `"./billing/recovery"` 同型；以后再遇到「要 core 里的纯工具、但它在带
+  react-query 的 barrel 里」，照这个加子路径，不要整体导入、也不要在 mobile 抄一份。
+- **Ionicons 没有 draft / closed 变体 PR 图标**：glyph 清单里 PR 语义只有 `git-pull-request(-outline)`、
+  `git-merge(-outline)`、`git-branch`、`git-compare`、`git-network`。所以状态在 mobile 由
+  **图标族 + 色调**表达：open / draft / closed 共用 `git-pull-request-outline`（色调
+  `success` / `mutedForeground` / `destructive`），merged 用 `git-merge-outline`（`brand`）；
+  副行的状态词逐字对齐 web（`Open` / `Draft` / `Merged` / `Closed`，未知状态**回退原始字符串**
+  而不是猜一个词）。web 靠四个不同 glyph 承担的区分，在 mobile 由文案承担。
+- **色调一律走 mobile 主题令牌**，不要抄 web 的 raw `emerald-600 / violet-600 / rose-600`：
+  raw 色在深色模式下不自适应（同 `components/autopilots/autopilot-status-badge.tsx` 的约定）。
+- **折叠规则照抄**：`PULL_REQUEST_FOLD_THRESHOLD = 4`，≥4 时只显示前 3 行，其余收在
+  `Show N more` / `Show less` 后面。区块自身的折叠默认展开、用组件内 state——web 的
+  `pullRequestsOpen` 就是 `useState(true)`，不要套用 576 的会话 store（那是 web 那边有 store 才照抄）。
+- **空态不渲染区块**：web 渲染 `No linked pull requests.`，那是给固定侧栏槽位用的；mobile 这块只承载
+  PR，空块会在每条 issue 详情上占屏。查询未 settle 时也不渲染（同 576 的取向）。
+- 位置：`components/issue/timeline-list.tsx` 的 ListHeader，`SubIssuesSection` 之后、Activity 之前
+  （web 在侧栏，phone 没有侧栏）。下拉刷新一并 invalidate `issueKeys.pullRequests(wsId, id)`。
+- 本轮**不做** PR 行的 CI / merge 徽章与 `additions/deletions/changed_files` 统计：它们属该行的次级快照区，
+  需要 `snapshot_available` 三态门禁与六种 merge 状态文案，不在「标题 / 状态 / 来源分支 / 作者 / 链接」
+  这一轮的字段口径内。
+
+验收：状态映射（含未知回退）、折叠边界（3 / 4 / 5 条与展开后）、副行拼装（作者为 null）的单测在
+`apps/mobile/lib/pull-requests.test.ts`。

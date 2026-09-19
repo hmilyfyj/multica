@@ -49,4 +49,10 @@ export const issueKeys = {
   // one key serves every sub-issue row on screen.
   childProgress: (wsId: string | null) =>
     [...issueKeys.all(wsId), "child-progress"] as const,
+  // Pull requests linked to one issue (GET /api/issues/:id/pull-requests).
+  // Kept under the `issues/<wsId>` prefix rather than web's `["github", …]`
+  // key: the association is read off the issue detail screen, so it has to
+  // move with the workspace cache like every other key here.
+  pullRequests: (wsId: string | null, id: string) =>
+    [...issueKeys.all(wsId), "pull-requests", id] as const,
 };

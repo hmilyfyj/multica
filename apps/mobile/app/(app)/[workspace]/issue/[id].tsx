@@ -96,6 +96,9 @@ export default function IssueDetail() {
       // cover them too, or children stay stale while the timeline updates.
       qc.invalidateQueries({ queryKey: issueKeys.children(wsId, id) }),
       qc.invalidateQueries({ queryKey: issueKeys.childProgress(wsId) }),
+      // The linked-PR block reads its own cache too — PRs are linked by the
+      // GitHub webhook while the screen is open, so a refresh has to cover it.
+      qc.invalidateQueries({ queryKey: issueKeys.pullRequests(wsId, id) }),
     ]);
   }, [detail, qc, wsId, id]);
 
