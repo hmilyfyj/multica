@@ -232,7 +232,7 @@ pnpm android:mobile:device:staging   # 从设备列表中选择，Debug
 ## Markdown 渲染与代码高亮（FEATURE-550 实测，基线 commit `7520b1bc6`）
 
 设备：模拟器 `Medium_Phone_API_35`（Android 15 / API 35，arm64-v8a）；构建：Debug（dev 变体，JS 走 Metro）。
-截图与原始数据：`.trellis/tasks/09-18-android-markdown-highlight/research/verify-final/`。
+截图与原始数据：`.trellis/tasks/archive/2026-09/09-18-android-markdown-highlight/research/verify-final/`。
 
 - **原生渲染在 Android 侧成立**：`react-native-enriched-markdown@0.6.0` 带完整 Android 实现（Kotlin Spannable
   渲染器 + `android/src/main/jni` 的 md4c C 解析），与 iOS 共用同一 ADR 约束 —— 不需要为 Android 写 renderer。
