@@ -27,3 +27,25 @@ Android 视觉校准交付：新增 components/ui/nav-icon.tsx 收敛 sf: SF Sym
 ### Status
 
 [OK] **Completed**
+
+
+## Session 46: 归档 09-18-android-markdown-highlight（FEATURE-550 Markdown 高亮实测）
+<!-- trellis-session: v=2 fp=d97f057a89caef8c -->
+
+**Date**: 2026-09-20
+**Task**: 归档 09-18-android-markdown-highlight（FEATURE-550 Markdown 高亮实测）
+**Branch**: `feature/550-markdown-android`
+
+### Summary
+
+FEATURE-550 Markdown/高亮实测任务在原 feature 分支归档：业务 PR #11 已 MERGED（目标 main），证据落档（research/verify-final 141 文件，light/dark 语法矩阵、内存前后台序列、长文性能），结论已写回 android-platform.md 与 markdown-rendering-adr.md；归档目录 .trellis/tasks/archive/2026-09/09-18-android-markdown-highlight。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c31888d89` | feat(mobile): Android 后台释放 shiki 高亮器，Markdown/高亮实测结论落档 |
+
+### Status
+
+[OK] **Completed**
