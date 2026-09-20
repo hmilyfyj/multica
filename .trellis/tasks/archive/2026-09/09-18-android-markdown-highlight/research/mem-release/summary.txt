@@ -1,0 +1,8 @@
+### round 1
+r1-S1-foreground-settled NativeHeap(PSS Size Alloc Free) = Heap 12 337216 402372    TOTAL_PSS = 617100
+r1-S2-backgrounded     NativeHeap(PSS Size Alloc Free) = Heap 12 162336 401084    TOTAL_PSS = 526577
+r1-S3-resumed          NativeHeap(PSS Size Alloc Free) = Heap 12 159484 401224    TOTAL_PSS = 526975
+### round 2
+r2-S1-foreground-settled NativeHeap(PSS Size Alloc Free) = Heap 16 264200 416676    TOTAL_PSS = 640114
+r2-S2-backgrounded     NativeHeap(PSS Size Alloc Free) = Heap 16 180632 415416    TOTAL_PSS = 555434
+r2-S3-resumed          NativeHeap(PSS Size Alloc Free) = Heap 16 175644 415416    TOTAL_PSS = 551935

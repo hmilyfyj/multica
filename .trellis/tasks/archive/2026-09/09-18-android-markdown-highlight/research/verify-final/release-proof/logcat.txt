@@ -1,0 +1,193 @@
+--------- beginning of main
+09-18 22:27:55.050 I/ReactNativeJS( 7209): Running "main" with {"rootTag":1,"initialProps":{},"fabric":true}
+09-18 22:27:56.716 I/ReactNativeJS( 7209): [shiki] initializing highlighter
+09-18 22:27:57.508 I/ReactNativeJS( 7209): '[api] → GET /api/me', { rid: '5habal0fzgl1' }
+09-18 22:27:58.027 I/ReactNativeJS( 7209): '[api] ← 200 /api/me', { rid: '5habal0fzgl1', duration: '534ms' }
+09-18 22:27:58.142 I/ReactNativeJS( 7209): '[api] → GET /api/workspaces', { rid: 'kc0rvz9hzh2z' }
+09-18 22:27:58.165 I/ReactNativeJS( 7209): '[api] → POST /api/auth/refresh', { rid: 'it445dl3zh3o' }
+09-18 22:27:58.498 W/ReactNativeJS( 7209): '[api] ← 404 /api/auth/refresh', { rid: 'it445dl3zh3o', duration: '327ms', error: '404 ' }
+09-18 22:27:58.506 I/ReactNativeJS( 7209): '[auth] session renewal deferred', { [ApiError: 404 ] name: 'ApiError', status: 404, body: undefined }
+09-18 22:27:58.566 I/ReactNativeJS( 7209): '[api] ← 200 /api/workspaces', { rid: 'kc0rvz9hzh2z', duration: '424ms' }
+09-18 22:27:58.940 I/ReactNativeJS( 7209): '[api] → GET /api/agents', { rid: 'llci7eiozhp4' }
+09-18 22:27:58.946 I/ReactNativeJS( 7209): '[api] → GET /api/runtimes', { rid: 'uj6rfaazzhpb' }
+09-18 22:27:58.952 I/ReactNativeJS( 7209): '[api] → GET /api/agent-task-snapshot', { rid: 'yrpgms34zhpi' }
+09-18 22:27:59.013 I/ReactNativeJS( 7209): '[api] → GET /api/inbox', { rid: 'y31r5ealzhqs' }
+09-18 22:27:59.036 I/ReactNativeJS( 7209): '[api] → GET /api/inbox/unread-summary', { rid: 'n9uyb2fxzhro' }
+09-18 22:27:59.053 I/ReactNativeJS( 7209): '[api] → GET /api/chat/sessions', { rid: 'f1p4v4npzhs1' }
+09-18 22:27:59.263 I/ReactNativeJS( 7209): '[ws] dialing', 'ws://10.0.2.2:8090/ws?workspace_slug=probe550&client_platform=mobile&client_os=ios&client_version=0.1.0'
+09-18 22:27:59.323 I/ReactNativeJS( 7209): '[api] ← 200 /api/agents', { rid: 'llci7eiozhp4', duration: '386ms' }
+09-18 22:27:59.334 I/ReactNativeJS( 7209): '[api] ← 200 /api/agent-task-snapshot', { rid: 'yrpgms34zhpi', duration: '383ms' }
+09-18 22:27:59.335 I/ReactNativeJS( 7209): '[api] ← 200 /api/runtimes', { rid: 'uj6rfaazzhpb', duration: '392ms' }
+09-18 22:27:59.343 I/ReactNativeJS( 7209): '[api] ← 200 /api/inbox', { rid: 'y31r5ealzhqs', duration: '346ms' }
+09-18 22:27:59.345 I/ReactNativeJS( 7209): [ws] socket open, sending auth frame
+09-18 22:27:59.404 I/ReactNativeJS( 7209): '[api] ← 200 /api/inbox/unread-summary', { rid: 'n9uyb2fxzhro', duration: '376ms' }
+09-18 22:27:59.416 I/ReactNativeJS( 7209): '[api] ← 200 /api/chat/sessions', { rid: 'f1p4v4npzhs1', duration: '372ms' }
+09-18 22:28:22.852 I/ReactNativeJS( 7209): [shiki] released highlighter (native scanners destroyed)
+09-18 22:28:22.957 I/ReactNativeJS( 7209): '[api] → GET /api/issues/c3be9531-19ad-403c-9944-ed33c6c67f05', { rid: 't9ghwwzu0083' }
+09-18 22:28:22.967 I/ReactNativeJS( 7209): '[api] → GET /api/issues/c3be9531-19ad-403c-9944-ed33c6c67f05/timeline', { rid: '55lr4a3o008i' }
+09-18 22:28:22.978 I/ReactNativeJS( 7209): '[api] → GET /api/pins', { rid: 'x2occmxk008q' }
+09-18 22:28:23.047 I/ReactNativeJS( 7209): [shiki] initializing highlighter
+09-18 22:28:23.052 I/ReactNativeJS( 7209): '[ws] dialing', 'ws://10.0.2.2:8090/ws?workspace_slug=probe550&client_platform=mobile&client_os=ios&client_version=0.1.0'
+09-18 22:28:23.055 I/ReactNativeJS( 7209): '[ws] dialing', 'ws://10.0.2.2:8090/ws?workspace_slug=probe550&client_platform=mobile&client_os=ios&client_version=0.1.0'
+09-18 22:28:23.667 I/ReactNativeJS( 7209): '[api] → POST /api/auth/refresh', { rid: '3fcr65ce00rx' }
+09-18 22:28:23.668 I/ReactNativeJS( 7209): [ws] socket open, sending auth frame
+09-18 22:28:23.699 I/ReactNativeJS( 7209): '[api] ← 200 /api/issues/c3be9531-19ad-403c-9944-ed33c6c67f05', { rid: 't9ghwwzu0083', duration: '752ms' }
+09-18 22:28:23.700 I/ReactNativeJS( 7209): '[api] ← 200 /api/issues/c3be9531-19ad-403c-9944-ed33c6c67f05/timeline', { rid: '55lr4a3o008i', duration: '738ms' }
+09-18 22:28:23.719 I/ReactNativeJS( 7209): '[api] ← 200 /api/pins', { rid: 'x2occmxk008q', duration: '736ms' }
+09-18 22:28:24.534 I/ReactNativeJS( 7209): '[api] → GET /api/issues/c3be9531-19ad-403c-9944-ed33c6c67f05/active-task', { rid: 'tyxdt3ue01fg' }
+09-18 22:28:24.553 I/ReactNativeJS( 7209): '[api] → GET /api/issues/c3be9531-19ad-403c-9944-ed33c6c67f05/task-runs', { rid: 'm9vhf9h601gd' }
+09-18 22:28:24.585 I/ReactNativeJS( 7209): '[api] → GET /api/workspaces/ab9300f7-4890-4bf7-b514-d56cb4f29d7c/members', { rid: 'h8px37a901hg' }
+09-18 22:28:24.606 I/ReactNativeJS( 7209): '[api] → GET /api/squads', { rid: 'b7s78zb901hn' }
+09-18 22:28:24.688 I/ReactNativeJS( 7209): '[api] → GET /api/issue-statuses?include_archived=true', { rid: 'x8azf06b01in' }
+09-18 22:28:24.745 I/ReactNativeJS( 7209): '[api] → GET /api/projects', { rid: 'qcia3v4r01kt' }
+09-18 22:28:24.811 I/ReactNativeJS( 7209): '[api] → GET /api/issues/c3be9531-19ad-403c-9944-ed33c6c67f05/attachments', { rid: 'jgs51m1w01mq' }
+09-18 22:28:26.557 W/ReactNativeJS( 7209): '[api] ← 404 /api/auth/refresh', { rid: '3fcr65ce00rx', duration: '2883ms', error: '404 ' }
+09-18 22:28:26.569 I/ReactNativeJS( 7209): '[auth] session renewal deferred', { [ApiError: 404 ] name: 'ApiError', status: 404, body: undefined }
+09-18 22:28:28.325 I/ReactNativeJS( 7209): '[api] ← 200 /api/issues/c3be9531-19ad-403c-9944-ed33c6c67f05/task-runs', { rid: 'm9vhf9h601gd', duration: '3767ms' }
+09-18 22:28:28.341 I/ReactNativeJS( 7209): '[api] ← 200 /api/issues/c3be9531-19ad-403c-9944-ed33c6c67f05/active-task', { rid: 'tyxdt3ue01fg', duration: '3829ms' }
+09-18 22:28:28.356 I/ReactNativeJS( 7209): '[api] ← 200 /api/workspaces/ab9300f7-4890-4bf7-b514-d56cb4f29d7c/members', { rid: 'h8px37a901hg', duration: '3774ms' }
+09-18 22:28:28.373 I/ReactNativeJS( 7209): '[api] ← 200 /api/squads', { rid: 'b7s78zb901hn', duration: '3783ms' }
+09-18 22:28:28.374 I/ReactNativeJS( 7209): '[api] ← 200 /api/issue-statuses?include_archived=true', { rid: 'x8azf06b01in', duration: '3751ms' }
+09-18 22:28:28.396 I/ReactNativeJS( 7209): '[api] ← 200 /api/projects', { rid: 'qcia3v4r01kt', duration: '3692ms' }
+09-18 22:28:28.402 I/ReactNativeJS( 7209): '[api] ← 200 /api/issues/c3be9531-19ad-403c-9944-ed33c6c67f05/attachments', { rid: 'jgs51m1w01mq', duration: '3632ms' }
+09-18 22:28:39.568 I/ReactNativeJS( 7209): [shiki] released highlighter (native scanners destroyed)
+09-18 22:28:49.227 I/ReactNativeJS( 7209): [shiki] initializing highlighter
+09-18 22:28:49.266 I/ReactNativeJS( 7209): '[ws] dialing', 'ws://10.0.2.2:8090/ws?workspace_slug=probe550&client_platform=mobile&client_os=ios&client_version=0.1.0'
+09-18 22:28:49.266 I/ReactNativeJS( 7209): '[ws] dialing', 'ws://10.0.2.2:8090/ws?workspace_slug=probe550&client_platform=mobile&client_os=ios&client_version=0.1.0'
+09-18 22:28:49.873 W/ReactNativeJS( 7209): Cannot connect to Expo CLI.
+09-18 22:28:49.873 W/ReactNativeJS( 7209): 
+09-18 22:28:49.873 W/ReactNativeJS( 7209): Try the following to fix the issue:
+09-18 22:28:49.873 W/ReactNativeJS( 7209): - Ensure that Expo dev server is running and available on the same network
+09-18 22:28:49.873 W/ReactNativeJS( 7209): - Ensure that your device/emulator is connected to your machine and has USB debugging enabled - run 'adb devices' to see a list of connected devices
+09-18 22:28:49.873 W/ReactNativeJS( 7209): - If you're on a physical device connected to the same machine, run 'adb reverse tcp:8081 tcp:8081' to forward requests from your device
+09-18 22:28:49.873 W/ReactNativeJS( 7209): 
+09-18 22:28:49.873 W/ReactNativeJS( 7209): URL: 10.0.2.2:8081
+09-18 22:28:49.873 W/ReactNativeJS( 7209): 
+09-18 22:28:49.873 W/ReactNativeJS( 7209): Error: undefined
+09-18 22:28:49.881 I/ReactNativeJS( 7209): '[api] → POST /api/auth/refresh', { rid: 'i9softwa0l03' }
+09-18 22:28:49.886 I/ReactNativeJS( 7209): [ws] socket open, sending auth frame
+09-18 22:28:49.911 W/ReactNativeJS( 7209): '[api] ← 404 /api/auth/refresh', { rid: 'i9softwa0l03', duration: '35ms', error: '404 ' }
+09-18 22:28:49.914 I/ReactNativeJS( 7209): '[auth] session renewal deferred', { [ApiError: 404 ] name: 'ApiError', status: 404, body: undefined }
+09-18 22:28:55.468 I/ReactNativeJS( 7209): [shiki] released highlighter (native scanners destroyed)
+09-18 22:28:55.980 I/ReactNativeJS( 7209): [shiki] initializing highlighter
+09-18 22:28:55.985 I/ReactNativeJS( 7209): '[ws] dialing', 'ws://10.0.2.2:8090/ws?workspace_slug=probe550&client_platform=mobile&client_os=ios&client_version=0.1.0'
+09-18 22:28:55.989 I/ReactNativeJS( 7209): '[ws] dialing', 'ws://10.0.2.2:8090/ws?workspace_slug=probe550&client_platform=mobile&client_os=ios&client_version=0.1.0'
+09-18 22:28:56.112 I/ReactNativeJS( 7209): '[api] → POST /api/auth/refresh', { rid: '6q0imb510ptc' }
+09-18 22:28:56.115 I/ReactNativeJS( 7209): [ws] socket open, sending auth frame
+09-18 22:28:56.146 W/ReactNativeJS( 7209): '[api] ← 404 /api/auth/refresh', { rid: '6q0imb510ptc', duration: '33ms', error: '404 ' }
+09-18 22:28:56.146 I/ReactNativeJS( 7209): '[auth] session renewal deferred', { [ApiError: 404 ] name: 'ApiError', status: 404, body: undefined }
+09-18 22:29:19.255 I/ReactNativeJS( 7209): [shiki] released highlighter (native scanners destroyed)
+09-18 22:29:19.365 I/ReactNativeJS( 7209): [shiki] initializing highlighter
+09-18 22:29:19.368 I/ReactNativeJS( 7209): '[ws] dialing', 'ws://10.0.2.2:8090/ws?workspace_slug=probe550&client_platform=mobile&client_os=ios&client_version=0.1.0'
+09-18 22:29:19.370 I/ReactNativeJS( 7209): '[ws] dialing', 'ws://10.0.2.2:8090/ws?workspace_slug=probe550&client_platform=mobile&client_os=ios&client_version=0.1.0'
+09-18 22:29:19.373 I/ReactNativeJS( 7209): '[api] → GET /api/workspaces', { rid: 'wb85kvt417rf' }
+09-18 22:29:19.380 I/ReactNativeJS( 7209): '[api] → GET /api/inbox/unread-summary', { rid: 'ycgipelx17rn' }
+09-18 22:29:19.382 I/ReactNativeJS( 7209): '[api] → GET /api/agents', { rid: 'vpgtbvsu17ro' }
+09-18 22:29:19.384 I/ReactNativeJS( 7209): '[api] → GET /api/runtimes', { rid: 'h5d6qkcn17rr' }
+09-18 22:29:19.388 I/ReactNativeJS( 7209): '[api] → GET /api/agent-task-snapshot', { rid: '3hpv8t7s17rv' }
+09-18 22:29:19.396 I/ReactNativeJS( 7209): '[api] → GET /api/inbox', { rid: 'vgj4l6vl17ry' }
+09-18 22:29:19.576 I/ReactNativeJS( 7209): '[api] → POST /api/auth/refresh', { rid: 'fein822b17x3' }
+09-18 22:29:19.582 I/ReactNativeJS( 7209): [ws] socket open, sending auth frame
+09-18 22:29:19.610 I/ReactNativeJS( 7209): '[api] ← 200 /api/workspaces', { rid: 'wb85kvt417rf', duration: '238ms' }
+09-18 22:29:19.611 I/ReactNativeJS( 7209): '[api] ← 200 /api/agents', { rid: 'vpgtbvsu17ro', duration: '231ms' }
+09-18 22:29:19.612 I/ReactNativeJS( 7209): '[api] ← 200 /api/agent-task-snapshot', { rid: '3hpv8t7s17rv', duration: '224ms' }
+09-18 22:29:19.613 I/ReactNativeJS( 7209): '[api] ← 200 /api/runtimes', { rid: 'h5d6qkcn17rr', duration: '229ms' }
+09-18 22:29:19.613 I/ReactNativeJS( 7209): '[api] ← 200 /api/inbox/unread-summary', { rid: 'ycgipelx17rn', duration: '234ms' }
+09-18 22:29:19.614 I/ReactNativeJS( 7209): '[api] ← 200 /api/inbox', { rid: 'vgj4l6vl17ry', duration: '224ms' }
+09-18 22:29:19.619 W/ReactNativeJS( 7209): '[api] ← 404 /api/auth/refresh', { rid: 'fein822b17x3', duration: '39ms', error: '404 ' }
+09-18 22:29:19.620 I/ReactNativeJS( 7209): '[auth] session renewal deferred', { [ApiError: 404 ] name: 'ApiError', status: 404, body: undefined }
+09-18 22:29:22.305 I/ReactNativeJS( 7209): [shiki] released highlighter (native scanners destroyed)
+09-18 22:29:22.453 I/ReactNativeJS( 7209): [shiki] initializing highlighter
+09-18 22:29:22.456 I/ReactNativeJS( 7209): '[ws] dialing', 'ws://10.0.2.2:8090/ws?workspace_slug=probe550&client_platform=mobile&client_os=ios&client_version=0.1.0'
+09-18 22:29:22.468 I/ReactNativeJS( 7209): '[ws] dialing', 'ws://10.0.2.2:8090/ws?workspace_slug=probe550&client_platform=mobile&client_os=ios&client_version=0.1.0'
+09-18 22:29:23.085 I/ReactNativeJS( 7209): [ws] socket open, sending auth frame
+09-18 22:29:32.780 I/ReactNativeJS( 7209): [shiki] released highlighter (native scanners destroyed)
+09-18 22:29:32.864 I/ReactNativeJS( 7209): '[api] → GET /api/issues/01a0b3a5-0bf0-7702-b33b-5c38dc6ded45', { rid: 'xvwmf4281i65' }
+09-18 22:29:32.872 I/ReactNativeJS( 7209): '[api] → GET /api/issues/01a0b3a5-0bf0-7702-b33b-5c38dc6ded45/timeline', { rid: '1qh9mg371i6c' }
+09-18 22:29:32.880 I/ReactNativeJS( 7209): '[api] → GET /api/pins', { rid: 'ahmyfibt1i6k' }
+09-18 22:29:32.938 I/ReactNativeJS( 7209): [shiki] initializing highlighter
+09-18 22:29:32.939 I/ReactNativeJS( 7209): '[ws] dialing', 'ws://10.0.2.2:8090/ws?workspace_slug=probe550&client_platform=mobile&client_os=ios&client_version=0.1.0'
+09-18 22:29:32.940 I/ReactNativeJS( 7209): '[ws] dialing', 'ws://10.0.2.2:8090/ws?workspace_slug=probe550&client_platform=mobile&client_os=ios&client_version=0.1.0'
+09-18 22:29:33.525 I/ReactNativeJS( 7209): [ws] socket open, sending auth frame
+09-18 22:29:33.537 I/ReactNativeJS( 7209): '[api] ← 200 /api/issues/01a0b3a5-0bf0-7702-b33b-5c38dc6ded45', { rid: 'xvwmf4281i65', duration: '675ms' }
+09-18 22:29:33.538 I/ReactNativeJS( 7209): '[api] ← 200 /api/issues/01a0b3a5-0bf0-7702-b33b-5c38dc6ded45/timeline', { rid: '1qh9mg371i6c', duration: '670ms' }
+09-18 22:29:33.539 I/ReactNativeJS( 7209): '[api] ← 200 /api/pins', { rid: 'ahmyfibt1i6k', duration: '662ms' }
+09-18 22:29:33.860 I/ReactNativeJS( 7209): '[api] → GET /api/issues/01a0b3a5-0bf0-7702-b33b-5c38dc6ded45/active-task', { rid: 'yhhleo031ixq' }
+09-18 22:29:33.872 I/ReactNativeJS( 7209): '[api] → GET /api/issues/01a0b3a5-0bf0-7702-b33b-5c38dc6ded45/task-runs', { rid: '2vihureq1iy2' }
+09-18 22:29:33.890 I/ReactNativeJS( 7209): '[api] → GET /api/workspaces/ab9300f7-4890-4bf7-b514-d56cb4f29d7c/members', { rid: 'xxrvhj671iy9' }
+09-18 22:29:33.918 I/ReactNativeJS( 7209): '[api] → GET /api/squads', { rid: 'j6fdbqvn1iys' }
+09-18 22:29:33.938 I/ReactNativeJS( 7209): '[api] → GET /api/projects', { rid: 'tn2qa4vz1izk' }
+09-18 22:29:33.974 I/ReactNativeJS( 7209): '[api] → GET /api/issues/01a0b3a5-0bf0-7702-b33b-5c38dc6ded45/attachments', { rid: 't8sgn7ge1j0d' }
+09-18 22:29:34.678 I/ReactNativeJS( 7209): '[api] ← 200 /api/issues/01a0b3a5-0bf0-7702-b33b-5c38dc6ded45/active-task', { rid: 'yhhleo031ixq', duration: '823ms' }
+09-18 22:29:34.679 I/ReactNativeJS( 7209): '[api] ← 200 /api/issues/01a0b3a5-0bf0-7702-b33b-5c38dc6ded45/task-runs', { rid: '2vihureq1iy2', duration: '813ms' }
+09-18 22:29:34.680 I/ReactNativeJS( 7209): '[api] ← 200 /api/workspaces/ab9300f7-4890-4bf7-b514-d56cb4f29d7c/members', { rid: 'xxrvhj671iy9', duration: '806ms' }
+09-18 22:29:34.680 I/ReactNativeJS( 7209): '[api] ← 200 /api/squads', { rid: 'j6fdbqvn1iys', duration: '788ms' }
+09-18 22:29:34.681 I/ReactNativeJS( 7209): '[api] ← 200 /api/projects', { rid: 'tn2qa4vz1izk', duration: '761ms' }
+09-18 22:29:34.682 I/ReactNativeJS( 7209): '[api] ← 200 /api/issues/01a0b3a5-0bf0-7702-b33b-5c38dc6ded45/attachments', { rid: 't8sgn7ge1j0d', duration: '732ms' }
+09-18 22:29:39.036 I/ReactNativeJS( 7209): '[api] → POST /api/auth/refresh', { rid: 'i7qlsb2t1mxo' }
+09-18 22:29:39.106 W/ReactNativeJS( 7209): '[api] ← 404 /api/auth/refresh', { rid: 'i7qlsb2t1mxo', duration: '69ms', error: '404 ' }
+09-18 22:29:39.106 I/ReactNativeJS( 7209): '[auth] session renewal deferred', { [ApiError: 404 ] name: 'ApiError', status: 404, body: undefined }
+09-18 22:29:59.980 I/ReactNativeJS( 7209): [shiki] released highlighter (native scanners destroyed)
+09-18 22:30:00.172 I/ReactNativeJS( 7209): [shiki] initializing highlighter
+09-18 22:30:00.541 I/ReactNativeJS( 7209): '[ws] dialing', 'ws://10.0.2.2:8090/ws?workspace_slug=probe550&client_platform=mobile&client_os=ios&client_version=0.1.0'
+09-18 22:30:00.554 I/ReactNativeJS( 7209): '[ws] dialing', 'ws://10.0.2.2:8090/ws?workspace_slug=probe550&client_platform=mobile&client_os=ios&client_version=0.1.0'
+09-18 22:30:00.983 I/ReactNativeJS( 7209): [ws] socket open, sending auth frame
+09-18 22:30:14.997 I/ReactNativeJS( 7209): [shiki] released highlighter (native scanners destroyed)
+09-18 22:30:15.094 I/ReactNativeJS( 7209): [shiki] initializing highlighter
+09-18 22:30:15.099 I/ReactNativeJS( 7209): '[ws] dialing', 'ws://10.0.2.2:8090/ws?workspace_slug=probe550&client_platform=mobile&client_os=ios&client_version=0.1.0'
+09-18 22:30:15.107 I/ReactNativeJS( 7209): '[ws] dialing', 'ws://10.0.2.2:8090/ws?workspace_slug=probe550&client_platform=mobile&client_os=ios&client_version=0.1.0'
+09-18 22:30:15.274 I/ReactNativeJS( 7209): '[api] → POST /api/auth/refresh', { rid: '4is616m32ew9' }
+09-18 22:30:15.277 I/ReactNativeJS( 7209): [ws] socket open, sending auth frame
+09-18 22:30:15.294 W/ReactNativeJS( 7209): '[api] ← 404 /api/auth/refresh', { rid: '4is616m32ew9', duration: '20ms', error: '404 ' }
+09-18 22:30:15.295 I/ReactNativeJS( 7209): '[auth] session renewal deferred', { [ApiError: 404 ] name: 'ApiError', status: 404, body: undefined }
+09-18 22:30:18.023 I/ReactNativeJS( 7209): [shiki] released highlighter (native scanners destroyed)
+09-18 22:30:18.206 I/ReactNativeJS( 7209): [shiki] initializing highlighter
+09-18 22:30:18.219 I/ReactNativeJS( 7209): '[ws] dialing', 'ws://10.0.2.2:8090/ws?workspace_slug=probe550&client_platform=mobile&client_os=ios&client_version=0.1.0'
+09-18 22:30:18.220 I/ReactNativeJS( 7209): '[ws] dialing', 'ws://10.0.2.2:8090/ws?workspace_slug=probe550&client_platform=mobile&client_os=ios&client_version=0.1.0'
+09-18 22:30:18.928 I/ReactNativeJS( 7209): [ws] socket open, sending auth frame
+09-18 22:30:28.617 I/ReactNativeJS( 7209): [shiki] released highlighter (native scanners destroyed)
+09-18 22:30:28.794 I/ReactNativeJS( 7209): '[api] → GET /api/agents', { rid: '40vbx8sx2pbn' }
+09-18 22:30:28.804 I/ReactNativeJS( 7209): [shiki] initializing highlighter
+09-18 22:30:29.219 I/ReactNativeJS( 7209): '[ws] dialing', 'ws://10.0.2.2:8090/ws?workspace_slug=probe550&client_platform=mobile&client_os=ios&client_version=0.1.0'
+09-18 22:30:29.221 I/ReactNativeJS( 7209): '[ws] dialing', 'ws://10.0.2.2:8090/ws?workspace_slug=probe550&client_platform=mobile&client_os=ios&client_version=0.1.0'
+09-18 22:30:29.224 I/ReactNativeJS( 7209): '[api] → GET /api/workspaces', { rid: 'lsv4lt802pnp' }
+09-18 22:30:29.235 I/ReactNativeJS( 7209): '[api] → GET /api/inbox/unread-summary', { rid: 'hbys5ic32po2' }
+09-18 22:30:29.242 I/ReactNativeJS( 7209): '[api] → GET /api/runtimes', { rid: 'qsd3ngq32po9' }
+09-18 22:30:29.248 I/ReactNativeJS( 7209): '[api] → GET /api/agent-task-snapshot', { rid: 'k28e7k0b2pog' }
+09-18 22:30:29.252 I/ReactNativeJS( 7209): '[api] → GET /api/inbox', { rid: '5n686rgl2poj' }
+09-18 22:30:29.924 I/ReactNativeJS( 7209): [ws] socket open, sending auth frame
+09-18 22:30:30.060 I/ReactNativeJS( 7209): '[api] ← 200 /api/agents', { rid: '40vbx8sx2pbn', duration: '1271ms' }
+09-18 22:30:30.062 I/ReactNativeJS( 7209): '[api] ← 200 /api/workspaces', { rid: 'lsv4lt802pnp', duration: '840ms' }
+09-18 22:30:30.064 I/ReactNativeJS( 7209): '[api] ← 200 /api/inbox/unread-summary', { rid: 'hbys5ic32po2', duration: '830ms' }
+09-18 22:30:30.066 I/ReactNativeJS( 7209): '[api] ← 200 /api/runtimes', { rid: 'qsd3ngq32po9', duration: '825ms' }
+09-18 22:30:30.068 I/ReactNativeJS( 7209): '[api] ← 200 /api/inbox', { rid: '5n686rgl2poj', duration: '815ms' }
+09-18 22:30:30.068 I/ReactNativeJS( 7209): '[api] ← 200 /api/agent-task-snapshot', { rid: 'k28e7k0b2pog', duration: '820ms' }
+09-18 22:30:47.590 I/ReactNativeJS( 7209): '[api] → POST /api/auth/refresh', { rid: 'w6f06foj33ty' }
+09-18 22:30:47.613 W/ReactNativeJS( 7209): '[api] ← 404 /api/auth/refresh', { rid: 'w6f06foj33ty', duration: '22ms', error: '404 ' }
+09-18 22:30:47.616 I/ReactNativeJS( 7209): '[auth] session renewal deferred', { [ApiError: 404 ] name: 'ApiError', status: 404, body: undefined }
+09-18 22:30:53.585 I/ReactNativeJS( 7209): [shiki] released highlighter (native scanners destroyed)
+09-18 22:30:53.800 I/ReactNativeJS( 7209): '[api] → GET /api/issues/01a0b3a5-2c4c-770e-b13f-c0060d368b7e', { rid: 'frg3dqgb38m6' }
+09-18 22:30:53.817 I/ReactNativeJS( 7209): '[api] → GET /api/issues/01a0b3a5-2c4c-770e-b13f-c0060d368b7e/timeline', { rid: 'g1sd906v38ml' }
+09-18 22:30:53.843 I/ReactNativeJS( 7209): '[api] → GET /api/pins', { rid: '78fa1e4038n3' }
+09-18 22:30:53.987 I/ReactNativeJS( 7209): [shiki] initializing highlighter
+09-18 22:30:53.994 I/ReactNativeJS( 7209): '[ws] dialing', 'ws://10.0.2.2:8090/ws?workspace_slug=probe550&client_platform=mobile&client_os=ios&client_version=0.1.0'
+09-18 22:30:54.001 I/ReactNativeJS( 7209): '[ws] dialing', 'ws://10.0.2.2:8090/ws?workspace_slug=probe550&client_platform=mobile&client_os=ios&client_version=0.1.0'
+09-18 22:30:55.384 I/ReactNativeJS( 7209): [ws] socket open, sending auth frame
+09-18 22:30:55.387 I/ReactNativeJS( 7209): '[api] ← 200 /api/issues/01a0b3a5-2c4c-770e-b13f-c0060d368b7e', { rid: 'frg3dqgb38m6', duration: '1597ms' }
+09-18 22:30:55.388 I/ReactNativeJS( 7209): '[api] ← 200 /api/issues/01a0b3a5-2c4c-770e-b13f-c0060d368b7e/timeline', { rid: 'g1sd906v38ml', duration: '1583ms' }
+09-18 22:30:55.389 I/ReactNativeJS( 7209): '[api] ← 200 /api/pins', { rid: '78fa1e4038n3', duration: '1566ms' }
+09-18 22:31:02.439 I/ReactNativeJS( 7209): '[api] → GET /api/issues/01a0b3a5-2c4c-770e-b13f-c0060d368b7e/active-task', { rid: 'ztfxhwz23f9w' }
+09-18 22:31:02.456 I/ReactNativeJS( 7209): '[api] → GET /api/issues/01a0b3a5-2c4c-770e-b13f-c0060d368b7e/task-runs', { rid: 'us2gyro13fak' }
+09-18 22:31:02.474 I/ReactNativeJS( 7209): '[api] → GET /api/workspaces/ab9300f7-4890-4bf7-b514-d56cb4f29d7c/members', { rid: '81ukie5t3fax' }
+09-18 22:31:02.496 I/ReactNativeJS( 7209): '[api] → GET /api/squads', { rid: '30icbqhp3fbh' }
+09-18 22:31:02.560 I/ReactNativeJS( 7209): '[api] → GET /api/projects', { rid: 'ma59anl73fc8' }
+09-18 22:31:02.645 I/ReactNativeJS( 7209): '[api] → GET /api/issues/01a0b3a5-2c4c-770e-b13f-c0060d368b7e/attachments', { rid: 'gyr2aekg3ffk' }
+09-18 22:31:22.045 I/ReactNativeJS( 7209): '[api] ← 200 /api/issues/01a0b3a5-2c4c-770e-b13f-c0060d368b7e/task-runs', { rid: 'us2gyro13fak', duration: '19600ms' }
+09-18 22:31:22.046 I/ReactNativeJS( 7209): '[api] ← 200 /api/issues/01a0b3a5-2c4c-770e-b13f-c0060d368b7e/active-task', { rid: 'ztfxhwz23f9w', duration: '19626ms' }
+09-18 22:31:22.047 I/ReactNativeJS( 7209): '[api] ← 200 /api/workspaces/ab9300f7-4890-4bf7-b514-d56cb4f29d7c/members', { rid: '81ukie5t3fax', duration: '19590ms' }
+09-18 22:31:22.048 I/ReactNativeJS( 7209): '[api] ← 200 /api/squads', { rid: '30icbqhp3fbh', duration: '19571ms' }
+09-18 22:31:22.049 I/ReactNativeJS( 7209): '[api] ← 200 /api/projects', { rid: 'ma59anl73fc8', duration: '19544ms' }
+09-18 22:31:22.050 I/ReactNativeJS( 7209): '[api] ← 200 /api/issues/01a0b3a5-2c4c-770e-b13f-c0060d368b7e/attachments', { rid: 'gyr2aekg3ffk', duration: '19426ms' }
+09-18 22:31:22.063 I/ReactNativeJS( 7209): '[api] → POST /api/auth/refresh', { rid: 'e5ak8kc43ufi' }
+09-18 22:31:22.761 W/ReactNativeJS( 7209): '[api] ← 404 /api/auth/refresh', { rid: 'e5ak8kc43ufi', duration: '698ms', error: '404 ' }
+09-18 22:31:22.762 I/ReactNativeJS( 7209): '[auth] session renewal deferred', { [ApiError: 404 ] name: 'ApiError', status: 404, body: undefined }

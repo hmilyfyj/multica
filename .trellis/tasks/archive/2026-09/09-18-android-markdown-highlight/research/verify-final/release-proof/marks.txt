@@ -1,0 +1,6 @@
+22:27:50  launch dev-client (cold)
+22:28:24  open PROB-3 (12 langs)
+22:28:41  HOME (background)
+22:28:51  resume (bring app back, no new issue)
+22:28:57  re-open PROB-3 (new highlight)
+22:29:13  done
