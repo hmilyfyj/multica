@@ -34,6 +34,7 @@ Use `Makefile`, workspace `package.json` files, and `pnpm-workspace.yaml` for cu
 - Worktrees share PostgreSQL but have isolated databases/ports. Use the environment scripts and `.env.worktree`; do not copy the main checkout's `.env` or manually create a database through an assumed PostgreSQL instance.
 - Regenerate sqlc with `make sqlc` after SQL changes.
 - Run the narrowest useful checks while iterating, then broaden when risk warrants it. Report what actually ran and any skipped checks.
+- For long Android acceptance runs, use the bounded supervisor documented in `scripts/android-acceptance.md`. Track the exact owned child and result progress; a missing device, exited process or stalled result stream requires diagnosis, not another fixed polling loop. A timeout is blocked evidence, not a product assertion failure. Never cancel solely because total runtime exceeded 30 minutes.
 
 Run these from the repository root:
 
