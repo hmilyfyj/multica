@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 45
-- **Last Active**: 2026-09-19
+- **Total Sessions**: 46
+- **Last Active**: 2026-09-27
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~770 | Active |
+| `journal-1.md` | ~792 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 46 | 2026-09-27 | 每日 Trellis 扫描归档 2026-09-27（09-21-android-acceptance-supervision） | `534fae007` | `chore/679-trellis-archive` |
 | 45 | 2026-09-19 | 581 运行详情（run transcript）落地并归档 | `33631ea4f` | `chore/581-trellis-archive` |
 | 44 | 2026-09-19 | FEATURE-578 issue 详情关联 PR 列表（只读） | `802124561`, `103a68e39` | `feature/578-issue-pull-requests` |
 | 43 | 2026-09-19 | FEATURE-579 聊天停止任务 + 会话重命名（归档） | `817a35edb`, `5284dc949` | `chore/579-trellis-archive` |
