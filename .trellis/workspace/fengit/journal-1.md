@@ -768,3 +768,25 @@ Session summary was not supplied.
 ### Next Steps
 
 - 用户在 Release APK 上执行真机验收：Runs 列表点历史 run → 步骤与消息 → Show earlier steps → 运行中实时追加
+
+
+## Session 46: 每日 Trellis 扫描归档 2026-09-27（09-21-android-acceptance-supervision）
+<!-- trellis-session: v=2 fp=5cc29aa6223103eb -->
+
+**Date**: 2026-09-27
+**Task**: 每日 Trellis 扫描归档 2026-09-27（09-21-android-acceptance-supervision）
+**Branch**: `chore/679-trellis-archive`
+
+### Summary
+
+按每日归档任务扫描工作区内含 .trellis/tasks 的主仓主干；本轮归档本仓主干上 1 个已完成任务（Bound Android acceptance waits，无 Multica issue，交付 PR #78 已合入 main）。项目内 check 代理判定 AC 全部达成、无待办项。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `534fae007` | chore(task): 归档 09-21-android-acceptance-supervision |
+
+### Status
+
+[OK] **Completed**
