@@ -1,0 +1,3 @@
+The Feishu document bridge currently cannot use native chat through the CLI. Add a `chat session` namespace that calls existing handlers through `newAPIClient`, retaining token and workspace policy. No HTTP API, schema, database or UI change is needed. Normal create marks sessions explicitly created, preserving visibility in the creator's list.
+
+The bridge lives in a separate repository. Its explicit chat mode associates each authorized document comment with one session, checkpoints before writes, correlates assistant replies by task ID, and reconciles ambiguous writes without retrying. The CLI returns the existing JSON contract without remapping it. Complete transcript reads suffice for this first version; the bridge fails closed at its existing output cap.

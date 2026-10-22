@@ -178,7 +178,7 @@ multica runtime activity <runtime-id>
 | `config` | 現在の CLI プロファイルのローカル設定を表示・編集 |
 | `update`、`version` | CLI の更新とバージョンの表示 |
 
-`multica chat` が読み取るのは、**エージェントが現在処理している外部チャットセッション**です。主にチャット統合の中のエージェントが使うもので、任意のワークスペースの会話を閲覧するための汎用コマンドではありません。
+`multica chat history` と `multica chat thread` は、**エージェントが現在処理している外部チャットセッション**を読み取ります。ネイティブの会話には `multica chat session` を使用します。
 
 ## ID と出力形式
 
@@ -275,6 +275,7 @@ CLI の設定ファイルには、あなたとして Multica にアクセスで�
 | | `member list/add/set-role/remove` | スクワッドのメンバーを管理 | |
 | | `activity <issue-id> <outcome>` | リーダーの評価を記録 | |
 | `chat` | `history`、`thread [id]` | エージェントが現在処理している外部チャットセッションを読み取り | `--limit`、`--before` |
+| | `session list/create/get/send/messages` | ネイティブの会話を作成・読み取り、メッセージを送信 | `--agent-id`、`--project`、`--title`、`--content-file`、`--content-stdin` |
 
 ### Runtime
 
