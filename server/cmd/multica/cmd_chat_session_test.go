@@ -24,7 +24,7 @@ func TestNativeChatSessionCommands(t *testing.T) {
 			t.Error("missing scoped credentials")
 		}
 		body = nil
-		if r.Method == http.MethodPost {
+		if r.Method == http.MethodPost || r.Method == http.MethodPatch {
 			_ = json.NewDecoder(r.Body).Decode(&body)
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -47,6 +47,7 @@ func TestNativeChatSessionCommands(t *testing.T) {
 		{"create", []string{"create", "--agent-id", id, "--project", id, "--title", "飞书文档"}, "POST", "/api/chat/sessions", ""},
 		{"list", []string{"list"}, "GET", "/api/chat/sessions?status=all", ""},
 		{"get", []string{"get", id}, "GET", "/api/chat/sessions/" + id, ""},
+		{"rename", []string{"rename", id, "--title", " 飞书评论 · 今日计划 📝 "}, "PATCH", "/api/chat/sessions/" + id, ""},
 		{"send file", []string{"send", id, "--content-file", "message.md"}, "POST", "/api/chat/sessions/" + id + "/messages", "中文第一行\n$(echo literal) `literal`\\n"},
 		{"messages", []string{"messages", id}, "GET", "/api/chat/sessions/" + id + "/messages", ""},
 	} {
@@ -69,6 +70,9 @@ func TestNativeChatSessionCommands(t *testing.T) {
 			if tc.name == "create" && (body["agent_id"] != id || body["project_id"] != id || body["title"] != "飞书文档") {
 				t.Fatalf("body = %#v", body)
 			}
+			if tc.name == "rename" && (len(body) != 1 || body["title"] != "飞书评论 · 今日计划 📝") {
+				t.Fatalf("rename body = %#v", body)
+			}
 		})
 	}
 }
@@ -82,6 +86,8 @@ func TestNativeChatRejectsInvalidInputBeforeRequest(t *testing.T) {
 	const id = "11111111-1111-4111-8111-111111111111"
 	for _, args := range [][]string{
 		{"create"}, {"create", "--agent-id", id, "--project", "bad"}, {"get", "../other"},
+		{"rename", "../other", "--title", "title"}, {"rename", id}, {"rename", id, "--title", "   "},
+		{"rename", id, "--title", strings.Repeat("文", 201)},
 		{"send", id}, {"send", id, "--content", "   "},
 		{"send", id, "--content", "hello", "--content-file", outside},
 		{"send", id, "--content-file", outside},
