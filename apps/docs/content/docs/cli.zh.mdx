@@ -117,6 +117,22 @@ multica issue run-messages <task-id> --issue MUL-123
 multica issue cancel-task <task-id> --issue MUL-123
 ```
 
+## 原生对话
+
+创建的会话会出现在当前登录用户的“对话”列表中：
+
+```bash
+multica chat session create --agent-id <agent-uuid> --title "文档讨论"
+multica chat session list
+multica chat session get <session-uuid>
+multica chat session send <session-uuid> --content-file question.md
+multica chat session messages <session-uuid>
+```
+
+这些命令返回 JSON。创建时可传 `--project <project-uuid>`。发送支持 `--content`、`--content-file` 或 `--content-stdin`，返回 `message_id` 和 `task_id`，不等待智能体回答；文件必须在当前工作目录内。请求失败时消息可能已经提交，请先检查记录再重试。会话归创建者所有，并遵守工作区和智能体的访问权限。
+
+`chat history` 和 `chat thread` 仍用于读取智能体当前处理的外部渠道会话。
+
 ## 智能体和 skill
 
 ```bash
@@ -178,7 +194,7 @@ multica runtime activity <runtime-id>
 | `config` | 查看或修改当前 CLI profile 的本地配置 |
 | `update`、`version` | 更新 CLI 或查看版本 |
 
-`multica chat` 读取的是**智能体当前正在处理的外部聊天会话**，主要供聊天集成中的智能体使用；它不是用于浏览任意工作区对话的通用命令。
+`multica chat history` 和 `multica chat thread` 读取**智能体当前正在处理的外部聊天会话**。原生对话使用 `multica chat session`。
 
 ## ID 和输出格式
 
@@ -275,6 +291,7 @@ CLI 配置文件包含可代表你访问 Multica 的令牌。不要提交到仓�
 | | `member list/add/set-role/remove` | 管理小队成员 | |
 | | `activity <issue-id> <outcome>` | 记录队长评价 | |
 | `chat` | `history`、`thread [id]` | 读取智能体当前正在处理的外部聊天会话 | `--limit`、`--before` |
+| | `session list/create/get/send/messages` | 创建、读取原生对话及发送消息 | `--agent-id`、`--project`、`--title`、`--content-file`、`--content-stdin` |
 
 ### Runtime
 
